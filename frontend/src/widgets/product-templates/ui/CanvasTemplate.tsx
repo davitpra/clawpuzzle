@@ -12,6 +12,7 @@ import {
   getRelatedAccessories,
 } from "@/widgets/related-products";
 import { getSimilarProducts } from "@/entities/product/lib/getSimilarProducts";
+import { SameStyleGallery } from "@/widgets/expanding-gallery";
 
 export default function CanvasTemplate({
   product,
@@ -40,6 +41,7 @@ export default function CanvasTemplate({
       </div>
 
       <StyleCollection handle={handle} />
+      <SameStyleGallery handle={handle} />
       {relatedAccessories.length > 0 && (
         <RelatedProducts accessories={relatedAccessories} />
       )}
