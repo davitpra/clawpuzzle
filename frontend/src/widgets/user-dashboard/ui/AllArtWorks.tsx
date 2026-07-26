@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import {
@@ -15,6 +15,15 @@ import type {
   PaginatedResult,
   UserGeneration,
 } from "@/entities/order/types";
+import {
+  SKELETON_ASPECTS,
+  SKELETON_ITEM,
+  SKELETON_MASONRY,
+  staggerDelay,
+  useColumnCount,
+  useInfiniteSentinel,
+  useMasonryColumns,
+} from "@/widgets/user-dashboard/lib/masonry";
 
 // Imagen del arte, o `null` mientras la generación no ha producido ninguna
 // (pending/processing) o ha fallado. En ese caso NO se renderiza un <img>: ver
@@ -104,60 +113,6 @@ function GenerationPlaceholder({ generation }: { generation: UserGeneration }) {
 
 const PAGE_SIZE = 10;
 
-// Masonry con columnas fijas repartidas por índice (round-robin), NO con CSS columns.
-// Motivo: `column-fill: balance` rebalancea todas las columnas cada vez que se añaden
-// items, así que en scroll infinito las cards ya visibles saltan de columna al cargar
-// la siguiente tanda. Con columnas fijas cada obra tiene su columna asignada por su
-// índice, y una tanda nueva solo se apila al fondo sin mover las anteriores.
-// El skeleton inicial (estático, sin append) sí puede usar CSS columns sin problema.
-const SKELETON_MASONRY =
-  "columns-2 gap-8 [column-fill:_balance] lg:columns-3 xl:columns-4";
-const SKELETON_ITEM = "mb-8 break-inside-avoid";
-
-// Número de columnas por breakpoint (Tailwind: lg=1024px, xl=1280px). El reparto en
-// columnas se hace en JS, así que necesitamos saber cuántas hay en cada momento.
-const COLUMN_BREAKPOINTS = [
-  { query: "(min-width: 1280px)", count: 4 },
-  { query: "(min-width: 1024px)", count: 3 },
-];
-const BASE_COLUMNS = 2;
-
-function useColumnCount() {
-  const [count, setCount] = useState(BASE_COLUMNS);
-  useEffect(() => {
-    const lists = COLUMN_BREAKPOINTS.map((b) => window.matchMedia(b.query));
-    const update = () => {
-      const hit = COLUMN_BREAKPOINTS.find((_, i) => lists[i].matches);
-      setCount(hit ? hit.count : BASE_COLUMNS);
-    };
-    update();
-    lists.forEach((l) => l.addEventListener("change", update));
-    return () => lists.forEach((l) => l.removeEventListener("change", update));
-  }, []);
-  return count;
-}
-
-// Cada tanda entra escalonada en vez de aparecer de golpe. El retraso se calcula
-// por posición dentro de su página, así que la tanda nueva se despliega sola y las
-// cards ya montadas no vuelven a animarse (React conserva sus nodos por `key`).
-const STAGGER_MS = 60;
-
-function staggerDelay(index: number) {
-  return { animationDelay: `${(index % PAGE_SIZE) * STAGGER_MS}ms` };
-}
-
-// Alturas variadas para que el estado de carga anticipe la forma de la galería.
-const SKELETON_ASPECTS = [
-  "aspect-3/4",
-  "aspect-square",
-  "aspect-4/5",
-  "aspect-2/3",
-  "aspect-square",
-  "aspect-3/4",
-  "aspect-4/5",
-  "aspect-2/3",
-];
-
 export function AllArtWorks() {
   const { get } = useAuthFetch();
 
@@ -230,42 +185,14 @@ export function AllArtWorks() {
 
   const hasMore = page < totalPages;
 
-  // Scroll infinito: un centinela invisible bajo la galería pide la página
-  // siguiente cuando se acerca al viewport. Tras un fallo dejamos de observar y
-  // mostramos un botón de reintento, para no reintentar en bucle.
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Tras un fallo dejamos de observar el centinela y mostramos un botón de
+  // reintento, para no reintentar en bucle.
   const shouldObserve = hasMore && !isLoading && !error && !loadMoreError;
+  const loadNext = useCallback(() => void loadPage(page + 1), [loadPage, page]);
+  const sentinelRef = useInfiniteSentinel(shouldObserve, loadNext);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !shouldObserve) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) void loadPage(page + 1);
-      },
-      // Se adelanta media pantalla para que la siguiente tanda llegue antes de
-      // que el usuario toque el fondo.
-      { rootMargin: "600px 0px" },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [shouldObserve, loadPage, page]);
-
-  // Reparto en columnas fijas: la obra `i` va siempre a la columna `i % columnCount`.
-  // Conservamos el índice global para el stagger de entrada y para variar el skeleton.
   const columnCount = useColumnCount();
-  const columns = useMemo(() => {
-    const cols: { generation: UserGeneration; index: number }[][] = Array.from(
-      { length: columnCount },
-      () => [],
-    );
-    generations.forEach((generation, index) =>
-      cols[index % columnCount].push({ generation, index }),
-    );
-    return cols;
-  }, [generations, columnCount]);
+  const columns = useMasonryColumns(generations, columnCount);
 
   return (
     <div className="space-y-6">
@@ -333,7 +260,7 @@ export function AllArtWorks() {
             <div className="flex items-start gap-8">
               {columns.map((col, ci) => (
                 <div key={ci} className="flex min-w-0 flex-1 flex-col gap-8">
-                  {col.map(({ generation, index }) => {
+                  {col.map(({ item: generation, index }) => {
                     const img = brokenIds.has(generation.id)
                       ? null
                       : generationImage(generation);
@@ -342,7 +269,7 @@ export function AllArtWorks() {
                       <div
                         key={generation.id}
                         className="animate-fade-in-up"
-                        style={staggerDelay(index)}
+                        style={staggerDelay(index, PAGE_SIZE)}
                       >
                         {img ? (
                           <ProductCard
