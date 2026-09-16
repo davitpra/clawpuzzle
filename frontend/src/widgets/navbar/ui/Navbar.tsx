@@ -167,39 +167,26 @@ export default function Navbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-              {MAIN_NAV.map((link) =>
-                link.cta ? (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="font-display flex items-center justify-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-primary-dark text-white transition-all shadow-sm text-sm font-bold hover:shadow-md hover:scale-105"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      auto_awesome
-                    </span>
-                    {link.label}
-                  </Link>
-                ) : (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`font-display leading-normal font-bold transition-all relative group ${
+              {MAIN_NAV.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`font-display leading-normal font-bold transition-all relative group ${
+                    pathname === link.href
+                      ? "text-primary"
+                      : "text-slate-dark hover:text-primary"
+                  }`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-300 ${
                       pathname === link.href
-                        ? "text-primary"
-                        : "text-slate-dark hover:text-primary"
+                        ? "w-full"
+                        : "w-0 group-hover:w-full"
                     }`}
-                  >
-                    {link.label}
-                    <span
-                      className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-300 ${
-                        pathname === link.href
-                          ? "w-full"
-                          : "w-0 group-hover:w-full"
-                      }`}
-                    />
-                  </Link>
-                ),
-              )}
+                  />
+                </Link>
+              ))}
             </div>
 
             {/* Right Side Actions */}
@@ -314,34 +301,20 @@ export default function Navbar() {
         <div className="container-site px-4 sm:px-6 py-4">
           {/* Navigation Links */}
           <nav className="space-y-1">
-            {MAIN_NAV.map((link) =>
-              link.cta ? (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  tabIndex={mobileMenuOpen ? undefined : -1}
-                  className="font-display flex items-center justify-center gap-2 rounded-xl h-12 px-5 bg-primary hover:bg-primary-dark text-white transition-all shadow-sm text-base font-bold w-full"
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    auto_awesome
-                  </span>
-                  {link.label}
-                </Link>
-              ) : (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  tabIndex={mobileMenuOpen ? undefined : -1}
-                  className={`font-display block px-4 py-3 rounded-xl text-base font-bold transition-all ${
-                    pathname === link.href
-                      ? "bg-primary/10 text-primary"
-                      : "text-text-main hover:bg-gray-50"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ),
-            )}
+            {MAIN_NAV.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                tabIndex={mobileMenuOpen ? undefined : -1}
+                className={`font-display block px-4 py-3 rounded-xl text-base font-bold transition-all ${
+                  pathname === link.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-text-main hover:bg-gray-50"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
 
           {/* Auth Buttons - Mobile */}

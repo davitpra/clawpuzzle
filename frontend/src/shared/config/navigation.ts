@@ -12,8 +12,6 @@ import { LAUNCH_MODE } from "./launch";
 export interface NavLink {
   label: string;
   href: string;
-  /** Se pinta como botón primario en vez de link de texto. */
-  cta?: boolean;
 }
 
 export interface NavSection {
@@ -28,11 +26,11 @@ const FULL_MAIN_NAV: NavLink[] = [
   { label: "Contact", href: "/contact" },
 ];
 
-// Sin "Catalog" (ruta bloqueada) y con el embudo de IA como CTA principal. El
+// Sin "Catalog" (ruta bloqueada) y con el embudo de IA en primer lugar. El
 // destino es el ancla de `LandingStyles` (`id="styles"`) y no `/create`, porque
 // el generador todavía exige `product_ref_id`/`format_id`/`style_id` en la URL.
 const LAUNCH_MAIN_NAV: NavLink[] = [
-  { label: "Create your art", href: "/#styles", cta: true },
+  { label: "Create your art", href: "/#styles" },
   { label: "Contact", href: "/contact" },
 ];
 
