@@ -6,6 +6,7 @@ import type { Product } from "@/entities/pet-product/model/types";
 import type { UserGeneration } from "@/entities/order/types";
 import LightRays from "@/shared/ui/LightRays";
 import { EmptyState } from "./EmptyState";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 interface Props {
   artworks: UserGeneration[];
@@ -52,11 +53,15 @@ export function MyArtworks({ artworks, isLoading, error }: Props) {
             icon="palette"
             title="No artworks yet"
             description="When you create an artwork it will show up here."
-            cta={{
-              href: "/catalog",
-              icon: "auto_awesome",
-              label: "Create your first artwork",
-            }}
+            cta={
+              LAUNCH_MODE
+                ? undefined
+                : {
+                    href: "/catalog",
+                    icon: "auto_awesome",
+                    label: "Create your first artwork",
+                  }
+            }
           />
         )}
 

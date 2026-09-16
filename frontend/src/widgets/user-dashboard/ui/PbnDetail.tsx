@@ -24,6 +24,7 @@ import {
   usePbnAccessories,
 } from "@/features/pbn-purchase";
 import type { RGB } from "@/lib/pbn/common";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 interface Props {
   id: string;
@@ -318,7 +319,10 @@ export function PbnDetail({ id }: Props) {
 
             {/* El kit y sus accesorios comparten un carrusel: una slide a ancho
                 completo cada uno. */}
-            {!accessoriesLoading && (
+            {/* En modo lanzamiento la venta se concentra en el diálogo de
+                Download del studio (§7 de LAUNCH_PLAN.md): estas tarjetas
+                añaden al carrito local y acaban en /cart, que está bloqueado. */}
+            {!LAUNCH_MODE && !accessoriesLoading && (
               <Carousel gap="gap-4" showDots>
                 <div className="min-w-0 flex-[0_0_100%]">
                   <PbnPurchaseCard

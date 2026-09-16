@@ -25,6 +25,7 @@ import {
   useMasonryColumns,
 } from "@/widgets/user-dashboard/lib/masonry";
 import { EmptyState } from "./EmptyState";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 // Imagen del arte, o `null` mientras la generación no ha producido ninguna
 // (pending/processing) o ha fallado. En ese caso NO se renderiza un <img>: ver
@@ -236,11 +237,15 @@ export function AllArtWorks() {
             icon="palette"
             title="No artworks yet"
             description="When you create an artwork it will show up here."
-            cta={{
-              href: "/catalog",
-              icon: "auto_awesome",
-              label: "Create your first artwork",
-            }}
+            cta={
+              LAUNCH_MODE
+                ? undefined
+                : {
+                    href: "/catalog",
+                    icon: "auto_awesome",
+                    label: "Create your first artwork",
+                  }
+            }
           />
         )}
 

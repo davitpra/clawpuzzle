@@ -19,6 +19,7 @@ import type {
 } from "@/entities/order/types";
 import LightRays from "@/shared/ui/LightRays";
 import { EmptyState } from "./EmptyState";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 // Adapta una orden al shape `Product` que consume ProductCard: la imagen del
 // item principal hace de "poster", el número de orden de nombre y el total de
@@ -165,7 +166,11 @@ export function AllOrders() {
           icon="shopping_bag"
           title="No orders yet"
           description="When you place an order it will show up here."
-          cta={{ href: "/catalog", icon: "storefront", label: "Start shopping" }}
+          cta={
+            LAUNCH_MODE
+              ? undefined
+              : { href: "/catalog", icon: "storefront", label: "Start shopping" }
+          }
         />
       )}
 

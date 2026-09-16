@@ -10,6 +10,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useIsBelowLg } from "@/hooks/useMediaQuery";
 import { MAIN_NAV } from "@/shared/config/navigation";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 import UserMenu from "./UserMenu";
 import CreditsBadge from "./CreditsBadge";
 
@@ -166,52 +167,68 @@ export default function Navbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-              {MAIN_NAV.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`font-display leading-normal font-bold transition-all relative group ${
-                    pathname === link.href
-                      ? "text-primary"
-                      : "text-slate-dark hover:text-primary"
-                  }`}
-                >
-                  {link.label}
-                  <span
-                    className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-300 ${
+              {MAIN_NAV.map((link) =>
+                link.cta ? (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="font-display flex items-center justify-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-primary-dark text-white transition-all shadow-sm text-sm font-bold hover:shadow-md hover:scale-105"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      auto_awesome
+                    </span>
+                    {link.label}
+                  </Link>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`font-display leading-normal font-bold transition-all relative group ${
                       pathname === link.href
-                        ? "w-full"
-                        : "w-0 group-hover:w-full"
+                        ? "text-primary"
+                        : "text-slate-dark hover:text-primary"
                     }`}
-                  />
-                </Link>
-              ))}
+                  >
+                    {link.label}
+                    <span
+                      className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-300 ${
+                        pathname === link.href
+                          ? "w-full"
+                          : "w-0 group-hover:w-full"
+                      }`}
+                    />
+                  </Link>
+                ),
+              )}
             </div>
 
             {/* Right Side Actions */}
             <div className="flex flex-1 lg:flex-none items-center justify-end gap-2 sm:gap-3 lg:gap-4 min-w-0 ml-3 lg:ml-0">
-              {/* Search Bar (ocupa el espacio libre en mobile, ancho fijo en desktop) */}
-              <form
-                onSubmit={handleSearch}
-                className="flex flex-1 lg:flex-none items-center min-w-0"
-                role="search"
-              >
-                <div className="relative group w-full">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="material-symbols-outlined text-[18px] text-text-muted group-focus-within:text-primary transition-colors">
-                      search
-                    </span>
+              {/* Search Bar (ocupa el espacio libre en mobile, ancho fijo en desktop).
+                  Oculto en lanzamiento: su único destino es /catalog. */}
+              {!LAUNCH_MODE && (
+                <form
+                  onSubmit={handleSearch}
+                  className="flex flex-1 lg:flex-none items-center min-w-0"
+                  role="search"
+                >
+                  <div className="relative group w-full">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="material-symbols-outlined text-[18px] text-text-muted group-focus-within:text-primary transition-colors">
+                        search
+                      </span>
+                    </div>
+                    <input
+                      type="search"
+                      value={searchTerm}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="w-full lg:w-48 xl:w-64 h-10 pl-10 pr-3 rounded-xl border border-[#E0DED9] bg-white/50 focus:bg-white text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                      placeholder="Search..."
+                      aria-label="Search"
+                    />
                   </div>
-                  <input
-                    type="search"
-                    value={searchTerm}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full lg:w-48 xl:w-64 h-10 pl-10 pr-3 rounded-xl border border-[#E0DED9] bg-white/50 focus:bg-white text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    placeholder="Search..."
-                    aria-label="Search"
-                  />
-                </div>
-              </form>
+                </form>
+              )}
 
               {/* Auth Buttons / User Menu */}
               {!isLoading && (
@@ -240,21 +257,24 @@ export default function Navbar() {
                 </>
               )}
 
-              {/* Cart */}
-              <Link
-                href="/cart"
-                className="flex items-center justify-center size-10 rounded-full bg-white hover:bg-gray-50 border border-transparent hover:border-[#E0DED9] text-text-main transition-all shadow-sm hover:shadow-md relative group"
-                aria-label="Shopping cart"
-              >
-                <span className="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">
-                  shopping_cart
-                </span>
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full shadow-md animate-in fade-in zoom-in">
-                    {cartCount > 99 ? "99+" : cartCount}
+              {/* Cart (oculto en lanzamiento: /cart está bloqueado y el
+                  checkout va directo a Shopify). */}
+              {!LAUNCH_MODE && (
+                <Link
+                  href="/cart"
+                  className="flex items-center justify-center size-10 rounded-full bg-white hover:bg-gray-50 border border-transparent hover:border-[#E0DED9] text-text-main transition-all shadow-sm hover:shadow-md relative group"
+                  aria-label="Shopping cart"
+                >
+                  <span className="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">
+                    shopping_cart
                   </span>
-                )}
-              </Link>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full shadow-md animate-in fade-in zoom-in">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {/* Mobile Menu Button */}
               <button
@@ -294,20 +314,34 @@ export default function Navbar() {
         <div className="container-site px-4 sm:px-6 py-4">
           {/* Navigation Links */}
           <nav className="space-y-1">
-            {MAIN_NAV.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                tabIndex={mobileMenuOpen ? undefined : -1}
-                className={`font-display block px-4 py-3 rounded-xl text-base font-bold transition-all ${
-                  pathname === link.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-main hover:bg-gray-50"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {MAIN_NAV.map((link) =>
+              link.cta ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  tabIndex={mobileMenuOpen ? undefined : -1}
+                  className="font-display flex items-center justify-center gap-2 rounded-xl h-12 px-5 bg-primary hover:bg-primary-dark text-white transition-all shadow-sm text-base font-bold w-full"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    auto_awesome
+                  </span>
+                  {link.label}
+                </Link>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  tabIndex={mobileMenuOpen ? undefined : -1}
+                  className={`font-display block px-4 py-3 rounded-xl text-base font-bold transition-all ${
+                    pathname === link.href
+                      ? "bg-primary/10 text-primary"
+                      : "text-text-main hover:bg-gray-50"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
 
           {/* Auth Buttons - Mobile */}

@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { shopifyFetch, GRAPHQL_QUERIES } from "@/lib/shopify";
-import { useCart } from "@/context/CartContext";
+import { useCart, type CartItem } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
 /**
@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
  * la URL de checkout de Shopify (el caller no debe hacer nada más). El resto son
  * fallos que cada caller reporta a su manera (alert en /cart, mensaje inline en
  * el generador IA).
- * - `empty`: el carrito local no tiene items.
+ * - `empty`: no hay items que comprar (carrito local vacío, o `source` vacío).
  * - `no-variants`: hay items pero ninguno con `variantId` válido de Shopify.
  * - `error`: `userErrors` de Shopify o excepción de red.
  */
@@ -27,6 +27,12 @@ export interface CheckoutResult {
  * líneas del carrito (con los attributes que lee el webhook de órdenes:
  * `_user_id`, `generation_id`, `image_url`, etc.), crea el carrito en Shopify,
  * vacía nuestro carrito local y redirige a la URL de checkout.
+ *
+ * `startCheckout` admite una lista de items explícita para vender algo sin
+ * pasar por el carrito local (modo lanzamiento: packs de crédito en
+ * `/credits`, y la oferta de canvas de §7.3). En ese caso no se toca ni se
+ * vacía el carrito local, y los attributes se calculan igual, así que el
+ * webhook de órdenes no nota la diferencia.
  */
 export function useShopifyCheckout() {
   const { items, clearCart } = useCart();
@@ -37,8 +43,8 @@ export function useShopifyCheckout() {
   // Shopify order line-item `properties`, which the orders webhook
   // (`ingestLineItem`) reads to re-associate the art. Accessories carry no
   // generation/paint-by-numbers attributes, so they stay decoupled.
-  const buildLines = useCallback(() => {
-    return items
+  const buildLines = useCallback((source: CartItem[] = items) => {
+    return source
       .map((item) => {
         const attributes = [
           { key: "Style", value: item.style || "Default" },
@@ -67,55 +73,61 @@ export function useShopifyCheckout() {
       .filter((line) => line.merchandiseId !== "");
   }, [items, isAuthenticated, user]);
 
-  const startCheckout = useCallback(async (): Promise<CheckoutResult> => {
-    if (items.length === 0) return { status: "empty" };
+  const startCheckout = useCallback(
+    async (source?: CartItem[]): Promise<CheckoutResult> => {
+      const cartItems = source ?? items;
+      if (cartItems.length === 0) return { status: "empty" };
 
-    setIsCheckingOut(true);
-    try {
-      const lines = buildLines();
+      setIsCheckingOut(true);
+      try {
+        const lines = buildLines(cartItems);
 
-      if (lines.length === 0) {
-        setIsCheckingOut(false);
-        return { status: "no-variants" };
-      }
+        if (lines.length === 0) {
+          setIsCheckingOut(false);
+          return { status: "no-variants" };
+        }
 
-      const response = await shopifyFetch<{
-        cartCreate: {
-          cart: { checkoutUrl: string };
-          userErrors: { field?: string[]; message: string }[];
-        };
-      }>({
-        query: GRAPHQL_QUERIES.CREATE_CART,
-        variables: {
-          input: {
-            lines: lines,
+        const response = await shopifyFetch<{
+          cartCreate: {
+            cart: { checkoutUrl: string };
+            userErrors: { field?: string[]; message: string }[];
+          };
+        }>({
+          query: GRAPHQL_QUERIES.CREATE_CART,
+          variables: {
+            input: {
+              lines: lines,
+            },
           },
-        },
-      });
+        });
 
-      const { cart, userErrors } = response.data.cartCreate;
+        const { cart, userErrors } = response.data.cartCreate;
 
-      if (userErrors && userErrors.length > 0) {
-        console.error("Shopify checkout errors:", userErrors);
+        if (userErrors && userErrors.length > 0) {
+          console.error("Shopify checkout errors:", userErrors);
+          setIsCheckingOut(false);
+          return { status: "error", message: userErrors[0].message };
+        }
+
+        if (cart?.checkoutUrl) {
+          // Shopify cart created — empty our cart before handing off to
+          // checkout. Con `source` explícito no se ha vendido el carrito
+          // local, así que se deja intacto.
+          if (!source) await clearCart();
+          window.location.href = cart.checkoutUrl;
+          return { status: "redirect" };
+        }
+
         setIsCheckingOut(false);
-        return { status: "error", message: userErrors[0].message };
+        return { status: "error" };
+      } catch (error) {
+        console.error("Checkout failed:", error);
+        setIsCheckingOut(false);
+        return { status: "error" };
       }
-
-      if (cart?.checkoutUrl) {
-        // Shopify cart created — empty our cart before handing off to checkout
-        await clearCart();
-        window.location.href = cart.checkoutUrl;
-        return { status: "redirect" };
-      }
-
-      setIsCheckingOut(false);
-      return { status: "error" };
-    } catch (error) {
-      console.error("Checkout failed:", error);
-      setIsCheckingOut(false);
-      return { status: "error" };
-    }
-  }, [items, buildLines, clearCart]);
+    },
+    [items, buildLines, clearCart],
+  );
 
   return { startCheckout, buildLines, isCheckingOut };
 }

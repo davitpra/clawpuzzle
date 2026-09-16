@@ -2,10 +2,18 @@
 // Antes vivían duplicados en `Navbar.tsx`, `Footer.tsx` y `contact/page.tsx`, y ya
 // habían divergido entre sí. Solo strings: los iconos sociales siguen siendo
 // componentes que se importan en el TSX (`shared/ui/SocialIcons`).
+//
+// En modo lanzamiento (`LAUNCH_MODE`) este módulo resuelve el flag él mismo y
+// exporta una navegación reducida, así que `Navbar` y `Footer` no necesitan
+// saber nada del flag para pintar sus listas de links.
+
+import { LAUNCH_MODE } from "./launch";
 
 export interface NavLink {
   label: string;
   href: string;
+  /** Se pinta como botón primario en vez de link de texto. */
+  cta?: boolean;
 }
 
 export interface NavSection {
@@ -14,20 +22,49 @@ export interface NavSection {
 }
 
 /** Links principales del header, en el orden en que se muestran. */
-export const MAIN_NAV: NavLink[] = [
+const FULL_MAIN_NAV: NavLink[] = [
   { label: "Studio", href: "/studio" },
   { label: "Catalog", href: "/catalog" },
   { label: "Contact", href: "/contact" },
+];
+
+// Sin "Catalog" (ruta bloqueada) y con el embudo de IA como CTA principal. El
+// destino es el ancla de `LandingStyles` (`id="styles"`) y no `/create`, porque
+// el generador todavía exige `product_ref_id`/`format_id`/`style_id` en la URL.
+const LAUNCH_MAIN_NAV: NavLink[] = [
+  { label: "Create your art", href: "/#styles", cta: true },
+  { label: "Contact", href: "/contact" },
+];
+
+export const MAIN_NAV: NavLink[] = LAUNCH_MODE
+  ? LAUNCH_MAIN_NAV
+  : FULL_MAIN_NAV;
+
+/** Columnas de cuenta y soporte, comunes a las dos variantes del footer. */
+const ACCOUNT_SECTION: NavSection = {
+  // Los links de `/user/**` no se ocultan sin sesión: `app/user/layout.tsx`
+  // redirige a `/login` por su cuenta.
+  title: "Account",
+  links: [
+    { label: "My Account", href: "/user" },
+    { label: "My Artworks", href: "/user/generations" },
+    { label: "My PBN Projects", href: "/user/pbn" },
+    { label: "Orders", href: "/user/orders" },
+  ],
+};
+
+const SUPPORT_LINKS: NavLink[] = [
+  { label: "Shipping & Returns", href: "/shipping-returns" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
 ];
 
 /**
  * Columnas del footer. Los links del catálogo llevan `intent`/`format` en la
  * query: son los mismos valores que leen `CATALOG_INTENTS` y `CATALOG_FORMATS`
  * (`widgets/catalog/model`), así que la página abre con esos chips ya marcados.
- * Los links de `/user/**` no se ocultan sin sesión: `app/user/layout.tsx`
- * redirige a `/login` por su cuenta.
  */
-export const FOOTER_SECTIONS: NavSection[] = [
+const FULL_FOOTER_SECTIONS: NavSection[] = [
   {
     title: "Create",
     links: [
@@ -51,26 +88,45 @@ export const FOOTER_SECTIONS: NavSection[] = [
       { label: "Accessories", href: "/catalog?intent=accessory" },
     ],
   },
-  {
-    title: "Account",
-    links: [
-      { label: "My Account", href: "/user" },
-      { label: "My Artworks", href: "/user/generations" },
-      { label: "My PBN Projects", href: "/user/pbn" },
-      { label: "Orders", href: "/user/orders" },
-    ],
-  },
+  ACCOUNT_SECTION,
   {
     title: "Support",
     links: [
       { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/studio-landing#faq" },
-      { label: "Shipping & Returns", href: "/shipping-returns" },
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
+      ...SUPPORT_LINKS,
     ],
   },
 ];
+
+// Se cae la columna "Shop" entera (todo son links a `/catalog`) y los anclas
+// apuntan a las secciones de la landing, que en lanzamiento vive en `/`.
+// "Free PBN studio" es el único acceso a la puerta lateral desde la navegación,
+// y a propósito va discreto al final de la columna.
+const LAUNCH_FOOTER_SECTIONS: NavSection[] = [
+  {
+    title: "Create",
+    links: [
+      { label: "Create your art", href: "/#styles" },
+      { label: "How It Works", href: "/#how-it-works" },
+      { label: "Buy Credits", href: "/credits" },
+      { label: "Free PBN studio", href: "/studio" },
+    ],
+  },
+  ACCOUNT_SECTION,
+  {
+    title: "Support",
+    links: [
+      { label: "Contact", href: "/contact" },
+      { label: "FAQ", href: "/#faq" },
+      ...SUPPORT_LINKS,
+    ],
+  },
+];
+
+export const FOOTER_SECTIONS: NavSection[] = LAUNCH_MODE
+  ? LAUNCH_FOOTER_SECTIONS
+  : FULL_FOOTER_SECTIONS;
 
 /**
  * Datos de contacto de la marca.

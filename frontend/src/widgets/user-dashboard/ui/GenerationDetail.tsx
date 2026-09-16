@@ -28,6 +28,7 @@ import {
   useGenerationProduct,
 } from "@/features/generation-purchase";
 import { getRelatedAccessories } from "@/widgets/related-products";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 interface Props {
   id: string;
@@ -290,7 +291,11 @@ export function GenerationDetail({ id }: Props) {
                 flechas, que Embla dibuja fuera del viewport. Solo con la obra
                 terminada: no tiene sentido vender un kit de una generación que
                 falló o sigue procesando. */}
-            {isReady &&
+            {/* En modo lanzamiento la venta se concentra en el diálogo de
+                Download del studio (§7 de LAUNCH_PLAN.md): estas tarjetas
+                añaden al carrito local y acaban en /cart, que está bloqueado. */}
+            {!LAUNCH_MODE &&
+              isReady &&
               imageUrl &&
               !accessoriesLoading &&
               !sourceProduct.loading &&

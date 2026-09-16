@@ -42,9 +42,8 @@ The app integrates with Shopify through a dual-mode GraphQL client:
 ### Server-Side Requests
 
 - Direct GraphQL calls to Shopify Storefront API
-- Requires environment variables:
-  - `SHOPIFY_STORE_DOMAIN` - Your Shopify store domain
-  - `SHOPIFY_STOREFRONT_ACCESS_TOKEN` - Storefront API access token
+- Requires `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (see
+  [Environment Variables](#environment-variables))
 
 ### Shopify Module Structure
 
@@ -105,6 +104,60 @@ const {
 Remote image patterns configured in `next.config.ts`:
 
 - `cdn.shopify.com/**` - Shopify product images
+
+## Environment Variables
+
+`.env.example` is the committed template (the only `.env*` file not gitignored);
+copy it to `.env.local` and fill in real values.
+
+| Variable | Public | Purpose / where it's read |
+| --- | --- | --- |
+| `SHOPIFY_STORE_DOMAIN` | no | Shopify store domain. `lib/shopify/client.ts`, `app/api/shopify/proxy/route.ts` |
+| `SHOPIFY_STOREFRONT_ACCESS_TOKEN` | no | Storefront API token. Same two files. Never expose with a `NEXT_PUBLIC_` prefix |
+| `NEXT_PUBLIC_SHOPIFY_STORE_SLUG` | yes | Store slug for deep links into admin.shopify.com. `entities/admin/lib/shopify-admin-url.ts` |
+| `NEXT_PUBLIC_API_URL` | yes | NestJS backend base URL including `/api`. ~15 call sites (`hooks/useAuthFetch.ts`, `lib/auth/*`, `entities/*/api*`) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | yes | Google OAuth web client ID; same value as the backend's `GOOGLE_CLIENT_ID`. `app/layout.tsx` |
+| `NEXT_PUBLIC_LAUNCH_MODE` | yes | `"true"` enables launch mode (see below). `shared/config/launch.ts` |
+
+`NEXT_PUBLIC_*` values are **inlined at build time**, so changing one requires a
+rebuild — restart `npm run dev`, or redeploy on Vercel.
+
+## Launch Mode
+
+`NEXT_PUBLIC_LAUNCH_MODE=true` narrows the site to the launch funnel — landing →
+AI art → PBN studio → canvas offer — and hides the rest of the store. Nothing is
+deleted: turning the flag off restores the full storefront. The plan this
+implements lives in `../LAUNCH_PLAN.md`.
+
+Read the flag **only** through `src/shared/config/launch.ts`:
+
+```typescript
+import { LAUNCH_MODE } from "@/shared/config/launch";
+```
+
+What the flag changes:
+
+- **`src/proxy.ts`** — two independent gates. The launch gate redirects anything
+  outside `LAUNCH_ALLOWED_PREFIXES` to `/` (307; `/studio-landing` gets a 301
+  because its content now lives at `/`), without looking at the session. The
+  auth gate then applies to `/user/*` and `/admin/*` exactly as before. The
+  `matcher` covers the whole site except `/api`, Next internals and any path
+  with a file extension. **Adding a public route means adding it to that
+  allow-list**, or it will redirect to `/`.
+- **`src/app/page.tsx`** — renders `StudioLandingPage` (from
+  `widgets/studio-landing`) instead of `HomeHero`/`NewCollection`/…, and adopts
+  its `studioLandingMetadata` via `generateMetadata`. The landing's section
+  anchors are `#styles`, `#how-it-works` and `#faq`.
+- **`src/shared/config/navigation.ts`** — resolves the flag itself and exports
+  reduced `MAIN_NAV` / `FOOTER_SECTIONS`, so `Navbar` and `Footer` need no flag
+  logic for their link lists. A `NavLink` with `cta: true` renders as a primary
+  button.
+- **UI hidden behind `!LAUNCH_MODE`** — the navbar cart icon and search box
+  (both only lead to `/cart` / `/catalog`), the footer's `/catalog` link, the
+  `/catalog` CTAs in the `/user` empty states, and the purchase carousels in
+  `GenerationDetail` / `PbnDetail`.
+- **`/credits`** — `CreditPackCard` checks out straight to Shopify with a single
+  explicit line (`startCheckout([item])`) instead of going through `/cart`.
 
 ## Path Aliases
 
