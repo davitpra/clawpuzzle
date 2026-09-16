@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -8,9 +8,13 @@ import {
   IAUploadStep,
   IALeadStep,
   IAThanksStep,
+  IAPhotoStep,
+  IAGeneratingStep,
   IAStartFromProduct,
   type SelectedProductInfo,
 } from "@/widgets/ia-generator";
+import { useCreateGeneration } from "@/widgets/ia-generator/model/useCreateGeneration";
+import type { Pet } from "@/widgets/ia-generator/ui/upload-step/types";
 
 import { getFormatPhysicalSize } from "@/entities/product/lib/formatPhysicalSize";
 import { normalizeTemplate } from "@/entities/product/lib/template";
@@ -19,6 +23,8 @@ import { useFormatOptions } from "@/hooks/useFormatOptions";
 import { useGenerateImage, type GeneratePayload } from "@/hooks/useGenerateImage";
 import { useCredits } from "@/hooks/useCredits";
 import { useCart } from "@/context/CartContext";
+import { LAUNCH_MODE } from "@/shared/config/launch";
+import { clearDraft, loadDraft, saveDraft } from "@/shared/lib/create-draft";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -27,12 +33,21 @@ const PRODUCT_LOAD_ERROR =
 const STYLE_CONTEXT_ERROR =
   "This style is not connected to an available digital product yet.";
 
-// Pasos visibles del generador. El producto, el formato y el estilo ya vienen
-// resueltos desde la ficha de producto, así que aquí solo queda la sesión, la
-// foto y el resultado.
+// Flujo clásico (entrada desde una ficha de producto): el producto, el formato y
+// el estilo ya vienen resueltos, así que aquí solo queda la sesión, la foto y el
+// resultado.
 const STEP_LEAD = 1;
 const STEP_UPLOAD = 2;
 const STEP_THANKS = 3;
+
+// Flujo de lanzamiento (entrada desde la landing con un estilo): la foto va antes
+// que la cuenta, para que el visitante invierta algo antes de registrarse.
+const STEP_PHOTO = 1;
+const STEP_ACCOUNT = 2;
+const STEP_GENERATING = 3;
+
+// Espera antes de persistir el borrador, para no escribir en cada pulsación.
+const DRAFT_DEBOUNCE_MS = 500;
 
 interface StyleCompatResponse {
   defaultCreateContext: {
@@ -127,32 +142,48 @@ function IAGeneratorContent() {
     error: styleError,
   } = useStyle(hasProductContext ? styleId : null);
 
-  const [step, setStep] = useState(STEP_LEAD);
+  const [step, setStep] = useState(LAUNCH_MODE ? STEP_PHOTO : STEP_LEAD);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [generationId, setGenerationId] = useState<string | null>(null);
-  // Payload de la última generación disparada: permite reintentar desde
-  // IAThanksStep sin volver al paso de upload.
+  // Payload de la última generación disparada: permite reintentar desde la
+  // pantalla de espera sin volver al paso de foto.
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
 
+  // Estado propio del flujo de lanzamiento.
+  const [petName, setPetName] = useState("");
+  // La especie viaja al VLM dentro de `petContext`, así que no es un default
+  // inocuo: se pregunta en el paso de foto.
+  const [species, setSpecies] = useState("dog");
+  const [activePet, setActivePet] = useState<Pet | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
   const { generate } = useGenerateImage();
   const { refresh: refreshCredits } = useCredits();
   const { addToCart, removeItem } = useCart();
+  const {
+    submit,
+    submitting,
+    error: submitError,
+    outOfCredits,
+    reset: resetSubmitError,
+  } = useCreateGeneration();
 
   // Con sesión abierta el paso de login sobra. Se decide una sola vez, cuando
   // el estado de auth ya resolvió: así un refresh de token a mitad del upload
   // no devuelve al usuario al login y le borra las fotos cargadas.
   useEffect(() => {
     if (bootstrapped || isAuthLoading) return;
-    if (isAuthenticated) setStep(STEP_UPLOAD);
+    if (isAuthenticated && !LAUNCH_MODE) setStep(STEP_UPLOAD);
     setBootstrapped(true);
   }, [bootstrapped, isAuthLoading, isAuthenticated]);
 
   // Las opciones del estilo (`templateVarOptions`) se eligen en la ficha del
   // producto y llegan serializadas en `selections`. Si la URL no las trae —una
-  // URL armada a mano—, se cae a los valores por defecto del estilo.
+  // URL armada a mano, o la landing en lanzamiento—, se cae a los valores por
+  // defecto del estilo.
   const userSelections = useMemo<Record<string, string | number>>(() => {
     if (selectionsFromUrl) {
       try {
@@ -233,9 +264,11 @@ function IAGeneratorContent() {
     };
   }, [formats, shopifyProduct, formatId, template]);
 
-  // El paso de upload solo se muestra con `productInfo` ya resuelto: si se
-  // enviara antes, `usePetUploadForm` no tendría variante y el producto físico
-  // nunca entraría al carrito.
+  // El paso de upload clásico solo se muestra con `productInfo` ya resuelto: si
+  // se enviara antes, no habría variante y el producto físico nunca entraría al
+  // carrito. El flujo de lanzamiento no lo espera: su producto siempre es el
+  // digital, que no va al carrito, y bloquear ahí solo añadiría dos viajes de red
+  // (backend + Shopify) en la puerta principal del embudo.
   const isResolvingProduct =
     !productLookupError && (!resolvedHandle || isLoadingFormats);
 
@@ -244,8 +277,92 @@ function IAGeneratorContent() {
     formatsError ??
     (!isResolvingProduct && !productInfo ? PRODUCT_LOAD_ERROR : null);
 
+  // ---- Borrador local (solo lanzamiento) --------------------------------
+
+  // Restaura la foto tras una recarga o un cierre accidental. Solo si el
+  // borrador es de este mismo estilo: cambiar de estilo empieza de cero.
+  useEffect(() => {
+    if (!LAUNCH_MODE || draftLoaded || !styleId) return;
+    let cancelled = false;
+    void loadDraft().then((draft) => {
+      if (cancelled) return;
+      if (draft && draft.styleId === styleId) {
+        setPhotos(draft.files);
+        setPetName(draft.petName);
+        setSpecies(draft.species);
+      }
+      setDraftLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftLoaded, styleId]);
+
+  useEffect(() => {
+    if (!LAUNCH_MODE || !draftLoaded || !styleId) return;
+    if (photos.length === 0 && !petName.trim()) return;
+    const timeout = setTimeout(() => {
+      void saveDraft({ styleId, petName, species, files: photos });
+    }, DRAFT_DEBOUNCE_MS);
+    return () => clearTimeout(timeout);
+  }, [draftLoaded, styleId, photos, petName, species]);
+
+  // ---- Envío del flujo de lanzamiento -----------------------------------
+
+  const runSubmit = useCallback(async () => {
+    if (!productRefId || !formatId) return;
+    try {
+      const result = await submit({
+        photos,
+        form: {
+          name: petName,
+          species,
+          // Raza y edad se editan luego desde /user: en la puerta principal cada
+          // campo extra antes del registro es fricción.
+          breed: "",
+          age: "",
+        },
+        activePet,
+        productRefId,
+        formatId,
+        userSelections,
+        productInfo,
+        styleName: style?.name ?? null,
+      });
+
+      void clearDraft();
+      setActivePet(result.pet);
+      setGenerationId(result.generationId);
+      setLastPayload(result.payload);
+      setStep(STEP_GENERATING);
+    } catch {
+      // El mensaje ya está en `submitError`; se muestra en el paso de foto.
+      setStep(STEP_PHOTO);
+    }
+  }, [
+    submit,
+    photos,
+    petName,
+    species,
+    activePet,
+    productRefId,
+    formatId,
+    userSelections,
+    productInfo,
+    style,
+  ]);
+
+  const handlePhotoContinue = useCallback(() => {
+    resetSubmitError();
+    // Con el estado de sesión aún sin resolver no se puede decidir si toca el
+    // paso de cuenta; el botón vuelve a quedar disponible enseguida.
+    if (isAuthLoading) return;
+    if (isAuthenticated) void runSubmit();
+    else setStep(STEP_ACCOUNT);
+  }, [isAuthLoading, isAuthenticated, runSubmit, resetSubmitError]);
+
   // Reintenta la generación fallida con el mismo payload, sin salir de la
-  // pantalla de "Thank you". Un nuevo generationId reinicia el polling.
+  // pantalla de resultado. Un nuevo generationId reinicia el polling.
   const handleRetry = async () => {
     if (!lastPayload) return;
     setRetrying(true);
@@ -287,35 +404,90 @@ function IAGeneratorContent() {
     }
   };
 
-  const isBootstrapping =
-    !bootstrapped || isLoadingStyle || isResolvingProduct || !productInfo;
+  // El flujo de lanzamiento no espera al producto de Shopify (ver arriba) y no
+  // deja que un fallo de ese fetch corte el embudo: su producto es el digital.
+  const isBootstrapping = LAUNCH_MODE
+    ? !bootstrapped || isLoadingStyle || !draftLoaded
+    : !bootstrapped || isLoadingStyle || isResolvingProduct || !productInfo;
+
+  const blockingError = LAUNCH_MODE ? styleError : (productError ?? styleError);
+
+  // La barra de progreso cuenta solo los pasos que el usuario va a ver: con
+  // sesión abierta el de cuenta no existe.
+  const launchSteps = isAuthenticated
+    ? [STEP_PHOTO, STEP_GENERATING]
+    : [STEP_PHOTO, STEP_ACCOUNT, STEP_GENERATING];
+  const headerStep = LAUNCH_MODE
+    ? Math.max(launchSteps.indexOf(step) + 1, 1)
+    : step;
+  const headerTotal = LAUNCH_MODE ? launchSteps.length : 3;
 
   return (
     <div className="bg-white text-slate-dark font-body min-h-screen flex flex-col transition-all duration-500">
-      <IAHeader step={hasProductContext ? step : 0} />
+      <IAHeader
+        step={hasProductContext ? headerStep : 0}
+        totalSteps={headerTotal}
+      />
 
       {hasStyleOnly ? (
-        <StyleFirstResolver
-          styleId={styleId}
-          selections={selectionsFromUrl}
-        />
+        <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
       ) : !hasProductContext ? (
         <IAStartFromProduct />
-      ) : productError || styleError ? (
-        <IAStartFromProduct message={productError ?? styleError ?? undefined} />
+      ) : blockingError ? (
+        <IAStartFromProduct message={blockingError} />
       ) : isBootstrapping ? (
         <div className="flex-1 flex items-center justify-center">
           <span className="material-symbols-outlined animate-spin text-4xl text-primary">
             progress_activity
           </span>
         </div>
+      ) : LAUNCH_MODE ? (
+        <>
+          {step === STEP_PHOTO && (
+            <IAPhotoStep
+              styleName={style?.name ?? null}
+              styleImg={style?.img ?? null}
+              photos={photos}
+              onPhotosChange={setPhotos}
+              petName={petName}
+              onPetNameChange={setPetName}
+              species={species}
+              onSpeciesChange={setSpecies}
+              activePet={activePet}
+              onSelectPet={setActivePet}
+              onContinue={handlePhotoContinue}
+              onChangeStyle={() => void clearDraft()}
+              submitting={submitting}
+              error={submitError}
+              outOfCredits={outOfCredits}
+            />
+          )}
+
+          {step === STEP_ACCOUNT && (
+            <IALeadStep
+              registerTitle="Create a free account"
+              registerSubtitle="5 free artworks included — your photo is ready to go."
+              onComplete={() => void runSubmit()}
+            />
+          )}
+
+          {step === STEP_GENERATING && (
+            <IAGeneratingStep
+              generationId={generationId}
+              styleId={styleId}
+              onRetry={lastPayload ? handleRetry : undefined}
+              retrying={retrying}
+              retryError={retryError}
+            />
+          )}
+        </>
       ) : (
         <>
           {step === STEP_LEAD && (
             <IALeadStep onComplete={() => setStep(STEP_UPLOAD)} />
           )}
 
-          {step === STEP_UPLOAD && (
+          {step === STEP_UPLOAD && productInfo && (
             <IAUploadStep
               photos={photos}
               onPhotosChange={setPhotos}
@@ -333,7 +505,7 @@ function IAGeneratorContent() {
             />
           )}
 
-          {step === STEP_THANKS && (
+          {step === STEP_THANKS && productInfo && (
             <IAThanksStep
               generationId={generationId}
               productImage={productInfo.productImage}

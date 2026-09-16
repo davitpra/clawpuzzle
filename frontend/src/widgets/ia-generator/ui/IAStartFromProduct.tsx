@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/shared/ui/Container";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 interface IAStartFromProductProps {
   /** Reemplaza el subtítulo por defecto (p. ej. al fallar la carga del producto). */
@@ -15,8 +16,10 @@ interface IAStartFromProductProps {
  */
 export function IAStartFromProduct({
   message,
-  actionHref = "/catalog",
-  actionLabel = "Browse products",
+  // En lanzamiento no hay catálogo: `proxy.ts` rebota /catalog a `/`, así que el
+  // destino natural es la galería de estilos de la landing.
+  actionHref = LAUNCH_MODE ? "/#styles" : "/catalog",
+  actionLabel = LAUNCH_MODE ? "Back to styles" : "Browse products",
 }: IAStartFromProductProps) {
   return (
     <Container
@@ -28,17 +31,21 @@ export function IAStartFromProduct({
           palette
         </span>
         <h1 className="font-display text-3xl md:text-4xl font-black text-slate-dark tracking-tight">
-          Start from a product
+          {LAUNCH_MODE ? "Start with a style" : "Start from a product"}
         </h1>
         <p className="text-slate-dark/70 text-lg">
           {message ??
-            "Pick a product and size first, then upload your pet's photo."}
+            (LAUNCH_MODE
+              ? "Pick a style first, then upload your pet's photo."
+              : "Pick a product and size first, then upload your pet's photo.")}
         </p>
         <Link
           href={actionHref}
           className="mt-2 inline-flex items-center justify-center gap-2 h-14 px-8 bg-primary text-white rounded-full font-bold text-lg hover:bg-primary-dark hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
         >
-          <span className="material-symbols-outlined">storefront</span>
+          <span className="material-symbols-outlined">
+            {LAUNCH_MODE ? "palette" : "storefront"}
+          </span>
           {actionLabel}
         </Link>
       </div>

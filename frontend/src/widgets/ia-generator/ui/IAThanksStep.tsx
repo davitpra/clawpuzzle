@@ -11,16 +11,8 @@ import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
 import { useCart } from "@/context/CartContext";
 import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
-
-// Frases de espera que van rotando mientras la IA genera el arte (estilo status
-// ticker de Claude Code). Const a nivel de módulo → referencia estable para el hook.
-const CRAFTING_MESSAGES = [
-  "Sketching the first lines…",
-  "Mixing the perfect palette…",
-  "Capturing your pet's personality…",
-  "Adding brushstrokes of character…",
-  "Bringing your artwork to life…",
-];
+import { LAUNCH_MODE } from "@/shared/config/launch";
+import { CRAFTING_MESSAGES } from "../model/crafting-messages";
 
 // Escala de la imagen del producto centrada según el formato elegido. Tuneables:
 const BASE_WIDTH_PCT = 90; // % del panel que ocupa el lado mayor del formato de referencia
@@ -98,7 +90,10 @@ export function IAThanksStep({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   // Solo ofrecemos checkout/carrito cuando la imagen generada ya está lista
   // (pbnReady) y hay algo en el carrito.
-  const showCheckout = !isArt && cartCount > 0 && pbnReady;
+  // En lanzamiento no se ofrece checkout aquí: la única venta es la de canvas al
+  // descargar, y el "View Cart" de este bloque apunta a /cart, que el gate de
+  // `proxy.ts` rebota a `/`.
+  const showCheckout = !LAUNCH_MODE && !isArt && cartCount > 0 && pbnReady;
 
   const handleCheckout = async () => {
     setCheckoutError(null);

@@ -5,7 +5,9 @@ import { useAuthFetch } from "@/hooks/useAuthFetch";
 
 export interface GeneratePayload {
   petId: string;
-  petPhotoId?: string;
+  // Obligatorio en el backend (`create-image-generation.dto.ts`, @IsUUID): sin él
+  // la petición es un 400 genérico.
+  petPhotoId: string;
   formatId: string;
   productRefId: string;
   width?: number;

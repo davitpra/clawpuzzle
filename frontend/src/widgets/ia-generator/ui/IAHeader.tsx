@@ -2,16 +2,26 @@ import Link from "next/link";
 import Image from "next/image";
 import { GenerationStatus } from "@/hooks/useGenerationStatus";
 
-const TOTAL_STEPS = 3;
+const DEFAULT_TOTAL_STEPS = 3;
 
 interface IAHeaderProps {
   step: number;
+  /**
+   * Pasos totales del flujo. En lanzamiento son 2 cuando el usuario ya tiene
+   * sesión (se salta el de cuenta): sin esto la barra saltaría de 1/3 a 3/3.
+   */
+  totalSteps?: number;
   generationStatus?: GenerationStatus;
 }
 
-export function IAHeader({ step, generationStatus }: IAHeaderProps) {
+export function IAHeader({
+  step,
+  totalSteps = DEFAULT_TOTAL_STEPS,
+  generationStatus,
+}: IAHeaderProps) {
   const isGenerating =
     generationStatus === "pending" || generationStatus === "processing";
+  const progressPct = Math.min(100, (step / Math.max(totalSteps, 1)) * 100);
 
   return (
     <header className="bg-white border-b border-[#E5E0D8] sticky top-0 z-50">
@@ -51,7 +61,7 @@ export function IAHeader({ step, generationStatus }: IAHeaderProps) {
             <div className="w-52 h-2 bg-cream rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-700"
-                style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+                style={{ width: `${progressPct}%` }}
               />
             </div>
           </div>
@@ -74,7 +84,7 @@ export function IAHeader({ step, generationStatus }: IAHeaderProps) {
       <div className="md:hidden w-full h-1 bg-[#dee2e3]">
         <div
           className="h-full bg-primary transition-all duration-700"
-          style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+          style={{ width: `${progressPct}%` }}
         />
       </div>
     </header>

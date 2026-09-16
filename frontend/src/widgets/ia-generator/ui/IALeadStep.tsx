@@ -6,9 +6,17 @@ import { useAuth } from "@/context/AuthContext";
 
 interface IALeadStepProps {
   onComplete: () => void;
+  /** Sustituye el título de la pestaña "Create Account". */
+  registerTitle?: string;
+  /** Sustituye el subtítulo de la pestaña "Create Account". */
+  registerSubtitle?: string;
 }
 
-export function IALeadStep({ onComplete }: IALeadStepProps) {
+export function IALeadStep({
+  onComplete,
+  registerTitle,
+  registerSubtitle,
+}: IALeadStepProps) {
   const { login, register, loginWithGoogle } = useAuth();
 
   const [fullName, setFullName] = useState("");
@@ -94,12 +102,13 @@ export function IALeadStep({ onComplete }: IALeadStepProps) {
           <div className="px-8 pt-8 pb-4 text-center">
             <h2 className="font-display text-2xl font-black text-slate-dark mb-1">
               {authTab === "register"
-                ? "Create Your Account"
+                ? (registerTitle ?? "Create Your Account")
                 : "Sign In to Continue"}
             </h2>
             <p className="text-slate-dark/60 text-sm">
               {authTab === "register"
-                ? "Save your pet\u2019s profile and photos securely."
+                ? (registerSubtitle ??
+                  "Save your pet\u2019s profile and photos securely.")
                 : "Welcome back! Sign in to upload your pet\u2019s photo."}
             </p>
           </div>

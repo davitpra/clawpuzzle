@@ -152,10 +152,22 @@ What the flag changes:
   reduced `MAIN_NAV` / `FOOTER_SECTIONS`, so `Navbar` and `Footer` need no flag
   logic for their link lists. A `NavLink` with `cta: true` renders as a primary
   button.
+- **`src/app/create/page.tsx`** — the flag picks the step order. Launch:
+  `STEP_PHOTO → STEP_ACCOUNT → STEP_GENERATING` (photo first, account skipped when
+  already signed in, then an automatic hop to `/studio`). Flag off: the classic
+  `STEP_LEAD → STEP_UPLOAD → STEP_THANKS` driven by a product page. Both share the
+  hooks in `widgets/ia-generator/model/`.
+  **Rule for the photo step: no authenticated call while `isAuthenticated` is
+  false.** A 401 there ends in the `window.location.href = "/login"` of
+  `lib/auth/fetch-with-refresh.ts`, which throws the visitor out of the funnel and
+  loses the photo they just uploaded. `usePetsList` and `useCredits` gate
+  themselves; anything new must do the same.
 - **UI hidden behind `!LAUNCH_MODE`** — the navbar cart icon and search box
   (both only lead to `/cart` / `/catalog`), the footer's `/catalog` link, the
-  `/catalog` CTAs in the `/user` empty states, and the purchase carousels in
-  `GenerationDetail` / `PbnDetail`.
+  `/catalog` CTAs in the `/user` empty states, the purchase carousels in
+  `GenerationDetail` / `PbnDetail`, and the checkout block of `IAThanksStep`
+  (its "View Cart" targets `/cart`). `IAStartFromProduct` also swaps its default
+  CTA from `/catalog` to `/#styles`.
 - **`/credits`** — `CreditPackCard` checks out straight to Shopify with a single
   explicit line (`startCheckout([item])`) instead of going through `/cart`.
 

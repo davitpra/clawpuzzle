@@ -1,28 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useAuthFetch } from "@/hooks/useAuthFetch";
-import { useGenerateImage } from "@/hooks/useGenerateImage";
+import { useState, useCallback } from "react";
 import { useCredits } from "@/hooks/useCredits";
-import { useCart } from "@/context/CartContext";
-import { normalizeTemplate } from "@/entities/product/lib/template";
+import { usePetsList } from "../../model/usePetsList";
+import { useCreateGeneration } from "../../model/useCreateGeneration";
+import { useExistingPetPhotos } from "../../model/useExistingPetPhotos";
 import {
   EMPTY_FORM,
   petToForm,
-  primaryPhotoOf,
-  orderedPhotos,
   type Pet,
   type PetPhoto,
   type PetForm,
   type IAUploadStepProps,
 } from "./types";
-
-// Desempaqueta respuestas que pueden venir envueltas en { data } o planas.
-function unwrap<T>(raw: { data: T } | T): T {
-  return raw && typeof raw === "object" && "data" in raw
-    ? (raw as { data: T }).data
-    : (raw as T);
-}
 
 type UploadFormDeps = Pick<
   IAUploadStepProps,
@@ -37,8 +27,12 @@ type UploadFormDeps = Pick<
 >;
 
 /**
- * Maneja las mascotas del usuario, el estado del formulario y el envío:
- * guarda/actualiza la mascota, sube las fotos y dispara la generación de IA.
+ * Maneja las mascotas del usuario, el estado del formulario y el envío.
+ *
+ * El pipeline de guardado/subida/generación vive en `useCreateGeneration` y la
+ * lista de mascotas en `usePetsList`: este hook solo aporta el estado del
+ * formulario y los conecta. Es el flujo clásico (entrada desde ficha de
+ * producto); el de lanzamiento usa esos mismos hooks por separado.
  */
 export function usePetUploadForm({
   photos,
@@ -50,95 +44,47 @@ export function usePetUploadForm({
   styleName,
   userSelections,
 }: UploadFormDeps) {
-  const { get, post, authFetchJSON } = useAuthFetch();
-  const { generate } = useGenerateImage();
-  const { balance: creditBalance, refresh: refreshCredits } = useCredits();
-  const { addToCart } = useCart();
+  const { balance: creditBalance } = useCredits();
+  const { pets, setPets } = usePetsList();
+  const {
+    submit,
+    submitting,
+    error: submitError,
+    outOfCredits,
+    reset: resetSubmitError,
+  } = useCreateGeneration();
 
-  const [pets, setPets] = useState<Pet[]>([]);
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [form, setForm] = useState<PetForm>(EMPTY_FORM);
-  // Fotos ya guardadas de la mascota seleccionada (principal primero).
-  const [existingPhotos, setExistingPhotos] = useState<PetPhoto[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  // true cuando el fallo fue por saldo de créditos agotado (402): muestra el CTA
-  // "Buy credits" junto al error.
-  const [outOfCredits, setOutOfCredits] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const isExistingPet = activePet !== null;
+  const formError = validationError ?? submitError;
 
-  // Carga inicial de las mascotas del usuario desde el backend.
-  useEffect(() => {
-    get<unknown>("/pets")
-      .then((res) => {
-        const list = Array.isArray(res)
-          ? res
-          : Array.isArray((res as { data?: unknown }).data)
-            ? ((res as { data: unknown[] }).data as Pet[])
-            : [];
-        setPets(list);
-      })
-      .catch(() => {});
-  }, [get]);
+  // Mantiene sincronizadas la mascota activa y la lista cuando se reordenan las
+  // fotos guardadas.
+  const syncPetPhotos = useCallback(
+    (petId: string, photos: PetPhoto[]) => {
+      setActivePet((prev) => (prev && prev.id === petId ? { ...prev, photos } : prev));
+      setPets((prev) =>
+        prev.map((p) => (p.id === petId ? { ...p, photos } : p)),
+      );
+    },
+    [setPets],
+  );
+
+  const { existingPhotos, removeExistingPhoto, makeExistingPrimary } =
+    useExistingPetPhotos(activePet, syncPetPhotos);
 
   const selectPet = useCallback((pet: Pet) => {
     setActivePet(pet);
     setForm(petToForm(pet));
-    setExistingPhotos(orderedPhotos(pet));
   }, []);
 
   const resetPet = useCallback(() => {
     setActivePet(null);
     setForm(EMPTY_FORM);
-    setExistingPhotos([]);
   }, []);
-
-  // Quita una foto guardada solo de la vista (no la borra del backend).
-  const removeExistingPhoto = useCallback((index: number) => {
-    setExistingPhotos((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
-  // Marca una foto guardada como principal: la sube al backend y reordena
-  // localmente (principal primero) en las fotos, la mascota activa y la lista.
-  const makeExistingPrimary = useCallback(
-    async (index: number) => {
-      if (!activePet) return;
-      const target = existingPhotos[index];
-      if (!target || target.isPrimary) return;
-
-      const reordered = existingPhotos
-        .map((p) => ({ ...p, isPrimary: p.id === target.id }))
-        .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
-
-      const previous = existingPhotos;
-      setExistingPhotos(reordered);
-      setActivePet((prev) => (prev ? { ...prev, photos: reordered } : prev));
-      setPets((prev) =>
-        prev.map((p) =>
-          p.id === activePet.id ? { ...p, photos: reordered } : p,
-        ),
-      );
-
-      try {
-        await authFetchJSON(`/pets/${activePet.id}/photos/${target.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ is_primary: true }),
-        });
-      } catch {
-        // Revierte si el backend falla.
-        setExistingPhotos(previous);
-        setActivePet((prev) => (prev ? { ...prev, photos: previous } : prev));
-        setPets((prev) =>
-          prev.map((p) =>
-            p.id === activePet.id ? { ...p, photos: previous } : p,
-          ),
-        );
-      }
-    },
-    [activePet, existingPhotos, authFetchJSON],
-  );
 
   const handleFieldChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -147,145 +93,47 @@ export function usePetUploadForm({
     [],
   );
 
-  // Sube todas las fotos en orden: la primera como principal (isPrimary=true) y
-  // el resto como secundarias. Devuelve la foto principal para usar su id.
-  const uploadPhotos = useCallback(
-    async (petId: string): Promise<PetPhoto | null> => {
-      if (photos.length === 0) return null;
-      let primaryPhoto: PetPhoto | null = null;
-      for (let i = 0; i < photos.length; i++) {
-        const formData = new FormData();
-        formData.append("photo", photos[i]);
-        const raw = await authFetchJSON<{ data: PetPhoto } | PetPhoto>(
-          `/pets/${petId}/photos?isPrimary=${i === 0}`,
-          { method: "POST", body: formData },
-        );
-        const photo = unwrap(raw);
-        if (i === 0) primaryPhoto = photo;
-      }
-      return primaryPhoto;
-    },
-    [photos, authFetchJSON],
-  );
-
-  // Crea o actualiza la mascota y devuelve { petId, petPhotoId }.
-  const savePet = useCallback(async (): Promise<{
-    petId: string;
-    petPhotoId: string | null;
-  }> => {
-    const payload = {
-      species: form.species,
-      breed: form.breed.trim() || undefined,
-      age: form.age ? parseInt(form.age) : undefined,
-    };
-
-    if (activePet) {
-      const updated = unwrap(
-        await authFetchJSON<{ data: Pet } | Pet>(`/pets/${activePet.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }),
-      );
-      const newPhoto = await uploadPhotos(activePet.id);
-      const existingPrimary = primaryPhotoOf(activePet);
-      setPets((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      setActivePet(updated);
-      return {
-        petId: activePet.id,
-        petPhotoId: newPhoto?.id ?? existingPrimary?.id ?? null,
-      };
-    }
-
-    const newPet = unwrap(
-      await post<{ data: Pet } | Pet>("/pets", {
-        name: form.name.trim(),
-        ...payload,
-      }),
-    );
-    const newPhoto = await uploadPhotos(newPet.id);
-    setPets((prev) => [...prev, newPet]);
-    setActivePet(newPet);
-    setForm(petToForm(newPet));
-    return { petId: newPet.id, petPhotoId: newPhoto?.id ?? null };
-  }, [activePet, form, post, authFetchJSON, uploadPhotos]);
-
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      setFormError(null);
-      setOutOfCredits(false);
+      setValidationError(null);
+      resetSubmitError();
 
       if (!isExistingPet && !form.name.trim()) {
-        setFormError("Pet name is required.");
+        setValidationError("Pet name is required.");
         return;
       }
       if (!styleId || !productRefId || !formatId) {
-        setFormError(
+        setValidationError(
           "Missing product or format info. Please start from the catalog link.",
         );
         return;
       }
 
-      setSubmitting(true);
       try {
-        const { petId, petPhotoId } = await savePet();
-
-        // El payload se guarda para permitir reintentar la generación desde
-        // IAThanksStep sin volver a subir la mascota/fotos.
-        const payload = {
-          petId,
-          petPhotoId: petPhotoId ?? undefined,
-          formatId,
+        const { generationId, payload, pet } = await submit({
+          photos,
+          form,
+          activePet,
           productRefId,
-          userSelections:
-            userSelections && Object.keys(userSelections).length > 0
-              ? userSelections
-              : undefined,
-        };
+          formatId,
+          userSelections,
+          productInfo,
+          styleName,
+        });
 
-        const generation = await generate(payload);
+        // Refleja en la vista la mascota creada o actualizada.
+        setPets((prev) =>
+          prev.some((p) => p.id === pet.id)
+            ? prev.map((p) => (p.id === pet.id ? pet : p))
+            : [...prev, pet],
+        );
+        setActivePet(pet);
+        setForm(petToForm(pet));
 
-        // La generación consumió 1 crédito: refrescamos el saldo del badge.
-        void refreshCredits();
-
-        // La página no muestra este paso hasta resolver productInfo, pero si
-        // faltara la generación se dispara igual y se omite el carrito.
-        // Digital (descarga gratuita; "PBN" legacy) tampoco va al carrito: no se
-        // cobra ni debe disparar el order_bonus de +3 créditos en checkout.
-        const isDigital =
-          normalizeTemplate(productInfo?.template) === "Digital";
-        if (productInfo && !isDigital) {
-          try {
-            addToCart({
-              id: generation.id,
-              variantId: productInfo.shopifyVariantId,
-              name: productInfo.productTitle,
-              size: productInfo.formatLabel,
-              style: styleName ?? undefined,
-              price: parseFloat(productInfo.price),
-              quantity: 1,
-              img: productInfo.productImage,
-              generationId: generation.id,
-            });
-          } catch (cartErr) {
-            console.error("addToCart failed:", cartErr);
-          }
-        }
-
-        onNext(generation.id, payload);
-      } catch (err) {
-        // Surface the backend message (e.g. the 402 "out of credits" error)
-        // when available, falling back to a generic one.
-        const msg =
-          err instanceof Error && err.message
-            ? err.message
-            : "Could not start generation. Try again.";
-        setFormError(msg);
-        // El 402 de créditos trae este mensaje del backend; muestra el CTA.
-        setOutOfCredits(/out of generation credits/i.test(msg));
-      } finally {
-        setSubmitting(false);
+        onNext(generationId, payload);
+      } catch {
+        // El mensaje ya quedó en `submitError`; aquí solo se evita el unhandled.
       }
     },
     [
@@ -294,13 +142,14 @@ export function usePetUploadForm({
       styleId,
       productRefId,
       formatId,
-      savePet,
-      generate,
-      refreshCredits,
+      photos,
+      activePet,
       userSelections,
       productInfo,
       styleName,
-      addToCart,
+      submit,
+      resetSubmitError,
+      setPets,
       onNext,
     ],
   );
