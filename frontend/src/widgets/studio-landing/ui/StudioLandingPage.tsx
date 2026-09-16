@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/widgets/navbar";
 import { Footer } from "@/widgets/footer";
 import ProductFAQ from "@/widgets/product-faq/ui/ProductFAQ";
 import LandingHero from "./LandingHero";
 import LandingShowcase from "./LandingShowcase";
-import LandingStyles from "./LandingStyles";
+import LandingStyles, { LandingStylesSkeleton } from "./LandingStyles";
 import WhyItMatters from "./WhyItMatters";
 import LandingProducts from "./LandingProducts";
 import LandingRelatedProducts from "./LandingRelatedProducts";
@@ -119,7 +120,9 @@ export default function StudioLandingPage() {
         <WavesDivider flip />
         <LandingShowcase />
         <WavesDivider />
-        <LandingStyles />
+        <Suspense fallback={<LandingStylesSkeleton />}>
+          <LandingStyles />
+        </Suspense>
         <WavesDivider flip />
         <LandingRelatedProducts />
         <WavesDivider />

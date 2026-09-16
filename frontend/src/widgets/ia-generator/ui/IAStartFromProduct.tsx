@@ -4,6 +4,8 @@ import { Container } from "@/shared/ui/Container";
 interface IAStartFromProductProps {
   /** Reemplaza el subtítulo por defecto (p. ej. al fallar la carga del producto). */
   message?: string;
+  actionHref?: string;
+  actionLabel?: string;
 }
 
 /**
@@ -11,7 +13,11 @@ interface IAStartFromProductProps {
  * estilo se eligen en la ficha del producto. Si se llega sin ese contexto (o no
  * se pudo resolver), esto lo explica y devuelve al catálogo.
  */
-export function IAStartFromProduct({ message }: IAStartFromProductProps) {
+export function IAStartFromProduct({
+  message,
+  actionHref = "/catalog",
+  actionLabel = "Browse products",
+}: IAStartFromProductProps) {
   return (
     <Container
       as="main"
@@ -29,11 +35,11 @@ export function IAStartFromProduct({ message }: IAStartFromProductProps) {
             "Pick a product and size first, then upload your pet's photo."}
         </p>
         <Link
-          href="/catalog"
+          href={actionHref}
           className="mt-2 inline-flex items-center justify-center gap-2 h-14 px-8 bg-primary text-white rounded-full font-bold text-lg hover:bg-primary-dark hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
         >
           <span className="material-symbols-outlined">storefront</span>
-          Browse products
+          {actionLabel}
         </Link>
       </div>
     </Container>

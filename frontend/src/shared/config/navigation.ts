@@ -27,8 +27,8 @@ const FULL_MAIN_NAV: NavLink[] = [
 ];
 
 // Sin "Catalog" (ruta bloqueada) y con el embudo de IA en primer lugar. El
-// destino es el ancla de `LandingStyles` (`id="styles"`) y no `/create`, porque
-// el generador todavía exige `product_ref_id`/`format_id`/`style_id` en la URL.
+// destino es el ancla de `LandingStyles` (`id="styles"`) para que el usuario
+// elija un estilo; `/create` completa después el producto Digital y el formato.
 const LAUNCH_MAIN_NAV: NavLink[] = [
   { label: "Create your art", href: "/#styles" },
   { label: "Contact", href: "/contact" },

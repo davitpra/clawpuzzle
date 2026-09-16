@@ -823,6 +823,12 @@ export default function AdminStyleDetailPage() {
                   )}
                 </InlineStack>
 
+                <Text as="p" tone="subdued" variant="bodySm">
+                  Orden para la landing: 1) arte terminado (imagen principal),
+                  2) versión PBN numerada del mismo ejemplo. Arrastra las
+                  imágenes para corregir el orden.
+                </Text>
+
                 <input
                   ref={fileInputRef}
                   type="file"

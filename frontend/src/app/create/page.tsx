@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   IAHeader,
@@ -24,6 +24,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
 const PRODUCT_LOAD_ERROR =
   "We couldn't load this product. Please pick it again from the catalog.";
+const STYLE_CONTEXT_ERROR =
+  "This style is not connected to an available digital product yet.";
 
 // Pasos visibles del generador. El producto, el formato y el estilo ya vienen
 // resueltos desde la ficha de producto, así que aquí solo queda la sesión, la
@@ -31,6 +33,79 @@ const PRODUCT_LOAD_ERROR =
 const STEP_LEAD = 1;
 const STEP_UPLOAD = 2;
 const STEP_THANKS = 3;
+
+interface StyleCompatResponse {
+  defaultCreateContext: {
+    productRefId: string;
+    formatId: string;
+  } | null;
+}
+
+function StyleFirstResolver({
+  styleId,
+  selections,
+}: {
+  styleId: string;
+  selections: string | null;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch(`${API_URL}/styles/${encodeURIComponent(styleId)}/compat`, {
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("compat_request_failed");
+        const json = (await response.json()) as
+          | { data: StyleCompatResponse }
+          | StyleCompatResponse;
+        return "data" in json ? json.data : json;
+      })
+      .then((compat) => {
+        if (!compat.defaultCreateContext) {
+          setError(STYLE_CONTEXT_ERROR);
+          return;
+        }
+
+        const params = new URLSearchParams({
+          style_id: styleId,
+          product_ref_id: compat.defaultCreateContext.productRefId,
+          format_id: compat.defaultCreateContext.formatId,
+        });
+        if (selections) params.set("selections", selections);
+        router.replace(`/create?${params.toString()}`);
+      })
+      .catch((requestError: unknown) => {
+        if ((requestError as Error).name !== "AbortError") {
+          setError(STYLE_CONTEXT_ERROR);
+        }
+      });
+
+    return () => controller.abort();
+  }, [router, selections, styleId]);
+
+  if (error) {
+    return (
+      <IAStartFromProduct
+        message={error}
+        actionHref="/#styles"
+        actionLabel="Back to styles"
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+        progress_activity
+      </span>
+    </div>
+  );
+}
 
 function IAGeneratorContent() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -44,6 +119,7 @@ function IAGeneratorContent() {
   // El generador es una ruta de continuación: sin el contexto completo del
   // producto no hay nada que generar y no se dispara ningún fetch.
   const hasProductContext = !!(productRefId && formatId && styleId);
+  const hasStyleOnly = !!styleId && !productRefId && !formatId;
 
   const {
     style,
@@ -218,7 +294,12 @@ function IAGeneratorContent() {
     <div className="bg-white text-slate-dark font-body min-h-screen flex flex-col transition-all duration-500">
       <IAHeader step={hasProductContext ? step : 0} />
 
-      {!hasProductContext ? (
+      {hasStyleOnly ? (
+        <StyleFirstResolver
+          styleId={styleId}
+          selections={selectionsFromUrl}
+        />
+      ) : !hasProductContext ? (
         <IAStartFromProduct />
       ) : productError || styleError ? (
         <IAStartFromProduct message={productError ?? styleError ?? undefined} />

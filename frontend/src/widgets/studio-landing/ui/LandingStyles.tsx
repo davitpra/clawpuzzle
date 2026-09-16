@@ -1,100 +1,92 @@
-import Link from "next/link";
 import { Container } from "@/shared/ui/Container";
 import { Carousel } from "@/shared/ui/Carousel";
-import { Card } from "@/shared/ui/Card";
-import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
-import {
-  DIFFICULTY_LABELS,
-  StyleDifficulty,
-} from "@/entities/art-style/model/difficulty";
 import LightRays from "@/shared/ui/LightRays";
+import { fetchPublicStyles } from "@/entities/art-style/api/fetchPublicStyles";
+import { LandingStyleCard } from "./LandingStyleCard";
 
-// Mismo "poster flotando" que las cards de CollectionSection.
-const posterClasses =
-  "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.50)]";
-
-interface LandingStyle {
-  name: string;
-  img: string;
-  difficulty: StyleDifficulty;
+function SectionHeading() {
+  return (
+    <div className="mb-14 text-center">
+      <span className="mb-5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+        Art styles
+      </span>
+      <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
+        One Photo, Endless Styles
+      </h2>
+      <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-slate-dark/55">
+        With an Easy, Medium or Challenging paint difficulty, so there&apos;s a
+        canvas for every skill level.
+      </p>
+    </div>
+  );
 }
 
-const STYLES: LandingStyle[] = [
-  {
-    name: "Signature Bloom",
-    img: "/landing/style-signature-bloom.webp",
-    difficulty: "easy",
-  },
-  {
-    name: "Signature Classic",
-    img: "/landing/style-signature.webp",
-    difficulty: "easy",
-  },
-  {
-    name: "Fauvist",
-    img: "/landing/style-fauvist.webp",
-    difficulty: "medium",
-  },
-  {
-    name: "Pop Art",
-    img: "/landing/style-pop-art.webp",
-    difficulty: "medium",
-  },
-];
-
-export default function LandingStyles() {
+export function LandingStylesSkeleton() {
   return (
     <section
       id="styles"
       className="relative w-full scroll-mt-24 overflow-hidden bg-white py-20"
     >
       <Container>
-        <div className="mb-14 text-center">
-          <span className="mb-5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-            Art styles
-          </span>
-          <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
-            One Photo, Endless Styles
-          </h2>
-          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-slate-dark/55">
-            With an Easy, Medium or Challenging paint difficulty, so
-            there&apos;s a canvas for every skill level.
-          </p>
-        </div>
-
-        <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
-          {STYLES.map((style) => (
-            <div key={style.name} className="group flex flex-col gap-4 ">
-              <Card
-                imageUrl={style.img}
-                imageAlt={`The same tabby cat rendered in the ${style.name} style`}
-                className={`${posterClasses} ${FRAME_SHADOWS.art} aspect-2/3`}
-              >
-                <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                  <span className="material-symbols-outlined text-[14px]">
-                    brush
-                  </span>
-                  {DIFFICULTY_LABELS[style.difficulty]}
-                </span>
-              </Card>
-              <div className="flex items-center justify-center gap-2">
-                <p className="font-bold text-slate-dark">{style.name}</p>
-              </div>
+        <SectionHeading />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-8">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex flex-col gap-4">
+              <div className="aspect-2/3 animate-pulse bg-slate-200" />
+              <div className="mx-auto h-4 w-2/3 animate-pulse rounded bg-slate-200" />
             </div>
           ))}
-        </Carousel>
-
-        <div className="mt-12 flex justify-center">
-          <Link
-            href="/studio"
-            className="flex items-center justify-center rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 hover:bg-primary-dark"
-          >
-            Look for more styles
-          </Link>
         </div>
       </Container>
-      {/* Rayos de luz decorativos; último hijo para pintar por encima de todo
-                el contenido (imagen incluida) sin bloquear clics. */}
+    </section>
+  );
+}
+
+export default async function LandingStyles() {
+  let publicStyles: Awaited<ReturnType<typeof fetchPublicStyles>>;
+  try {
+    publicStyles = await fetchPublicStyles();
+  } catch {
+    return null;
+  }
+
+  const styles = publicStyles.flatMap((style) => {
+    const art = style.images.find((image) => image.orderIndex === 0);
+    const pbn = style.images.find((image) => image.orderIndex === 1);
+    if (!art || !pbn) return [];
+
+    return [{ style, art, pbn }];
+  });
+
+  if (styles.length === 0) return null;
+
+  return (
+    <section
+      id="styles"
+      className="relative w-full scroll-mt-24 overflow-hidden bg-white py-20"
+    >
+      <Container>
+        <SectionHeading />
+        <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
+          {styles.map(({ style, art, pbn }) => (
+            <LandingStyleCard
+              key={style.id}
+              id={style.id}
+              displayName={style.displayName}
+              difficulty={style.difficulty}
+              artUrl={art.imageUrl}
+              artAlt={
+                art.altImage ?? `${style.displayName} pet portrait art example`
+              }
+              pbnUrl={pbn.imageUrl}
+              pbnAlt={
+                pbn.altImage ??
+                `${style.displayName} numbered paint-by-numbers preview`
+              }
+            />
+          ))}
+        </Carousel>
+      </Container>
       <LightRays />
     </section>
   );
