@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/shop", destination: "/catalog", permanent: true },
       { source: "/paint-by-numbers", destination: "/studio", permanent: true },
+      { source: "/ia-generator", destination: "/create", permanent: true },
     ];
   },
   images: {

@@ -1,5 +1,5 @@
 // Producto + formato ya resueltos con los que entra el generador. Se arma en
-// `app/ia-generator/page.tsx` a partir de los query params del deep-link
+// `app/create/page.tsx` a partir de los query params del deep-link
 // (`product_ref_id` + `format_id`) y viaja hasta el paso de upload.
 export type SelectedProductInfo = {
   shopifyVariantId: string;

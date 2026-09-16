@@ -34,7 +34,7 @@ export default function PersonalizeButton({
     !!backendError ||
     !hasBackendMapping ||
     // Sin estilo asignado el generador no tiene qué producir: se bloquea aquí
-    // en vez de dejar que la ruta /ia-generator reciba un contexto incompleto.
+    // en vez de dejar que la ruta /create reciba un contexto incompleto.
     !styleId ||
     !formatId;
 
@@ -49,7 +49,7 @@ export default function PersonalizeButton({
       params.set("selections", JSON.stringify(userSelections));
     }
     const query = params.toString();
-    router.push(`/ia-generator${query ? `?${query}` : ""}`);
+    router.push(`/create${query ? `?${query}` : ""}`);
   };
 
   const label = isCompatLoading

@@ -34,7 +34,7 @@ interface GenerationProductCardProps {
  * obra. Vende ese producto con la obra del usuario: la línea de carrito viaja
  * con `generationId` + `imageUrl`, que el checkout convierte en las propiedades
  * `generation_id` / `image_url` y el webhook de órdenes usa para reasociar el
- * arte — el mismo contrato que ya usa el ia-generator.
+ * arte — el mismo contrato que ya usa el flujo de creación.
  *
  * Para obras digitales el detalle sigue mostrando el kit Paint-by-Numbers; esta
  * card cubre los formatos físicos.
