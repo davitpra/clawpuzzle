@@ -39,3 +39,20 @@ Manages the available artistic styles for AI generation, including categorizatio
 - **Active Status**: Only `isActive=true` styles appear in public endpoints. Soft delete sets `isActive=false`.
 - **Image Catalog**: Each style has an ordered image collection. Primary images filterable via `?is_primary=true`.
 - **Cloudinary Storage**: Style images are uploaded to Cloudinary; `storageKey` is the Cloudinary public_id used for deletion.
+
+## Landing image convention
+
+The first two catalog images are the paired landing preview for a style:
+
+| Position | Flags | Content |
+| :-- | :-- | :-- |
+| `orderIndex = 0` | `isPrimary = true` | Finished art example. |
+| `orderIndex = 1` | `isPrimary = false` | Numbered paint-by-numbers version of the same example. |
+
+Uploads without an explicit `order_index` are appended to the catalog. The first
+image uploaded to an empty style is marked as primary automatically. Reordering
+images in the admin normalizes the positions and makes position zero primary.
+
+Public style routes return images ordered by `orderIndex` and then `id`. They use
+the projections in `style-select.ts`, which intentionally exclude pipeline prompt
+fields, style-reference assets, and internal storage keys.

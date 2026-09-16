@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -12,7 +11,6 @@ import {
   UseGuards,
   UseInterceptors,
   BadRequestException,
-  DefaultValuePipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -130,14 +128,19 @@ export class AdminStylesController {
     @Param('styleId') styleId: string,
     @UploadedFile() file: Express.Multer.File,
     @Query('alt_image') altImage?: string,
-    @Query('order_index', new DefaultValuePipe(0), ParseIntPipe)
-    orderIndex?: number,
+    @Query('order_index') orderIndexRaw?: string,
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
     if (!file.mimetype.startsWith('image/')) {
       throw new BadRequestException('File must be an image');
+    }
+
+    const orderIndex =
+      orderIndexRaw === undefined ? undefined : Number(orderIndexRaw);
+    if (orderIndex !== undefined && !Number.isInteger(orderIndex)) {
+      throw new BadRequestException('order_index must be an integer');
     }
 
     return this.stylesService.addImage(styleId, file, altImage, orderIndex);

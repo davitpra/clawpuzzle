@@ -23,7 +23,7 @@ const PUBLIC_STYLE_QUERY = {
     ...PUBLIC_STYLE_SELECT,
     images: {
       select: PUBLIC_STYLE_IMAGE_SELECT,
-      orderBy: { orderIndex: 'asc' },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }],
     },
   },
 } satisfies { select: Prisma.StyleSelect };
@@ -69,7 +69,7 @@ export class StylesService {
     const style = await this.prisma.style.findUnique({
       where: { id },
       include: {
-        images: { orderBy: { orderIndex: 'asc' } },
+        images: { orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }] },
         visionConfig: true,
         imageGenConfig: true,
         _count: { select: { generations: true, productReferences: true } },
@@ -107,7 +107,7 @@ export class StylesService {
 
     return this.prisma.styleImage.findMany({
       where,
-      orderBy: { orderIndex: 'asc' },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }],
       select: PUBLIC_STYLE_IMAGE_SELECT,
     });
   }
@@ -116,7 +116,7 @@ export class StylesService {
     const styles = await this.prisma.style.findMany({
       orderBy: [{ category: 'asc' }, { displayName: 'asc' }],
       include: {
-        images: { orderBy: { orderIndex: 'asc' } },
+        images: { orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }] },
         visionConfig: true,
         imageGenConfig: true,
         _count: { select: { generations: true } },
@@ -221,6 +221,13 @@ export class StylesService {
   ) {
     await this.findOne(styleId);
 
+    const lastImage = await this.prisma.styleImage.findFirst({
+      where: { styleId },
+      orderBy: [{ orderIndex: 'desc' }, { id: 'desc' }],
+      select: { orderIndex: true },
+    });
+    const resolvedOrderIndex = orderIndex ?? (lastImage?.orderIndex ?? -1) + 1;
+
     const key = `styles/${styleId}/${uuidv4()}`;
     const imageUrl = await this.storageService.upload(
       key,
@@ -234,7 +241,8 @@ export class StylesService {
         imageUrl,
         storageKey: key,
         altImage,
-        orderIndex: orderIndex ?? 0,
+        orderIndex: resolvedOrderIndex,
+        isPrimary: !lastImage,
       },
     });
   }

@@ -3,8 +3,8 @@ import { Prisma } from '@prisma/client';
 // Proyección de `Style` para las rutas `@Public()` (`/styles`, `/styles/:id`,
 // `/styles/category/:c`, `/compat/styles`). Deja fuera la configuración del
 // pipeline —`promptTemplate`, `templateVars`, `strategyKey`, `visionConfigId`,
-// `imageGenConfigId`— que es el prompt engineering del negocio y solo se sirve
-// bajo `@Roles('admin')` (`StylesService.findOneForAdmin`).
+// `imageGenConfigId`, `styleReferenceUrl`— que es el prompt engineering y el
+// material de referencia del negocio; solo se sirve bajo `@Roles('admin')`.
 //
 // `templateVarOptions` sí se queda: es el contrato del formulario de opciones
 // del storefront. `pbnConfig` también, lo consume el estudio PBN.
@@ -14,7 +14,6 @@ export const PUBLIC_STYLE_SELECT = {
   displayName: true,
   category: true,
   difficulty: true,
-  styleReferenceUrl: true,
   isActive: true,
   templateVarOptions: true,
   pbnConfig: true,

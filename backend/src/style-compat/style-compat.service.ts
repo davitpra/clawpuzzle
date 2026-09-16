@@ -6,8 +6,9 @@ export class StyleCompatService {
   constructor(private prisma: PrismaService) {}
 
   async findCompatibleOptions(styleId: string) {
-    const style = await this.prisma.style.findUnique({
-      where: { id: styleId },
+    const style = await this.prisma.style.findFirst({
+      where: { id: styleId, isActive: true },
+      select: { id: true },
     });
     if (!style) {
       throw new NotFoundException(`Style ${styleId} not found`);
@@ -18,10 +19,12 @@ export class StyleCompatService {
       where: { styleId, isActive: true },
       include: {
         productVariants: {
-          where: { isActive: true },
+          where: { isActive: true, format: { isActive: true } },
           include: { format: true },
+          orderBy: { id: 'asc' },
         },
       },
+      orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
     });
 
     // Deduplicate formats across all products
@@ -32,10 +35,25 @@ export class StyleCompatService {
       }
     }
 
+    const defaultProduct = products.find(
+      (product) =>
+        product.template?.toLowerCase() === 'digital' &&
+        product.artKind?.toLowerCase() === 'pbn' &&
+        product.productVariants.length > 0,
+    );
+    const defaultVariant = defaultProduct?.productVariants[0];
+
     return {
       styleId,
       formats: Array.from(formatsMap.values()),
       productReferences: products.map(({ productVariants: _v, ...p }) => p),
+      defaultCreateContext:
+        defaultProduct && defaultVariant
+          ? {
+              productRefId: defaultProduct.id,
+              formatId: defaultVariant.formatId,
+            }
+          : null,
     };
   }
 }
