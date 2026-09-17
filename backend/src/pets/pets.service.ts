@@ -39,6 +39,9 @@ export class PetsService {
     });
   }
 
+  // Sin comprobar propietario: solo para quien ya valida la propiedad por su
+  // cuenta (GenerationsService). Todo lo que venga de una ruta de usuario debe
+  // pasar por findOneOwned.
   async findOne(id: string) {
     const pet = await this.prisma.pet.findUnique({
       where: { id },
@@ -56,12 +59,18 @@ export class PetsService {
     return pet;
   }
 
-  async update(id: string, userId: string, updatePetDto: UpdatePetDto) {
-    // Check ownership
+  /** Igual que findOne, pero exige que la mascota sea del usuario. */
+  async findOneOwned(id: string, userId: string) {
     const pet = await this.findOne(id);
     if (pet.userId !== userId) {
       throw new ForbiddenException('You do not own this pet');
     }
+
+    return pet;
+  }
+
+  async update(id: string, userId: string, updatePetDto: UpdatePetDto) {
+    await this.findOneOwned(id, userId);
 
     return this.prisma.pet.update({
       where: { id },
@@ -73,11 +82,7 @@ export class PetsService {
   }
 
   async remove(id: string, userId: string) {
-    // Check ownership
-    const pet = await this.findOne(id);
-    if (pet.userId !== userId) {
-      throw new ForbiddenException('You do not own this pet');
-    }
+    await this.findOneOwned(id, userId);
 
     // Soft delete
     return this.prisma.pet.update({
@@ -91,10 +96,7 @@ export class PetsService {
     photoId: string,
     userId: string,
   ): Promise<string> {
-    const pet = await this.findOne(petId);
-    if (pet.userId !== userId) {
-      throw new ForbiddenException('You do not own this pet');
-    }
+    await this.findOneOwned(petId, userId);
 
     const photo = await this.prisma.petPhoto.findUnique({
       where: { id: photoId },
@@ -110,10 +112,7 @@ export class PetsService {
   }
 
   async getPhotos(petId: string, userId: string) {
-    const pet = await this.findOne(petId);
-    if (pet.userId !== userId) {
-      throw new ForbiddenException('You do not own this pet');
-    }
+    await this.findOneOwned(petId, userId);
 
     return this.prisma.petPhoto.findMany({
       where: { petId },
@@ -127,10 +126,7 @@ export class PetsService {
     userId: string,
     data: { orderIndex?: number; isPrimary?: boolean },
   ) {
-    const pet = await this.findOne(petId);
-    if (pet.userId !== userId) {
-      throw new ForbiddenException('You do not own this pet');
-    }
+    await this.findOneOwned(petId, userId);
 
     const photo = await this.prisma.petPhoto.findUnique({
       where: { id: photoId },
@@ -159,10 +155,7 @@ export class PetsService {
   // Valida que se pueda agregar otra foto (propiedad + tope MAX_PET_PHOTOS).
   // Se llama antes de subir el archivo a S3 para no dejar objetos huérfanos.
   async assertCanAddPhoto(petId: string, userId: string): Promise<void> {
-    const pet = await this.findOne(petId);
-    if (pet.userId !== userId) {
-      throw new ForbiddenException('You do not own this pet');
-    }
+    await this.findOneOwned(petId, userId);
 
     const count = await this.prisma.petPhoto.count({ where: { petId } });
     if (count >= MAX_PET_PHOTOS) {
@@ -179,11 +172,7 @@ export class PetsService {
     photoStorageKey: string,
     isPrimary: boolean = false,
   ) {
-    // Check ownership
-    const pet = await this.findOne(petId);
-    if (pet.userId !== userId) {
-      throw new ForbiddenException('You do not own this pet');
-    }
+    await this.findOneOwned(petId, userId);
 
     // Get current max order index
     const maxPhoto = await this.prisma.petPhoto.findFirst({

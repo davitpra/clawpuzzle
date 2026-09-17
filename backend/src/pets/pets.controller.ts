@@ -62,9 +62,10 @@ export class PetsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get pet by ID' })
   @ApiResponse({ status: 200, description: 'Pet retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Pet not found' })
-  findOne(@Param('id') id: string) {
-    return this.petsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.petsService.findOneOwned(id, user.sub);
   }
 
   @Patch(':id')
