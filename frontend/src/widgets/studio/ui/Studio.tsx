@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { RGB } from "@/lib/pbn/common";
 import { buildHighlightOverlayDataUrl } from "@/lib/pbn/highlight";
 import { getPaperAspect } from "@/lib/pbn/svgExport";
@@ -25,7 +26,6 @@ import { usePbnDetail } from "@/entities/order/api/usePbnDetail";
 import { useSavePbnFlow, type SavedPbnRef } from "../model/useSavePbnFlow";
 import { useStylePbnConfig } from "../model/useStylePbnConfig";
 import {
-  STOREFRONT_INITIAL_IMAGE,
   STOREFRONT_INPUT_DEFAULTS,
   STOREFRONT_RENDER_DEFAULTS,
 } from "../model/defaults";
@@ -43,6 +43,9 @@ import PbnImageStep from "./PbnImageStep";
 import PbnSettingsDrawer from "./PbnSettingsDrawer";
 import PbnResultView from "./PbnResultView";
 import { card, stepTitle } from "@/features/pbn-studio/ui/pbnStyles";
+import { LAUNCH_MODE } from "@/shared/config/launch";
+
+type StudioEntry = "ai" | "saved-pbn" | "direct";
 
 // Al llegar desde "Enviar a PBN" (detalle de generación) traemos la imagen del
 // artwork por query param para precargarla en el canvas; generationId liga el
@@ -56,12 +59,31 @@ export default function Studio() {
   const initialImageUrl = searchParams.get("imageUrl");
   const styleId = searchParams.get("styleId");
   const pbnId = searchParams.get("pbnId");
+  const entry: StudioEntry = pbnId
+    ? "saved-pbn"
+    : generationId && initialImageUrl
+      ? "ai"
+      : "direct";
 
   // Los hooks de opciones solo leen su init en el primer render, así que el
   // estudio no se monta hasta resolver los fetch (sin params resuelven al tiro).
   const { inputInit, renderInit, loading } = useStylePbnConfig(styleId);
   const { pbn, isLoading: pbnLoading } = usePbnDetail(pbnId);
-  if (loading || pbnLoading) return null;
+  if (loading || pbnLoading) {
+    if (entry !== "ai") return null;
+    return (
+      <div className="container-site flex min-h-[70vh] items-center justify-center px-6 py-12 text-center">
+        <div>
+          <span className="material-symbols-outlined animate-spin text-5xl text-primary">
+            progress_activity
+          </span>
+          <p className="mt-4 font-display text-xl font-black text-slate-dark">
+            Preparing your paint-by-numbers…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Sin sesión el fetch del PBN falla y `pbn` queda null: el estudio arranca
   // como siempre. La config del PBN pisa la del estilo, campo a campo.
@@ -79,13 +101,14 @@ export default function Studio() {
 
   return (
     <StudioLayout
+      key={`${pbnId ?? generationId ?? "direct"}:${initialImageUrl ?? ""}`}
       generationId={pbn?.generationId ?? generationId}
-      initialImageUrl={
-        pbn?.sourceImageUrl ?? initialImageUrl ?? STOREFRONT_INITIAL_IMAGE
-      }
+      initialImageUrl={pbn?.sourceImageUrl ?? initialImageUrl}
       inputInit={settingsToInputInit(pbn?.config?.input) ?? inputInit}
       renderInit={(pbn?.config?.render as RenderOptionsInit) ?? renderInit}
       savedPbn={savedPbn}
+      entry={entry}
+      sourceIsAi={entry === "ai" || !!pbn?.generationId}
     />
   );
 }
@@ -101,24 +124,32 @@ function StudioLayout({
   inputInit,
   renderInit,
   savedPbn,
+  entry,
+  sourceIsAi,
 }: {
   generationId: string | null;
   initialImageUrl: string | null;
   inputInit?: InputOptionsInit;
   renderInit?: RenderOptionsInit;
   savedPbn: StudioSavedPbn | null;
+  entry: StudioEntry;
+  sourceIsAi: boolean;
 }) {
   const { log, clearLog } = useLog();
 
   // Keep the whole object so it can be handed to <PbnSidebar> as one prop; the
   // main preview area only needs the two refs below.
-  const imageInput = useImageInput(log, initialImageUrl);
+  const imageInput = useImageInput(log, initialImageUrl, {
+    fallbackToExample: false,
+    loadExampleWhenEmpty: false,
+  });
   const {
     inputCanvasRef,
     originalImageRef,
     fileInputRef,
     onFileChange,
     imageSrc,
+    loadError,
     isDragging,
     openFilePicker,
     onDragOver,
@@ -227,6 +258,45 @@ function StudioLayout({
     })();
   }, [savedPbn, imageSrc, loadSaved, process, computeRecipes]);
 
+  // A fresh AI artwork is converted once, after both the style configuration
+  // and the image canvas are ready. Later option changes remain manual.
+  const didAutoProcess = useRef(false);
+  const [autoProcessStarted, setAutoProcessStarted] = useState(false);
+  const [autoProcessFinished, setAutoProcessFinished] = useState(entry !== "ai");
+  useEffect(() => {
+    if (
+      entry !== "ai" ||
+      savedPbn ||
+      !imageSrc ||
+      loadError ||
+      didAutoProcess.current
+    ) {
+      return;
+    }
+    didAutoProcess.current = true;
+    setAutoProcessStarted(true);
+    void process();
+  }, [entry, savedPbn, imageSrc, loadError, process]);
+
+  useEffect(() => {
+    if (entry !== "ai" || autoProcessFinished) return;
+    if (loadError || compareImgs) {
+      setAutoProcessFinished(true);
+      return;
+    }
+    if (autoProcessStarted && !isProcessing && overall.state === "idle") {
+      setAutoProcessFinished(true);
+    }
+  }, [
+    entry,
+    autoProcessStarted,
+    autoProcessFinished,
+    loadError,
+    compareImgs,
+    isProcessing,
+    overall.state,
+  ]);
+
   // Overlay that spotlights the selected color's sections on the result. Rebuilt
   // when the color, palette (reprocessed) or the border/label render options
   // change so the overlay's border and numbers track the base image.
@@ -323,6 +393,7 @@ function StudioLayout({
   const [downloadOpen, setDownloadOpen] = useState(false);
 
   const showResult = !!compareImgs && !isProcessing;
+  const isAutoPreparing = entry === "ai" && !autoProcessFinished;
 
   // Hay SVG en pantalla pero salió de `loadSaved` (`?pbnId=…`), no del pipeline:
   // sin `ProcessResult` las opciones de render no repintan nada y el overlay de
@@ -343,7 +414,10 @@ function StudioLayout({
       // Lo que hay en pantalla ya está persistido tal cual: guardar no haría
       // nada (y antes creaba un duplicado). `markDirty` devuelve la acción en
       // cuanto se reprocesa o se toca una opción de render.
-      hidden: !canSave || !!savedRef,
+      hidden:
+        !canSave ||
+        !!savedRef ||
+        (LAUNCH_MODE && entry === "direct"),
     },
     {
       label: "Download",
@@ -412,14 +486,36 @@ function StudioLayout({
                 <div className="absolute inset-0 animate-pulse bg-white/40" />
               )}
             </div>
-            {!imageSrc && !showResult && (
-              <DropZone
-                isDragging={isDragging}
-                openFilePicker={openFilePicker}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-              />
+            {isAutoPreparing && (
+              <div
+                className={`${imageSrc ? "absolute inset-0 z-10 bg-white/80" : "min-h-[70vh] w-full"} flex flex-col items-center justify-center gap-4 rounded-xl text-center backdrop-blur-sm`}
+              >
+                <span className="material-symbols-outlined animate-spin text-5xl text-primary">
+                  progress_activity
+                </span>
+                <p className="font-display text-xl font-black text-slate-dark">
+                  Preparing your paint-by-numbers…
+                </p>
+              </div>
+            )}
+            {!imageSrc && !showResult && !isAutoPreparing && (
+              <div className="flex w-full flex-col items-center gap-4">
+                <DropZone
+                  isDragging={isDragging}
+                  openFilePicker={openFilePicker}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                />
+                {LAUNCH_MODE && entry === "direct" && (
+                  <Link
+                    href="/#styles"
+                    className="font-body text-sm font-bold text-primary underline-offset-4 hover:underline"
+                  >
+                    Want it as art first? Try an AI style →
+                  </Link>
+                )}
+              </div>
             )}
           </section>
 
@@ -429,7 +525,7 @@ function StudioLayout({
           {/* Mobile, before there's a result: the bottom sheet only mounts once
               there is one, so the step cards sit inline under the preview
               instead — same order as the desktop sidebar. */}
-          {isMobile && !showResult && (
+          {isMobile && !showResult && !isAutoPreparing && (
             <div className="mt-4 flex flex-col gap-4">
               <PbnImageStep imageInput={imageInput} />
               <section className={card}>
@@ -478,6 +574,8 @@ function StudioLayout({
               renderLocked={renderLocked}
               onDownload={() => setDownloadOpen(true)}
               ensureSaved={ensureSaved}
+              leftLabel={sourceIsAi ? "AI artwork" : "Photo"}
+              showAiStyleInvite={LAUNCH_MODE && entry === "direct"}
             />
           )}
         </main>
@@ -541,7 +639,7 @@ function StudioLayout({
         )}
 
         {/* ---- Sidebar: numbered step cards (inline on desktop) ---- */}
-        {!isMobile && <aside>{sidebar}</aside>}
+        {!isMobile && !isAutoPreparing && <aside>{sidebar}</aside>}
       </div>
 
       {/* On mobile the same sidebar lives in a bottom sheet. */}

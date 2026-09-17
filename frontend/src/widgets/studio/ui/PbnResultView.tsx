@@ -17,6 +17,7 @@ import type { SavedPbnRef } from "../model/useSavePbnFlow";
 import PbnPostHeader from "./PbnPostHeader";
 import { PbnPostMenuItem } from "./PbnPostMenu";
 import ColorPalette from "./ColorPalette";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 interface PbnResultViewProps {
   compareImgs: { original: string; processed: string };
@@ -37,6 +38,8 @@ interface PbnResultViewProps {
   renderLocked: boolean;
   onDownload: () => void;
   ensureSaved: () => Promise<SavedPbnRef | null>;
+  leftLabel: string;
+  showAiStyleInvite: boolean;
 }
 
 /**
@@ -61,8 +64,10 @@ export default function PbnResultView({
   renderLocked,
   onDownload,
   ensureSaved,
+  leftLabel,
+  showAiStyleInvite,
 }: PbnResultViewProps) {
-  const { accessories, bundlePercent } = usePbnAccessories();
+  const { accessories, bundlePercent } = usePbnAccessories(!LAUNCH_MODE);
   const postRef = useRef<HTMLDivElement>(null);
 
   // El aviso de error del guardado vive sobre la imagen; desde la card de compra
@@ -91,8 +96,8 @@ export default function PbnResultView({
               originalSrc={compareImgs.original}
               processedSrc={compareImgs.processed}
               highlightSrc={highlightSrc}
-              leftLabel="Original"
-              rightLabel="Result"
+              leftLabel={leftLabel}
+              rightLabel="Paint by numbers"
               framed={false}
             />
 
@@ -150,37 +155,49 @@ export default function PbnResultView({
                 Download
               </button>
             </div>
+            {showAiStyleInvite && (
+              <div className="mt-4 px-5 text-center">
+                <Link
+                  href="/#styles"
+                  className="font-body text-sm font-bold text-primary underline-offset-4 hover:underline"
+                >
+                  Want a cleaner design? Try an AI style
+                </Link>
+              </div>
+            )}
             {/* The kit and its accessories share one carousel: one full-width
                 slide each. Horizontal padding leaves room for the arrows, which
                 Embla renders outside the viewport. */}
-            <div className="mt-4 px-5">
-              <Carousel gap="gap-4" showDots>
-                {/* Purchase card: appears with the result, saves on demand at buy. */}
-                <div className="min-w-0 flex-[0_0_100%]">
-                  <PbnPurchaseCard
-                    palette={palette}
-                    previewUrl={compareImgs.processed}
-                    source={{
-                      kind: "saved-pbn",
-                      ensureSaved: ensureSavedInView,
-                    }}
-                  />
-                </div>
-                {/* Cross-sell: generic accessories (paints, brushes…). Plain line
-                    items, no coupling with the generation flow. */}
-                {accessories.map((accessory) => (
-                  <div
-                    key={accessory.productId}
-                    className="min-w-0 flex-[0_0_100%]"
-                  >
-                    <AccessoryUpsell
-                      accessory={accessory}
-                      bundlePercent={bundlePercent}
+            {!LAUNCH_MODE && (
+              <div className="mt-4 px-5">
+                <Carousel gap="gap-4" showDots>
+                  {/* Purchase card: appears with the result, saves on demand at buy. */}
+                  <div className="min-w-0 flex-[0_0_100%]">
+                    <PbnPurchaseCard
+                      palette={palette}
+                      previewUrl={compareImgs.processed}
+                      source={{
+                        kind: "saved-pbn",
+                        ensureSaved: ensureSavedInView,
+                      }}
                     />
                   </div>
-                ))}
-              </Carousel>
-            </div>
+                  {/* Cross-sell: generic accessories (paints, brushes…). Plain line
+                      items, no coupling with the generation flow. */}
+                  {accessories.map((accessory) => (
+                    <div
+                      key={accessory.productId}
+                      className="min-w-0 flex-[0_0_100%]"
+                    >
+                      <AccessoryUpsell
+                        accessory={accessory}
+                        bundlePercent={bundlePercent}
+                      />
+                    </div>
+                  ))}
+                </Carousel>
+              </div>
+            )}
           </div>
         </div>
       </div>

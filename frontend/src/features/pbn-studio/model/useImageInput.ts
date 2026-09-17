@@ -16,12 +16,17 @@ export interface ImageInputOptions {
    * result gets saved back onto the order item.
    */
   fallbackToExample?: boolean;
+  /** Load the built-in example when no initial URL was provided. */
+  loadExampleWhenEmpty?: boolean;
 }
 
 export function useImageInput(
   log: (msg: string) => void,
   initialUrl?: string | null,
-  { fallbackToExample = true }: ImageInputOptions = {},
+  {
+    fallbackToExample = true,
+    loadExampleWhenEmpty = true,
+  }: ImageInputOptions = {},
 ) {
   const inputCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,25 +35,34 @@ export function useImageInput(
   // data URL of the currently loaded image, exposed as state so the UI can
   // render a preview thumbnail (originalImageRef is a ref and won't re-render)
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const drawImageToInput = useCallback((img: HTMLImageElement) => {
     const c = inputCanvasRef.current;
     if (!c) return;
-    const ctx = c.getContext("2d")!;
-    c.width = img.naturalWidth || img.width;
-    c.height = img.naturalHeight || img.height;
-    ctx.drawImage(img, 0, 0);
-    // snapshot the pristine image before any processing overwrites the canvas
-    const dataUrl = c.toDataURL();
-    originalImageRef.current = dataUrl;
-    setImageSrc(dataUrl);
+    try {
+      const ctx = c.getContext("2d")!;
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      ctx.drawImage(img, 0, 0);
+      // snapshot the pristine image before any processing overwrites the canvas
+      const dataUrl = c.toDataURL();
+      originalImageRef.current = dataUrl;
+      setImageSrc(dataUrl);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
   }, []);
 
   const loadExample = useCallback(() => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => drawImageToInput(img);
-    img.onerror = () => log("Unable to load example image");
+    img.onerror = () => {
+      setLoadError(true);
+      log("Unable to load example image");
+    };
     img.src = EXAMPLE_IMAGE;
   }, [drawImageToInput, log]);
 
@@ -64,6 +78,7 @@ export function useImageInput(
           log("Unable to load image, using example instead");
           loadExample();
         } else {
+          setLoadError(true);
           log("Unable to load image");
         }
       };
@@ -76,7 +91,7 @@ export function useImageInput(
   // clipboard paste
   useEffect(() => {
     if (initialUrl) loadFromUrl(initialUrl);
-    else loadExample();
+    else if (loadExampleWhenEmpty) loadExample();
 
     const onPaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -99,7 +114,13 @@ export function useImageInput(
     };
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
-  }, [initialUrl, loadExample, loadFromUrl, drawImageToInput]);
+  }, [
+    initialUrl,
+    loadExample,
+    loadFromUrl,
+    drawImageToInput,
+    loadExampleWhenEmpty,
+  ]);
 
   const loadFile = useCallback(
     (file: File) => {
@@ -107,11 +128,15 @@ export function useImageInput(
         log("Please choose an image file");
         return;
       }
+      setLoadError(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         const img = new Image();
         img.onload = () => drawImageToInput(img);
-        img.onerror = () => alert("Unable to load image");
+        img.onerror = () => {
+          setLoadError(true);
+          alert("Unable to load image");
+        };
         img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
@@ -158,6 +183,7 @@ export function useImageInput(
     originalImageRef,
     onFileChange,
     imageSrc,
+    loadError,
     isDragging,
     openFilePicker,
     loadFromUrl,
