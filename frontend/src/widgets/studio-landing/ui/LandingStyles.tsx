@@ -52,10 +52,9 @@ export default async function LandingStyles() {
 
   const styles = publicStyles.flatMap((style) => {
     const art = style.images.find((image) => image.orderIndex === 0);
-    const pbn = style.images.find((image) => image.orderIndex === 1);
-    if (!art || !pbn) return [];
+    if (!art) return [];
 
-    return [{ style, art, pbn }];
+    return [{ style, art }];
   });
 
   if (styles.length === 0) return null;
@@ -68,7 +67,7 @@ export default async function LandingStyles() {
       <Container>
         <SectionHeading />
         <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
-          {styles.map(({ style, art, pbn }) => (
+          {styles.map(({ style, art }) => (
             <LandingStyleCard
               key={style.id}
               id={style.id}
@@ -77,11 +76,6 @@ export default async function LandingStyles() {
               artUrl={art.imageUrl}
               artAlt={
                 art.altImage ?? `${style.displayName} pet portrait art example`
-              }
-              pbnUrl={pbn.imageUrl}
-              pbnAlt={
-                pbn.altImage ??
-                `${style.displayName} numbered paint-by-numbers preview`
               }
             />
           ))}

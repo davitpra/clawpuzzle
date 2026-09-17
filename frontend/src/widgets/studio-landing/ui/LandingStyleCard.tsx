@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, type PointerEvent } from "react";
+import { useState } from "react";
 import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
 import {
   DIFFICULTY_LABELS,
@@ -15,8 +15,6 @@ interface LandingStyleCardProps {
   difficulty: StyleDifficulty;
   artUrl: string;
   artAlt: string;
-  pbnUrl: string;
-  pbnAlt: string;
 }
 
 const posterClasses =
@@ -28,38 +26,11 @@ export function LandingStyleCard({
   difficulty,
   artUrl,
   artAlt,
-  pbnUrl,
-  pbnAlt,
 }: LandingStyleCardProps) {
-  const [variant, setVariant] = useState<"art" | "pbn">("art");
   const [imageFailed, setImageFailed] = useState(false);
-  const showPbn = variant === "pbn";
-
-  const handlePointerEnter = (event: PointerEvent<HTMLElement>) => {
-    if (event.pointerType === "mouse") {
-      setImageFailed(false);
-      setVariant("pbn");
-    }
-  };
-
-  const handlePointerLeave = (event: PointerEvent<HTMLElement>) => {
-    if (event.pointerType === "mouse") {
-      setImageFailed(false);
-      setVariant("art");
-    }
-  };
-
-  const selectVariant = (next: "art" | "pbn") => {
-    setImageFailed(false);
-    setVariant(next);
-  };
 
   return (
-    <article
-      className="group relative flex flex-col gap-4"
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-    >
+    <article className="relative flex flex-col gap-4">
       <div
         className={`${posterClasses} ${FRAME_SHADOWS.art} relative aspect-2/3 overflow-hidden bg-cream`}
       >
@@ -69,8 +40,8 @@ export function LandingStyleCard({
           </div>
         ) : (
           <Image
-            src={showPbn ? pbnUrl : artUrl}
-            alt={showPbn ? pbnAlt : artAlt}
+            src={artUrl}
+            alt={artAlt}
             fill
             sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
             className="h-full w-full object-cover"
@@ -82,32 +53,6 @@ export function LandingStyleCard({
           <span className="material-symbols-outlined text-[14px]">brush</span>
           {DIFFICULTY_LABELS[difficulty]}
         </span>
-
-        <div
-          className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 rounded-full bg-white/95 p-1 shadow-md backdrop-blur"
-          aria-label="Preview variant"
-        >
-          {(["art", "pbn"] as const).map((option) => {
-            const selected = option === variant;
-            const label = option === "art" ? "Art" : "Paint by numbers";
-            return (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={selected}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => selectVariant(option)}
-                className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors sm:text-[10px] ${
-                  selected
-                    ? "bg-primary text-white"
-                    : "text-slate-dark/60 hover:text-primary"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <p className="text-center font-bold text-slate-dark">{displayName}</p>
