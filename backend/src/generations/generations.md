@@ -1,32 +1,44 @@
 # Generations Module
 
-Core engine for AI-powered image generation. All generations are free and unlimited for all users.
+Core engine for AI-powered image generation. Every generation **consumes 1
+generation credit** (admins are exempt) — see `src/credits/` and the "Credits"
+section below.
 
 ## Files Structure
 
 ```
 generations/
-├── generations.controller.ts               # REST API endpoints
-├── generations.service.ts                  # Orchestration logic
-├── generations.module.ts                   # DI registration (imports CompatModule)
+├── generations.controller.ts                        # REST API endpoints (authenticated user)
+├── admin-generations.controller.ts                  # GET /admin/strategies — lists registered strategy keys
+├── generations.service.ts                           # Orchestration logic
+├── generation-select.ts                             # Prisma `select` whitelists for user-facing responses
+├── generations.module.ts                            # DI registration
 ├── constants/
-│   └── queues.constants.ts                 # QUEUE_NAMES, JOB_NAMES
+│   └── queues.constants.ts                          # QUEUE_NAMES, JOB_NAMES
 ├── dto/
 │   ├── create-image-generation.dto.ts
 │   └── update-generation-flags.dto.ts
 ├── processors/
-│   └── image-generation.processor.ts       # BullMQ worker — runs the pipeline
+│   └── image-generation.processor.ts                # BullMQ worker — runs the pipeline
 ├── pipeline/
-│   ├── pipeline.types.ts                   # PipelineContext, PipelineResult, BaseStyleStrategy
-│   ├── strategy.registry.ts               # Resolves strategyKey → strategy instance
+│   ├── pipeline.types.ts                            # PipelineContext, PipelineResult, BaseStyleStrategy
+│   ├── strategy.registry.ts                         # Resolves style.strategyKey → strategy instance
 │   └── strategies/
-│       └── default.strategy.ts            # Default 3-step pipeline
+│       ├── style-driven-prompt.strategy.ts          # Default — prompt from the style template
+│       ├── style-driven-prompt-multi.strategy.ts    # Same, with every pet photo as reference
+│       ├── style-transfer-roles.strategy.ts         # Style reference image + subject photo
+│       └── style-transfer-roles-multi.strategy.ts   # Style reference + every pet photo
 └── providers/
     ├── openrouter/
-    │   └── openrouter-prompt.service.ts    # Analyzes pet photo + builds creative prompt via openrouter/router/vision
+    │   └── openrouter-prompt.service.ts             # Analyzes pet photo + builds creative prompt via openrouter/router/vision
     └── fal/
-        └── fal.service.ts                  # Calls Fal.ai image model and downloads image buffer
+        └── fal.service.ts                           # Calls Fal.ai image model and downloads image buffer
 ```
+
+**Response shape**: user-facing endpoints project through the whitelists in
+`generation-select.ts`. Prompt engineering (`prompt`, `finalPrompt`,
+`promptSnapshot`, `visionAnalysis`, `provider`, `metadata`, `falRequestId`…) is
+business IP and is only exposed under `@Roles('admin')`.
 
 ---
 
@@ -34,15 +46,32 @@ generations/
 
 ### 1. HTTP Request
 
-The user calls `POST /api/generations` with `petId`, `styleId`, `formatId`, `productRefId`, and optional `petPhotoId`.
+The user calls `POST /api/generations` with `petId`, `petPhotoId`, `formatId`,
+`productRefId` and optional `userSelections`.
 
-`GenerationsService.createImageGeneration()`:
+**`styleId` is not an input**: it is derived from the product
+(`ProductReference.styleId`). A product with no style assigned yields a `400`.
 
-1. Validates pet ownership.
-2. Validates style exists.
-3. Calls `CompatService.checkCompat(styleId, formatId, productRefId)` — verifies the triplet exists and is active in `StyleFormatProductCompat`. Throws `400 BadRequest` if not compatible.
-4. Creates a `Generation` record with `status: "pending"`, storing `constraints` from the compat row in `metadata.compatConstraints`.
-5. Enqueues a job in the BullMQ `image-generation` queue with `{ generationId }`.
+`GenerationsService.createImageGeneration()`, in order:
+
+1. **Pet ownership** — `petsService.findOne(petId)` + `pet.userId !== userId` →
+   `400`. The pet must have at least one photo.
+2. **Photo** — `petPhotoId` must exist, belong to that pet and have a `photoUrl`.
+3. **Product** — `productRefId` must exist and be active (`404` otherwise), and
+   must have a `styleId` (`400` otherwise). `styleId` is read from it.
+4. **`userSelections`** — validated against the style's `templateVarOptions`
+   (see "User selections" below). `400` on a missing required key or an
+   out-of-catalog value.
+5. **Format availability** — `productFormatVariant.findFirst({ productRefId,
+   formatId, isActive: true })` → `400` if the format is not available for that
+   product. The variant's `constraints` JSON is the source of generation rules.
+6. **Role** — read fresh from the DB (not from the JWT, which can be stale after
+   a role change): `admin` generates without spending credits.
+7. **Transaction** — creates the `Generation` (`status: "pending"`, snapshotting
+   `constraints` and `userSelections` into `metadata`) and spends 1 credit in the
+   same `$transaction`. No balance → `CreditsService.spendForGeneration` throws
+   **402 Payment Required** and the row is rolled back.
+8. Enqueues `{ generationId }` in the BullMQ `image-generation` queue.
 
 ### 2. BullMQ Worker
 
@@ -50,13 +79,15 @@ The user calls `POST /api/generations` with `petId`, `styleId`, `formatId`, `pro
 
 ```
 findForProcessing(generationId)
-  → loads Generation with relations: style, pet, petPhoto, format
+  → loads Generation with relations: style (+ visionConfig, imageGenConfig), pet (+ photos), petPhoto, format
 updateGenerationStatus("processing")
   → DB: status = "processing"
-extract constraints from generation.metadata.compatConstraints
-  → merges with system defaults: { maxPets: 1, ...compatConstraints }
+build constraints
+  → { maxPets: 1, ...metadata.compatConstraints }
+build subjectPhotoUrls
+  → [petPhoto.photoUrl, ...rest of the pet's photos]
 StrategyRegistry.get(style.strategyKey)
-  → resolves to the correct strategy (default, anime, watercolor, etc.)
+  → resolves the strategy; unknown key falls back to "style-driven-prompt" with a warning
 strategy.execute(PipelineContext)
   → runs the 3-step pipeline (see below)
 markCompleted(generationId, result)
@@ -64,20 +95,28 @@ markCompleted(generationId, result)
         processingTimeSeconds, promptSnapshot
 ```
 
-On error: `markFailed(generationId, errorMessage)` → `status = "failed"`. BullMQ rethrows and can retry.
+On error: `markFailed(generationId, errorMessage)` → `status = "failed"`,
+**refunds the credit** (best-effort and idempotent) and syncs any linked
+`OrderItem`. BullMQ rethrows and can retry.
 
-### 3. The Pipeline — DefaultStyleStrategy
+**Admin test generations** (`isAdminTest`) take their pet context and photo from
+`metadata` instead of the relations, and on success the result is appended to the
+style's `StyleImage` gallery.
 
-Each strategy receives a `PipelineContext`:
+### 3. The Pipeline
+
+Each strategy receives a `PipelineContext` (`pipeline/pipeline.types.ts`):
 
 ```typescript
 {
   generationId: string;
-  petPhotoUrl: string;          // from PetPhoto.photoUrl
-  style: Style;                 // includes all pipeline config fields (see Style DB Fields below)
-  pet: Pet;                     // includes name, species, breed
-  format: Format | null;        // loaded from generation.formatId relation
-  constraints: Record<string, any>; // merged from metadata.compatConstraints + system defaults
+  petPhotoUrl: string;             // from PetPhoto.photoUrl (or metadata.inputPhotoUrl on admin tests)
+  subjectPhotoUrls?: string[];     // every photo of the pet, the chosen one first
+  style: Style & { visionConfig, imageGenConfig };
+  pet: Pet;                        // name, species, breed
+  format: Format | null;           // from generation.formatId
+  constraints: { maxPets?: number; aspectRatio?: string; [k: string]: unknown };
+  userSelections?: Record<string, string | number>;
 }
 ```
 
@@ -85,90 +124,105 @@ Each strategy receives a `PipelineContext`:
 
 | Key           | Default | Description |
 | :------------ | :------ | :---------- |
-| `maxPets`     | `1`     | Max number of pets to describe in the vision prompt. Applied in prompt template vars. |
-| `aspectRatio` | —       | When present, overrides `format.aspectRatio` in the fal payload. |
+| `maxPets`     | `1`     | Max number of pets to describe in the vision prompt. Passed as a template var. |
+| `aspectRatio` | —       | When present, overrides `format.aspectRatio` in the fal payload. Final fallback: `DEFAULT_ASPECT_RATIO = "3:4"`. |
+
+#### Strategies
+
+| `strategyKey`                 | Vision input            | Fal `image_urls`                        | Requires |
+| :---------------------------- | :---------------------- | :-------------------------------------- | :------- |
+| `style-driven-prompt`         | the chosen photo        | `[petPhoto]`                            | `visionConfig` + `imageGenConfig` |
+| `style-driven-prompt-multi`   | all photos (max 4)      | all photos (max 4)                      | idem |
+| `style-transfer-roles`        | the chosen photo        | `[styleReference, petPhoto]`            | idem + `style.styleReferenceUrl` |
+| `style-transfer-roles-multi`  | all photos (max 4)      | `[styleReference, ...photos]`           | idem + `style.styleReferenceUrl` |
+
+In the `-roles` variants image 1 is the style/pose reference and the rest carry
+the subject's identity. A missing `visionConfig`, `imageGenConfig` or
+`styleReferenceUrl` throws at execution time and the generation ends `failed`
+(credit refunded).
+
+With `MOCK_AI=true` every strategy short-circuits: no OpenRouter, no Fal.ai, no
+Cloudinary upload — it returns the input photo as the result after ~500 ms. The
+credit *is* still spent.
 
 #### Step 1 — Vision + Prompt Generation (`OpenRouterPromptService`)
 
-Calls `fal.subscribe("openrouter/router/vision", ...)` with the pet photo and instructions.
-
-`templateVars` sent to the prompt builder are the **merge of `style.templateVars` and constraint-derived vars**:
+Calls `fal.subscribe("openrouter/router/vision", ...)` with the photo(s) and the
+composed prompt. Template vars are merged in this order — later wins:
 
 ```ts
 {
-  ...style.templateVars,
-  maxPets: ctx.constraints.maxPets,  // always present (default 1)
+  ...style.templateVars,     // server-side defaults
+  ...ctx.userSelections,     // validated user choices
+  maxPets: ctx.constraints.maxPets,
+  // and, inside the service: petName, petSpecies, petBreed (runtime context always wins)
 }
 ```
 
-The message sent to the VLM is structured as:
+`style.promptTemplate` is the whole message: `{{key}}` placeholders are replaced
+with those vars and **unknown keys are left as-is**. The system prompt comes from
+`visionConfig.systemPrompt` (or a default), plus `visionModel`,
+`visionTemperature` (default `0.7`) and `maxTokens`.
 
-```
-Escribe únicamente el prompt final en inglés. Sustituye [description] con una descripción
-detallada solo del rostro del animal en la imagen (ignora la pose o el cuerpo).
-Usa el nombre "{petName}" donde dice [Name].
-
-La descripción debe seguir este estilo: "{style.descriptionExample}"
-
-Prompt base:
-{style.promptTemplate con {templateVars} ya sustituidos}
-```
-
-- **`style.promptTemplate`** — base prompt con marcadores `[rellenar]` y `[Name]`. El VLM los sustituye con la descripción del rostro y el nombre.
-- **`style.descriptionExample`** — ejemplo del estilo de descripción esperado (e.g. `"of a gray short-haired cat with large, round, green expressive eyes"`). Guía el nivel de detalle y vocabulario del VLM.
-- **`style.templateVars`** — variables server-side (`{colorCount}`, `{background}`, etc.) sustituidas **antes** de enviar al VLM. Se fusionan con los vars derivados de constraints (`maxPets`).
-- **`style.visionModel`** — VLM a usar (default: `google/gemini-2.5-flash` o env `OPENROUTER_DEFAULT_MODEL`).
-- **`style.visionTemperature`** — creatividad del VLM (`0.0`–`1.0`, default `0.7`). Valores bajos = más literal, valores altos = más creativo.
-
-Saved to `Generation.finalPrompt`. Raw response `{ output, model, usage }` saved to `Generation.visionAnalysis`.
+The VLM's output is the final prompt. Saved to `Generation.finalPrompt`; the raw
+`{ output, model, usage }` goes to `Generation.visionAnalysis` for cost auditing.
 
 #### Step 2 — Image Generation (`FalService`)
 
-Resolves `aspectRatio` for the fal payload:
-
 ```ts
-const aspectRatio = ctx.constraints.aspectRatio ?? ctx.format?.aspectRatio;
+const aspectRatio =
+  ctx.constraints.aspectRatio ?? ctx.format?.aspectRatio ?? DEFAULT_ASPECT_RATIO;
 ```
 
-Calls `fal.subscribe(style.falModel, { input: { prompt, image_urls, aspect_ratio, ...style.parameters } })` and waits synchronously.
+Calls `fal.subscribe(imageGenConfig.model, { input: { prompt, image_urls,
+aspect_ratio, ...imageGenConfig.parameters } })` and waits synchronously, then
+downloads the image as a `Buffer`.
 
-- **`image_urls`**: `[ctx.petPhotoUrl]` — the pet photo is always sent as input image (supports image-to-image models like `fal-ai/nano-banana-2/edit`).
-- **`aspect_ratio`**: resolved above — compat constraints take priority over the format default.
-- **`style.parameters`**: extra params passed directly to the model (steps, guidance, etc.). Spread last so they can override defaults.
-
-Downloads the generated image as a `Buffer`. Saves the request ID to `Generation.falRequestId`.
-
-`FalService.generate()` first-class input fields:
+`FalService.generate()` input fields:
 
 | Field          | Maps to fal key  | Description |
 | :------------- | :--------------- | :---------- |
-| `imageUrls`    | `image_urls`     | Source images for image-to-image models. |
+| `model`        | —                | Model ID from `imageGenConfig.model` (fallback `"fal-ai/flux/dev"`). |
+| `imageUrls`    | `image_urls`     | Source images for image-to-image models. Omitted when empty. |
 | `aspectRatio`  | `aspect_ratio`   | Output aspect ratio string (e.g. `"4:5"`, `"16:9"`). |
-| `numImages`    | `num_images`     | Number of images to generate (default fal model default). |
+| `numImages`    | `num_images`     | Number of images to generate. |
 | `outputFormat` | `output_format`  | `"jpeg"` or `"png"`. |
-| `params`       | spread last      | Freeform extra params — overrides all above if same key. |
+| `params`       | spread last      | `imageGenConfig.parameters` — overrides all above on key collision. |
 
 #### Step 3 — Upload to Cloudinary (`StorageService`)
 
-Uploads the image buffer via `StorageService.upload(key, buffer, contentType)`.
-
-Returns the Cloudinary public URL. Saved to `Generation.resultUrl`.
+Uploads the buffer to `generations/{generationId}/result`. The public URL is
+saved to `Generation.resultUrl` and the key to `resultStorageKey`.
 
 ### 4. Full Status Lifecycle
 
 ```
 pending → processing → completed
-                    ↘ failed
+                    ↘ failed (credit refunded)
 ```
 
 | Status       | When                                        |
 | :----------- | :------------------------------------------ |
-| `pending`    | Generation record created, job enqueued     |
+| `pending`    | Generation record created, credit spent, job enqueued |
 | `processing` | Worker picked up the job, pipeline started  |
 | `completed`  | All 3 steps succeeded, image URL saved      |
-| `failed`     | Any step threw an error, errorMessage saved |
+| `failed`     | Any step threw, errorMessage saved, credit refunded |
 
 Poll status via `GET /api/generations/:id/status`.
+
+---
+
+## Credits
+
+- 1 credit per generation, spent inside the creation transaction.
+- `role === 'admin'` is exempt (role read from the DB, not the JWT).
+- A `failed` generation refunds automatically — idempotent, so a retry that fails
+  again does not refund twice, and an admin generation refunds nothing.
+- No balance → `POST /api/generations` returns **402 Payment Required**. The
+  frontend treats that 402 as the source of truth for "out of credits".
+
+Full model (signup bonus, order grants, packs, reversals) in the root
+`CLAUDE.md` and `src/credits/`.
 
 ---
 
@@ -190,51 +244,59 @@ Poll status via `GET /api/generations/:id/status`.
 
 4. Set `strategyKey = "my-style"` on the `Style` record in DB.
 
+`GET /api/admin/strategies` lists the registered keys (admin only).
+
 ---
 
-## Compatibility Matrix & Constraints
+## Constraints & User Selections
 
-Every image generation must reference a valid triplet `(styleId, formatId, productRefId)` that exists in `StyleFormatProductCompat` with `isActive = true`. This is enforced at creation time via `CompatService.checkCompat()`.
+### Constraints — per product+format
 
-The compat row's `constraints` (JSON) are the source of truth for generation-specific rules tied to the triplet. They are:
+There is **no compatibility matrix table**. A generation is valid when the
+requested `formatId` has an active `ProductFormatVariant` for the requested
+`productRefId`; the style comes from the product. That variant's `constraints`
+(JSON) are:
 
-1. **Snapshotted** into `Generation.metadata.compatConstraints` at creation time (audit/reproducibility).
-2. **Loaded by the processor** at processing time from `metadata.compatConstraints` with system defaults applied (`maxPets: 1`).
+1. **Snapshotted** into `Generation.metadata.compatConstraints` at creation time
+   (audit/reproducibility).
+2. **Loaded by the processor** with system defaults applied (`maxPets: 1`).
 3. **Passed to the strategy** as `ctx.constraints` — a flat dict ready to use.
 
-To add a new constraint rule: add the key to the compat row's `constraints` JSON in DB and handle it in the strategy. No code change required for new data-driven rules.
+To add a new rule: add the key to the variant's `constraints` JSON and handle it
+in the strategy. No code change for data-driven rules.
+
+### User selections — per style
+
+`Style.templateVarOptions` declares what the *user* may choose (e.g. background
+color, number of colors). `validateUserSelections()` walks that definition —
+never the client payload — so unknown keys are dropped, `required` keys missing
+throw `400`, absent optional keys fall back to `default`, and `select` values
+must exist in the option's catalog.
+
+The result is stored in `Generation.metadata.userSelections` and merged into the
+template vars at prompt time, on top of `style.templateVars`.
+
+> Option keys are **not standardized across styles**: branch on the shape of the
+> data, not on the key name.
 
 ---
 
 ## Style DB Fields for Pipeline Config
 
-| Field                | Type    | Description                                                                                   |
-| :------------------- | :------ | :-------------------------------------------------------------------------------------------- |
-| `strategyKey`        | string  | Maps to a registered strategy (default: `"default"`)                                          |
-| `falModel`           | string? | Fal.ai image generation model ID (e.g. `"fal-ai/nano-banana-2/edit"`, `"fal-ai/flux/dev"`)   |
-| `parameters`         | Json?   | Extra params passed directly to Fal.ai image model (steps, guidance, etc.)                    |
-| `promptTemplate`     | string? | Base prompt with `[rellenar]` and `[Name]` markers — the VLM fills them from the photo        |
-| `descriptionExample` | string? | Example description style to guide the VLM (e.g. `"of a golden retriever with brown eyes"`)   |
-| `templateVars`       | Json?   | Server-side substitutions for `{placeholders}` in `promptTemplate` (e.g. `{ colorCount: 5 }`) |
-| `visionModel`        | string? | VLM used to analyze the photo (default: `google/gemini-2.5-flash`)                            |
-| `visionTemperature`  | float?  | VLM creativity 0.0–1.0 (default: 0.7). Lower = more literal, higher = more creative           |
+| Field                | Type    | Description                                                                          |
+| :------------------- | :------ | :----------------------------------------------------------------------------------- |
+| `strategyKey`        | string  | Registered strategy (default: `"style-driven-prompt"`)                               |
+| `promptTemplate`     | text    | The full message sent to the VLM, with `{{placeholders}}`                            |
+| `templateVars`       | Json?   | Server-side substitutions (e.g. `{ colorCount: 5 }`)                                 |
+| `templateVarOptions` | Json?   | Which vars the user may choose, and their catalog/defaults                           |
+| `styleReferenceUrl`  | string? | Style/pose reference image — required by the `style-transfer-roles*` strategies      |
+| `visionConfigId`     | string? | → `VisionConfig`: `visionModel`, `visionTemperature`, `systemPrompt`, `maxTokens`    |
+| `imageGenConfigId`   | string? | → `ImageGenConfig`: `model`, `parameters`                                            |
 
-### Example Style config — image-to-image edit model
-
-```json
-{
-  "strategyKey": "default",
-  "falModel": "fal-ai/nano-banana-2/edit",
-  "promptTemplate": "A modern vector-style digital illustration [rellenar] looking at camera, centered face portrait...",
-  "descriptionExample": "of a gray short-haired cat with large, round, green expressive eyes",
-  "templateVars": { "colorCount": 5 },
-  "visionModel": null,
-  "visionTemperature": null,
-  "parameters": {}
-}
-```
-
-The aspect ratio for fal comes from the compat row's `constraints.aspectRatio` (if set) or from the `Format.aspectRatio` field. Set it on the `StyleFormatProductCompat` row that links this style to its format+product.
+`VisionConfig` and `ImageGenConfig` are **shared, reusable rows**, not per-style
+columns: several styles point at the same config, and `onDelete: SetNull` means
+deleting one leaves the style without it — which makes its generations fail until
+it is reassigned.
 
 ---
 
@@ -245,18 +307,22 @@ The aspect ratio for fal comes from the compat row's `constraints.aspectRatio` (
 | `visionAnalysis` | Json?   | Raw VLM response `{ output, model, usage }` — used for cost auditing          |
 | `finalPrompt`    | string? | Creative prompt produced by the VLM and sent to the image model               |
 | `falRequestId`   | string? | Fal.ai vision request ID for traceability                                     |
-| `promptSnapshot` | Json?   | Frozen copy of the style template config + constraints used — audit/reproducibility |
-| `metadata`       | Json?   | `{ width, height, compatConstraints }` — generation params + snapshotted compat constraints |
+| `promptSnapshot` | Json?   | Frozen copy of the config used — audit/reproducibility                        |
+| `metadata`       | Json?   | `{ width, height, compatConstraints, userSelections }`                        |
 
 ### `promptSnapshot` structure
 
 ```json
 {
+  "visionConfigId": "…",
+  "imageGenConfigId": "…",
   "promptTemplate": "...",
-  "descriptionExample": "...",
   "templateVars": { "colorCount": 5, "maxPets": 1 },
+  "userSelections": { "background": "blue" },
   "visionModel": null,
   "visionTemperature": null,
+  "visionSystemPrompt": null,
+  "visionMaxTokens": null,
   "falModel": "fal-ai/nano-banana-2/edit",
   "constraints": { "aspectRatio": "4:5", "maxPets": 1 }
 }
@@ -270,29 +336,33 @@ All endpoints require JWT authentication.
 
 | Method   | Endpoint                      | Query Params                                  | Description                                            |
 | :------- | :---------------------------- | :-------------------------------------------- | :----------------------------------------------------- |
-| `POST`   | `/api/generations`            | —                                             | Create an image generation job.                        |
+| `POST`   | `/api/generations`            | —                                             | Create an image generation job. `402` if out of credits. |
 | `GET`    | `/api/generations`            | `?page&limit&status=pending\|...&pet_id=uuid` | List the authenticated user's generations (paginated). |
-| `GET`    | `/api/generations/:id`        | —                                             | Get full details of a specific generation.             |
+| `GET`    | `/api/generations/:id`        | —                                             | Get details of a specific generation.                  |
 | `GET`    | `/api/generations/:id/status` | —                                             | Lightweight polling — returns `{ status, progress? }`. |
 | `PATCH`  | `/api/generations/:id`        | —                                             | Update `isPublic` / `isFavorite` flags.                |
 | `DELETE` | `/api/generations/:id`        | —                                             | Hard delete a generation.                              |
+| `GET`    | `/api/admin/strategies`       | —                                             | Registered strategy keys. `@Roles('admin')`.           |
 
 ## DTOs
 
 ### POST `/api/generations` — CreateImageGenerationDto
 
-| Field            | Type   | Required | Description                                                         |
-| :--------------- | :----- | :------- | :------------------------------------------------------------------ |
-| `petId`          | UUID   | **Yes**  | Pet to generate art for (must belong to user).                      |
-| `styleId`        | UUID   | **Yes**  | Style to apply.                                                     |
-| `formatId`       | UUID   | **Yes**  | Format for this generation — must form a valid compat triplet.      |
-| `productRefId`   | UUID   | **Yes**  | Product reference — must form a valid compat triplet with style+format. |
-| `petPhotoId`     | UUID   | No       | Specific pet photo to use as source image.                          |
-| `prompt`         | string | No       | Custom prompt — used as fallback if `style.promptTemplate` is null. |
-| `negativePrompt` | string | No       | Negative prompt for the image model.                                |
-| `provider`       | string | No       | AI provider identifier (informational).                             |
-| `width`          | int    | No       | Output width in px stored in metadata (default 1024).               |
-| `height`         | int    | No       | Output height in px stored in metadata (default 1024).              |
+| Field            | Type   | Required | Description                                                          |
+| :--------------- | :----- | :------- | :------------------------------------------------------------------- |
+| `petId`          | UUID   | **Yes**  | Pet to generate art for (must belong to user).                       |
+| `petPhotoId`     | UUID   | **Yes**  | Source photo — must belong to that pet.                              |
+| `formatId`       | UUID   | **Yes**  | Format — must have an active variant for this product.               |
+| `productRefId`   | UUID   | **Yes**  | Product reference — supplies the style.                              |
+| `userSelections` | object | No       | User-chosen values for the style's `templateVarOptions`.             |
+| `prompt`         | string | No       | Stored on the generation; the pipeline uses `style.promptTemplate`.  |
+| `negativePrompt` | string | No       | Stored on the generation.                                            |
+| `provider`       | string | No       | `"openai"` \| `"stability"` — informational, defaults to `"openai"`. |
+| `width`          | int    | No       | 512–2048, stored in metadata (default 1024).                         |
+| `height`         | int    | No       | 512–2048, stored in metadata (default 1024).                         |
+
+> `styleId` is **not** accepted — it is derived from `productRefId`. The
+> ValidationPipe whitelist silently drops it if sent.
 
 ### PATCH `/api/generations/:id` — UpdateGenerationFlagsDto
 
@@ -306,4 +376,5 @@ All endpoints require JWT authentication.
 ```bash
 FAL_KEY=fal-...
 # OPENROUTER_DEFAULT_MODEL=google/gemini-2.5-flash   # Optional — overrides default vision model globally
+# MOCK_AI=true                                       # Optional — stub the pipeline (no OpenRouter/Fal/Cloudinary)
 ```
