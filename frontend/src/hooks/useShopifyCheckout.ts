@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { shopifyFetch, GRAPHQL_QUERIES } from "@/lib/shopify";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +38,7 @@ export function useShopifyCheckout() {
   const { items, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const checkoutInFlight = useRef(false);
 
   // Build the Shopify cart lines from our local cart. Line attributes become
   // Shopify order line-item `properties`, which the orders webhook
@@ -48,6 +49,7 @@ export function useShopifyCheckout() {
       .map((item) => {
         const attributes = [
           { key: "Style", value: item.style || "Default" },
+          ...(item.size ? [{ key: "Size", value: item.size }] : []),
           // _user_id (prefijo "_" → Shopify lo oculta al cliente) permite al
           // webhook acreditar/vincular la orden a la cuenta correcta sin
           // depender del email tecleado en el checkout.
@@ -77,12 +79,17 @@ export function useShopifyCheckout() {
     async (source?: CartItem[]): Promise<CheckoutResult> => {
       const cartItems = source ?? items;
       if (cartItems.length === 0) return { status: "empty" };
+      if (checkoutInFlight.current) {
+        return { status: "error", message: "Checkout is already starting." };
+      }
 
+      checkoutInFlight.current = true;
       setIsCheckingOut(true);
       try {
         const lines = buildLines(cartItems);
 
         if (lines.length === 0) {
+          checkoutInFlight.current = false;
           setIsCheckingOut(false);
           return { status: "no-variants" };
         }
@@ -105,6 +112,7 @@ export function useShopifyCheckout() {
 
         if (userErrors && userErrors.length > 0) {
           console.error("Shopify checkout errors:", userErrors);
+          checkoutInFlight.current = false;
           setIsCheckingOut(false);
           return { status: "error", message: userErrors[0].message };
         }
@@ -118,10 +126,12 @@ export function useShopifyCheckout() {
           return { status: "redirect" };
         }
 
+        checkoutInFlight.current = false;
         setIsCheckingOut(false);
         return { status: "error" };
       } catch (error) {
         console.error("Checkout failed:", error);
+        checkoutInFlight.current = false;
         setIsCheckingOut(false);
         return { status: "error" };
       }

@@ -30,7 +30,6 @@ import {
   STOREFRONT_RENDER_DEFAULTS,
 } from "../model/defaults";
 import CropModal from "@/features/pbn-studio/ui/CropModal";
-import ExportControls from "@/features/pbn-studio/ui/ExportControls";
 import DropZone from "./DropZone";
 import Modal from "@/shared/ui/Modal";
 import RenderOptionsPane from "./RenderOptionsPane";
@@ -42,6 +41,7 @@ import PbnSidebar from "./PbnSidebar";
 import PbnImageStep from "./PbnImageStep";
 import PbnSettingsDrawer from "./PbnSettingsDrawer";
 import PbnResultView from "./PbnResultView";
+import { StudioDownloadDialog } from "./StudioDownloadDialog";
 import { card, stepTitle } from "@/features/pbn-studio/ui/pbnStyles";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 
@@ -590,22 +590,22 @@ function StudioLayout({
           onGenerate={() => void process()}
         />
 
-        {/* Download opened from the post ⋯ menu / action row. */}
-        <Modal
-          open={downloadOpen}
-          onClose={() => setDownloadOpen(false)}
-          title="Download"
-          maxWidth="max-w-lg"
-          label="Download"
-        >
-          <div className="p-6">
-            <ExportControls
-              exp={exp}
-              hasOutput={hasOutput}
-              onClose={() => setDownloadOpen(false)}
-            />
-          </div>
-        </Modal>
+        {/* Download opened from the post ⋯ menu / action row. Mounting on open
+            resets the offer step and avoids loading Shopify on the direct gate. */}
+        {downloadOpen && compareImgs && (
+          <StudioDownloadDialog
+            onClose={() => setDownloadOpen(false)}
+            entry={entry}
+            generationId={generationId}
+            processedSrc={compareImgs.processed}
+            exp={exp}
+            hasOutput={hasOutput}
+            ensureSaved={ensureSaved}
+            saving={saving}
+            saveError={saveError}
+            limitReached={limitReached}
+          />
+        )}
 
         {/* The mixing guide opens in a modal when toggled. When closed it
               stays mounted off-screen so PNG/PDF export can still capture it. */}
