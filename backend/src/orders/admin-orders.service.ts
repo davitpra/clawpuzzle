@@ -275,7 +275,12 @@ export class AdminOrdersService {
               },
             },
             paintByNumbers: {
-              select: { id: true, outlineSvgUrl: true, previewUrl: true },
+              select: {
+                id: true,
+                outlineSvgUrl: true,
+                previewUrl: true,
+                sourceImageUrl: true,
+              },
             },
           },
           orderBy: { createdAt: 'asc' },
