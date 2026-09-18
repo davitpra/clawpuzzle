@@ -67,10 +67,18 @@ export function OrderItemCard({
   const productImage =
     shopifyImageUrl ?? item.productRef?.style?.images?.[0]?.imageUrl ?? null;
   // Imagen generada por el usuario (IA): thumbnail para la card, full para la vista ampliada.
+  // Los pedidos PBN no traen generación vinculada: caemos a la imagen fuente
+  // del PBN (la misma que el modal "Convertir a PBN" muestra como "Imagen a
+  // convertir"). No usamos `item.imageUrl`: es el preview ya procesado.
+  const pbnSource = item.paintByNumbers?.sourceImageUrl ?? null;
   const generatedThumb =
-    item.generation?.thumbnailUrl ?? item.generation?.resultUrl ?? null;
+    item.generation?.thumbnailUrl ??
+    item.generation?.resultUrl ??
+    pbnSource;
   const generatedFull =
-    item.generation?.resultUrl ?? item.generation?.thumbnailUrl ?? null;
+    item.generation?.resultUrl ??
+    item.generation?.thumbnailUrl ??
+    pbnSource;
   // Imagen final para impresión. El estudio arranca desde el diseño generado por
   // el cliente, así que mientras no exista la imagen procesada mostramos esa
   // generación como vista previa (marcada "Sin procesar"). Mismo orden de fallback

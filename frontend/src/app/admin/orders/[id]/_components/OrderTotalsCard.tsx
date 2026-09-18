@@ -7,7 +7,6 @@ import {
   InlineStack,
   BlockStack,
   Divider,
-  DescriptionList,
 } from "@shopify/polaris";
 import { AdminOrderDetail } from "@/entities/admin/api";
 import { fmtCurrency } from "@/entities/admin/lib/order-format";
@@ -29,6 +28,19 @@ type OrderTotalsCardProps = {
   onUpdate: () => void;
 };
 
+// Fila etiqueta/valor de los totales. Usamos InlineStack en vez de
+// DescriptionList porque su columna de término es estrecha y parte "Impuestos".
+function TotalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <InlineStack align="space-between">
+      <Text as="span" tone="subdued">
+        {label}
+      </Text>
+      <Text as="span">{value}</Text>
+    </InlineStack>
+  );
+}
+
 export function OrderTotalsCard({
   order,
   orderId,
@@ -40,33 +52,24 @@ export function OrderTotalsCard({
         <Text variant="headingMd" as="h2">
           Totales
         </Text>
-        <DescriptionList
-          items={[
-            {
-              term: "Subtotal",
-              description: fmtCurrency(order.subtotalAmount, order.currency),
-            },
-            ...(order.shippingAmount != null
-              ? [
-                  {
-                    term: "Envío",
-                    description: fmtCurrency(
-                      order.shippingAmount,
-                      order.currency,
-                    ),
-                  },
-                ]
-              : []),
-            ...(order.taxAmount != null
-              ? [
-                  {
-                    term: "Impuestos",
-                    description: fmtCurrency(order.taxAmount, order.currency),
-                  },
-                ]
-              : []),
-          ]}
-        />
+        <BlockStack gap="200">
+          <TotalRow
+            label="Subtotal"
+            value={fmtCurrency(order.subtotalAmount, order.currency)}
+          />
+          {order.shippingAmount != null && (
+            <TotalRow
+              label="Envío"
+              value={fmtCurrency(order.shippingAmount, order.currency)}
+            />
+          )}
+          {order.taxAmount != null && (
+            <TotalRow
+              label="Impuestos"
+              value={fmtCurrency(order.taxAmount, order.currency)}
+            />
+          )}
+        </BlockStack>
         <Divider />
         <InlineStack align="space-between">
           <Text variant="headingSm" fontWeight="bold" as="span">

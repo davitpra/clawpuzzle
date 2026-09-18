@@ -305,6 +305,7 @@ export interface AdminOrderItem {
     id: string;
     outlineSvgUrl: string | null;
     previewUrl: string | null;
+    sourceImageUrl: string | null;
   } | null;
 }
 
