@@ -58,7 +58,13 @@ export class OrdersService {
     const shopifyOrderId = String(payload.id);
 
     // Resolve userId: priority 0 = _user_id from an authenticated checkout,
-    // priority 1 = linked generation/PBN, priority 2 = email match.
+    // priority 1 = email match, priority 2 = linked generation/PBN.
+    // Email goes before generation/PBN: it's a single, unambiguous signal for
+    // the whole order, while generation_id/paint_by_numbers_id are combined
+    // across all line items via findFirst — in a cart with items from more
+    // than one account, that pick can be arbitrary and doesn't necessarily
+    // match the owner of a given line's own art, which then fails the
+    // ownership check in ingestLineItem and silently skips linking it.
     let userId: string | null = null;
 
     // Prioridad 0: user_id adjuntado por el checkout autenticado (property de
@@ -96,7 +102,18 @@ export class OrdersService {
       }
     }
 
-    // Try to get it from any line item that has a generation_id attribute
+    // Prioridad 1: email del pedido — señal única por pedido, se intenta antes
+    // que generation_id/paint_by_numbers_id (ver comentario arriba).
+    if (!userId && payload.email) {
+      const user = await this.prisma.user.findFirst({
+        where: { email: { equals: payload.email, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (user) userId = user.id;
+    }
+
+    // Priority 2: from any line item that has a generation_id attribute
+    // (fallback for guest checkouts whose email doesn't match an account).
     const genIds = payload.line_items
       .flatMap((li) => li.properties)
       .filter((p) => p.name === 'generation_id')
@@ -110,7 +127,7 @@ export class OrdersService {
       if (gen) userId = gen.userId;
     }
 
-    // Priority 1b: from a linked Paint-by-Numbers (PBN products carry no generation).
+    // Priority 2b: from a linked Paint-by-Numbers (PBN products carry no generation).
     if (!userId) {
       const pbnIds = payload.line_items
         .flatMap((li) => li.properties)
@@ -123,14 +140,6 @@ export class OrdersService {
         });
         if (pbn) userId = pbn.userId;
       }
-    }
-
-    if (!userId && payload.email) {
-      const user = await this.prisma.user.findFirst({
-        where: { email: { equals: payload.email, mode: 'insensitive' } },
-        select: { id: true },
-      });
-      if (user) userId = user.id;
     }
 
     const shippingTotal = payload.total_shipping_price_set?.shop_money?.amount;
@@ -210,7 +219,12 @@ export class OrdersService {
 
     // Ingest each line item
     for (const lineItem of payload.line_items) {
-      await this.ingestLineItem(order.id, lineItem, payload.financial_status);
+      await this.ingestLineItem(
+        order.id,
+        order.userId,
+        lineItem,
+        payload.financial_status,
+      );
     }
 
     // Bono de créditos por compra cuando la orden está pagada. Se decide por el
@@ -563,6 +577,7 @@ export class OrdersService {
 
   private async ingestLineItem(
     orderId: string,
+    orderUserId: string | null,
     lineItem: ShopifyOrderPayload['line_items'][0],
     financialStatus: string | undefined,
   ): Promise<void> {
@@ -621,12 +636,12 @@ export class OrdersService {
       if (variant) productFormatVariantId = variant.id;
     }
 
-    // Validate generationId ownership
+    // Only link art owned by the user resolved for this order.
     let generationId: string | null = null;
     let generationStatus: string | null = null;
-    if (generationIdAttr) {
-      const gen = await this.prisma.generation.findUnique({
-        where: { id: generationIdAttr },
+    if (generationIdAttr && orderUserId) {
+      const gen = await this.prisma.generation.findFirst({
+        where: { id: generationIdAttr, userId: orderUserId },
         select: { id: true, status: true },
       });
       if (gen) {
@@ -634,17 +649,17 @@ export class OrdersService {
         generationStatus = gen.status;
       } else {
         this.logger.warn(
-          `generation_id "${generationIdAttr}" not found in DB — skipping link`,
+          `generation_id "${generationIdAttr}" not found for order user — skipping link`,
         );
       }
     }
 
-    // Validate paintByNumbersId
+    // Validate paintByNumbersId ownership
     let paintByNumbersId: string | null = null;
     let pbnPreviewUrl: string | null = null;
-    if (paintByNumbersIdAttr) {
-      const pbn = await this.prisma.paintByNumbers.findUnique({
-        where: { id: paintByNumbersIdAttr },
+    if (paintByNumbersIdAttr && orderUserId) {
+      const pbn = await this.prisma.paintByNumbers.findFirst({
+        where: { id: paintByNumbersIdAttr, userId: orderUserId },
         select: { id: true, previewUrl: true },
       });
       if (pbn) {
@@ -652,7 +667,7 @@ export class OrdersService {
         pbnPreviewUrl = pbn.previewUrl;
       } else {
         this.logger.warn(
-          `paint_by_numbers_id "${paintByNumbersIdAttr}" not found in DB — skipping link`,
+          `paint_by_numbers_id "${paintByNumbersIdAttr}" not found for order user — skipping link`,
         );
       }
     }
@@ -700,11 +715,15 @@ export class OrdersService {
         productVariant: productFormatVariantId
           ? { connect: { id: productFormatVariantId } }
           : undefined,
-        generation: generationId
-          ? { connect: { id: generationId } }
+        generation: generationIdAttr
+          ? generationId
+            ? { connect: { id: generationId } }
+            : { disconnect: true }
           : undefined,
-        paintByNumbers: paintByNumbersId
-          ? { connect: { id: paintByNumbersId } }
+        paintByNumbers: paintByNumbersIdAttr
+          ? paintByNumbersId
+            ? { connect: { id: paintByNumbersId } }
+            : { disconnect: true }
           : undefined,
       };
 
@@ -747,8 +766,9 @@ export class OrdersService {
       });
     }
 
-    // Mark the linked PBN as purchased (best-effort, non-blocking).
-    if (paintByNumbersId) {
+    // A pending/authorized checkout is not a purchase yet. A later paid webhook
+    // ingests the line again and performs this idempotent status update.
+    if (paintByNumbersId && financialStatus === 'paid') {
       await this.prisma.paintByNumbers
         .update({
           where: { id: paintByNumbersId },
@@ -952,7 +972,21 @@ export class OrdersService {
       : 'partial_refund';
 
     // 1) Shopify FIRST — strict: any failure aborts before touching the DB.
-    if (cancelsWholeOrder) {
+    //    Exception: if Shopify already shows this order cancelled (e.g. it was
+    //    cancelled directly in Shopify Admin and the orders/cancelled webhook
+    //    never landed), calling cancel.json again 404s and would permanently
+    //    block this action — sync from Shopify's real state instead of
+    //    retrying a cancel that Shopify will never accept.
+    const shopifyOrder = await this.shopifyApiService.fetchOrderById(
+      order.shopifyOrderId,
+    );
+    if (shopifyOrder?.cancelled_at) {
+      await this.ingestShopifyOrder(
+        shopifyOrder,
+        undefined,
+        'admin_cancel_resync',
+      );
+    } else if (cancelsWholeOrder) {
       await this.shopifyApiService.cancelOrder(order.shopifyOrderId, {
         reason: 'other',
         refund,

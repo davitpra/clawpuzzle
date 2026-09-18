@@ -9,6 +9,7 @@ import { StorageService } from '../storage/storage.service';
 import { ShopifyApiService } from '../shopify-sync/shopify-api.service';
 import { PaintByNumbersService } from '../paint-by-numbers/paint-by-numbers.service';
 import { CreditsService } from '../credits/credits.service';
+import type { ShopifyOrderPayload } from './dto/shopify-order.dto';
 
 const mockPrisma = {
   creditTransaction: {
@@ -17,17 +18,37 @@ const mockPrisma = {
   orderItem: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
     update: jest.fn(),
   },
   order: {
     findUnique: jest.fn(),
+    upsert: jest.fn(),
     delete: jest.fn(),
+  },
+  user: {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
   },
   creditPackVariant: {
     findMany: jest.fn(),
   },
   orderEvent: {
     create: jest.fn(),
+  },
+  generation: {
+    findFirst: jest.fn(),
+  },
+  paintByNumbers: {
+    findFirst: jest.fn(),
+    update: jest.fn(),
+  },
+  productReference: {
+    findUnique: jest.fn(),
+  },
+  productFormatVariant: {
+    findFirst: jest.fn(),
   },
   expense: {
     findMany: jest.fn(),
@@ -44,6 +65,10 @@ const mockPrisma = {
 const mockCredits = {
   grant: jest.fn().mockResolvedValue(true),
   revoke: jest.fn().mockResolvedValue(true),
+};
+
+const mockShopifyApi = {
+  getFulfillmentDisplayStatus: jest.fn().mockResolvedValue(null),
 };
 
 // findUnique del ledger enruta por reason (order_bonus / pack_purchase).
@@ -78,7 +103,7 @@ describe('OrdersService', () => {
         OrdersService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StorageService, useValue: {} },
-        { provide: ShopifyApiService, useValue: {} },
+        { provide: ShopifyApiService, useValue: mockShopifyApi },
         { provide: PaintByNumbersService, useValue: {} },
         { provide: CreditsService, useValue: mockCredits },
       ],
@@ -87,12 +112,40 @@ describe('OrdersService', () => {
     service = module.get<OrdersService>(OrdersService);
     jest.clearAllMocks();
     mockPrisma.order.findUnique.mockResolvedValue({ orderNumber: '#1042' });
+    mockPrisma.orderItem.findUnique.mockResolvedValue(null);
+    mockPrisma.orderItem.create.mockResolvedValue({});
+    mockPrisma.orderItem.findMany.mockResolvedValue([]);
+    mockPrisma.generation.findFirst.mockResolvedValue(null);
+    mockPrisma.paintByNumbers.findFirst.mockResolvedValue(null);
+    mockPrisma.paintByNumbers.update.mockResolvedValue({});
+    mockPrisma.productReference.findUnique.mockResolvedValue(null);
+    mockPrisma.productFormatVariant.findFirst.mockResolvedValue(null);
     mockPrisma.creditPackVariant.findMany.mockResolvedValue([]);
     mockPrisma.expense.findMany.mockResolvedValue([]);
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.findFirst.mockResolvedValue(null);
+    mockShopifyApi.getFulfillmentDisplayStatus.mockResolvedValue(null);
     mockPrisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) =>
       fn(mockPrisma),
     );
   });
+
+  function buildOrderPayload(
+    overrides: Partial<ShopifyOrderPayload>,
+  ): ShopifyOrderPayload {
+    return {
+      id: 9001,
+      name: '#2001',
+      currency: 'CAD',
+      subtotal_price: '25.00',
+      total_tax: '0.00',
+      total_price: '25.00',
+      created_at: '2026-09-18T00:00:00.000Z',
+      updated_at: '2026-09-18T00:00:00.000Z',
+      line_items: [],
+      ...overrides,
+    };
+  }
 
   // Acceso al método privado sin exponerlo en la API pública.
   const reverse = (orderId: string, itemIds: string[]) =>
@@ -101,6 +154,214 @@ describe('OrdersService', () => {
         reverseCreditsForItems: (o: string, i: string[]) => Promise<void>;
       }
     ).reverseCreditsForItems(orderId, itemIds);
+
+  const ingestLine = (orderUserId: string | null, financialStatus: string) =>
+    (
+      service as unknown as {
+        ingestLineItem: (
+          orderId: string,
+          userId: string | null,
+          lineItem: {
+            id: number;
+            title: string;
+            quantity: number;
+            price: string;
+            total_discount: string;
+            properties: { name: string; value: string }[];
+          },
+          status: string,
+        ) => Promise<void>;
+      }
+    ).ingestLineItem(
+      'order-1',
+      orderUserId,
+      {
+        id: 101,
+        title: 'Custom art',
+        quantity: 1,
+        price: '25.00',
+        total_discount: '0.00',
+        properties: [
+          { name: 'generation_id', value: 'generation-1' },
+          { name: 'paint_by_numbers_id', value: 'pbn-1' },
+        ],
+      },
+      financialStatus,
+    );
+
+  describe('line art linkage', () => {
+    it('does not link generation or PBN attributes owned by another user', async () => {
+      mockPrisma.orderItem.findUnique.mockResolvedValue({
+        id: 'item-1',
+        productionStatus: 'pending',
+      });
+
+      await ingestLine('order-user', 'paid');
+
+      expect(mockPrisma.generation.findFirst).toHaveBeenCalledWith({
+        where: { id: 'generation-1', userId: 'order-user' },
+        select: { id: true, status: true },
+      });
+      expect(mockPrisma.paintByNumbers.findFirst).toHaveBeenCalledWith({
+        where: { id: 'pbn-1', userId: 'order-user' },
+        select: { id: true, previewUrl: true },
+      });
+      expect(mockPrisma.orderItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-1' },
+        data: expect.objectContaining({
+          generation: { disconnect: true },
+          paintByNumbers: { disconnect: true },
+        }),
+      });
+      expect(mockPrisma.paintByNumbers.update).not.toHaveBeenCalled();
+    });
+
+    it('links owned art and marks a PBN ordered for a paid order', async () => {
+      mockPrisma.generation.findFirst.mockResolvedValue({
+        id: 'generation-1',
+        status: 'completed',
+      });
+      mockPrisma.paintByNumbers.findFirst.mockResolvedValue({
+        id: 'pbn-1',
+        previewUrl: 'https://example.com/pbn.png',
+      });
+
+      await ingestLine('order-user', 'paid');
+
+      expect(mockPrisma.orderItem.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          generationId: 'generation-1',
+          paintByNumbersId: 'pbn-1',
+          productionStatus: 'draft',
+        }),
+      });
+      expect(mockPrisma.paintByNumbers.update).toHaveBeenCalledWith({
+        where: { id: 'pbn-1' },
+        data: { status: 'ordered' },
+      });
+    });
+
+    it('does not mark a linked PBN ordered until a later paid webhook', async () => {
+      mockPrisma.generation.findFirst.mockResolvedValue({
+        id: 'generation-1',
+        status: 'completed',
+      });
+      mockPrisma.paintByNumbers.findFirst.mockResolvedValue({
+        id: 'pbn-1',
+        previewUrl: null,
+      });
+
+      await ingestLine('order-user', 'authorized');
+
+      expect(mockPrisma.orderItem.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          paintByNumbersId: 'pbn-1',
+          productionStatus: 'pending',
+        }),
+      });
+      expect(mockPrisma.paintByNumbers.update).not.toHaveBeenCalled();
+
+      mockPrisma.orderItem.findUnique.mockResolvedValue({
+        id: 'item-1',
+        productionStatus: 'pending',
+      });
+      await ingestLine('order-user', 'paid');
+
+      expect(mockPrisma.orderItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-1' },
+        data: expect.objectContaining({ productionStatus: 'draft' }),
+      });
+      expect(mockPrisma.paintByNumbers.update).toHaveBeenCalledWith({
+        where: { id: 'pbn-1' },
+        data: { status: 'ordered' },
+      });
+    });
+  });
+
+  describe('ingestShopifyOrder userId resolution', () => {
+    it('prefers the order email match over a generation_id owned by a different account', async () => {
+      mockPrisma.order.upsert.mockResolvedValue({
+        id: 'order-1',
+        userId: 'account-a',
+      });
+      mockPrisma.user.findFirst.mockResolvedValue({ id: 'account-a' });
+      // El generation_id de la línea pertenece a otra cuenta: el lookup
+      // combinado a nivel de orden (where.id es un objeto `{ in: [...] }`) lo
+      // devuelve, pero el chequeo de propiedad por línea (where.userId
+      // presente) debe fallar porque no coincide con el email resuelto.
+      mockPrisma.generation.findFirst.mockImplementation(
+        (args: { where: { userId?: string } }) =>
+          Promise.resolve(args.where.userId ? null : { userId: 'account-b' }),
+      );
+
+      const payload = buildOrderPayload({
+        email: 'buyer@example.com',
+        line_items: [
+          {
+            id: 501,
+            title: 'Custom art',
+            quantity: 1,
+            price: '25.00',
+            total_discount: '0.00',
+            properties: [
+              { name: 'generation_id', value: 'generation-other-user' },
+            ],
+          },
+        ],
+      });
+
+      await service.ingestShopifyOrder(payload);
+
+      expect(mockPrisma.order.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ userId: 'account-a' }),
+        }),
+      );
+      // La orden quedó resuelta a account-a (por email); el chequeo de
+      // propiedad por línea usa ese userId y no encuentra la generación
+      // ajena, así que no se vincula (protección IDOR intacta).
+      expect(mockPrisma.generation.findFirst).toHaveBeenCalledWith({
+        where: { id: 'generation-other-user', userId: 'account-a' },
+        select: { id: true, status: true },
+      });
+    });
+
+    it('still links generation_id-derived ownership when it matches the email-resolved user', async () => {
+      mockPrisma.order.upsert.mockResolvedValue({
+        id: 'order-1',
+        userId: 'account-a',
+      });
+      mockPrisma.user.findFirst.mockResolvedValue({ id: 'account-a' });
+      mockPrisma.generation.findFirst.mockImplementation(
+        (args: { where: { userId?: string } }) =>
+          Promise.resolve(
+            args.where.userId
+              ? { id: 'generation-own', status: 'completed' }
+              : { userId: 'account-a' },
+          ),
+      );
+
+      const payload = buildOrderPayload({
+        email: 'buyer@example.com',
+        line_items: [
+          {
+            id: 502,
+            title: 'Custom art',
+            quantity: 1,
+            price: '25.00',
+            total_discount: '0.00',
+            properties: [{ name: 'generation_id', value: 'generation-own' }],
+          },
+        ],
+      });
+
+      await service.ingestShopifyOrder(payload);
+
+      expect(mockPrisma.orderItem.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ generationId: 'generation-own' }),
+      });
+    });
+  });
 
   describe('reverseCreditsForItems', () => {
     it('no hace nada si la orden nunca recibió grants', async () => {
