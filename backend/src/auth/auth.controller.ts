@@ -16,6 +16,7 @@ import { AuthService } from './auth.service';
 import type { DeviceInfo } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { GoogleCodeLoginDto } from './dto/google-code-login.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from './strategies/jwt.strategy';
@@ -173,6 +174,32 @@ export class AuthController {
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
     // Return user data only (no tokens in response body)
+    return { user: result.user };
+  }
+
+  @Public()
+  @Post('google/code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login or register with a Google authorization code (popup flow)',
+  })
+  @ApiResponse({ status: 200, description: 'User successfully logged in' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid Google authorization code',
+  })
+  async googleCodeLogin(
+    @Body() googleCodeLoginDto: GoogleCodeLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.loginWithGoogleCode(
+      googleCodeLoginDto.code,
+      this.extractDeviceInfo(req),
+    );
+
+    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+
     return { user: result.user };
   }
 

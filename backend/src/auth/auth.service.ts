@@ -130,6 +130,40 @@ export class AuthService {
     };
   }
 
+  /**
+   * Flujo auth-code del botón propio "Sign up": canjea el code del popup de
+   * Google por tokens y delega en `loginWithGoogle` con el id_token resultante,
+   * así la verificación, el link por email y el bono de registro son los mismos.
+   */
+  async loginWithGoogleCode(code: string, deviceInfo?: DeviceInfo) {
+    const clientId = this.configService.get<string>('google.clientId');
+    const clientSecret = this.configService.get<string>('google.clientSecret');
+
+    if (!clientId || !clientSecret) {
+      this.logger.error(
+        'GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not configured',
+      );
+      throw new UnauthorizedException('Google sign-in is not available');
+    }
+
+    let idToken: string | null | undefined;
+    try {
+      // 'postmessage' es el redirect_uri que usa el popup de Google Identity Services.
+      const client = new OAuth2Client(clientId, clientSecret, 'postmessage');
+      const { tokens } = await client.getToken(code);
+      idToken = tokens.id_token;
+    } catch (error) {
+      this.logger.warn('Google auth code exchange failed', error as Error);
+      throw new UnauthorizedException('Invalid Google authorization code');
+    }
+
+    if (!idToken) {
+      throw new UnauthorizedException('Invalid Google authorization code');
+    }
+
+    return this.loginWithGoogle(idToken, deviceInfo);
+  }
+
   async loginWithGoogle(idToken: string, deviceInfo?: DeviceInfo) {
     const clientId = this.configService.get<string>('google.clientId');
 
