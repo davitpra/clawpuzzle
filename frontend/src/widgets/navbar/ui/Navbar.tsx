@@ -239,12 +239,6 @@ export default function Navbar() {
                       >
                         Login
                       </Link>
-                      <Link
-                        href="/signup"
-                        className="font-display flex items-center justify-center rounded-xl h-10 px-5 bg-primary hover:bg-primary-dark text-white transition-all shadow-sm text-sm font-bold hover:shadow-md hover:scale-105"
-                      >
-                        Sign Up
-                      </Link>
                     </div>
                   )}
                 </>
@@ -340,13 +334,6 @@ export default function Navbar() {
                 className="font-display flex items-center justify-center rounded-xl h-12 px-5 bg-white hover:bg-gray-50 text-text-main border border-[#E0DED9] transition-all shadow-sm text-base font-bold w-full"
               >
                 Login
-              </Link>
-              <Link
-                href="/signup"
-                tabIndex={mobileMenuOpen ? undefined : -1}
-                className="font-display flex items-center justify-center rounded-xl h-12 px-5 bg-primary hover:bg-primary-dark text-white transition-all shadow-sm text-base font-bold w-full"
-              >
-                Sign Up
               </Link>
             </div>
           )}

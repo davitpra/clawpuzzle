@@ -1,11 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-export interface RegisterDto {
-  email: string;
-  password: string;
-  fullName?: string;
-}
-
 export interface LoginDto {
   email: string;
   password: string;
@@ -29,41 +23,6 @@ class AuthError extends Error {
   constructor(public statusCode: number, message: string) {
     super(message);
     this.name = 'AuthError';
-  }
-}
-
-export async function register(data: RegisterDto): Promise<AuthResponse> {
-  try {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies in request
-      body: JSON.stringify(data),
-    });
-
-    const json = await response.json();
-
-    if (!response.ok) {
-      throw new AuthError(
-        response.status,
-        json.message || 'Error al registrar usuario'
-      );
-    }
-
-    // Backend now returns user only, tokens are in httpOnly cookies
-    return {
-      user: json.data?.user,
-      accessToken: '', // Not used anymore
-      refreshToken: '', // Not used anymore
-    };
-  } catch (error) {
-    if (error instanceof AuthError) {
-      throw error;
-    }
-    console.error('Error en registro:', error);
-    throw new AuthError(500, 'Error de conexión al servidor');
   }
 }
 

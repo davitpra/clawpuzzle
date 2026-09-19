@@ -11,7 +11,7 @@ const LAUNCH_ALLOWED_PREFIXES = [
   '/create',
   '/studio',
   '/login',
-  '/signup',
+  '/admin-login',
   '/user',
   '/credits',
   '/admin',

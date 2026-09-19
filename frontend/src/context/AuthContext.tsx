@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   login as apiLogin,
   loginWithGoogle as apiLoginWithGoogle,
-  register as apiRegister,
   logout as apiLogout,
-  RegisterDto,
 } from "@/lib/auth/client";
 import { ensureFreshToken } from "@/lib/auth/fetch-with-refresh";
 
@@ -27,7 +25,6 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
-  register: (data: RegisterDto) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => void;
 }
@@ -172,23 +169,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: RegisterDto) => {
-    try {
-      const response = await apiRegister(data);
-
-      // Tokens are now in httpOnly cookies (set by backend)
-      // No need to save them manually
-
-      // Set user from response
-      setUser(response.user);
-
-      return Promise.resolve();
-    } catch (error) {
-      console.error("Register error in context:", error);
-      throw error;
-    }
-  };
-
   const logout = async () => {
     try {
       // Call logout API - backend will clear httpOnly cookies
@@ -224,7 +204,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         loginWithGoogle,
-        register,
         logout,
         checkAuth,
       }}

@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
     "/admin/",
     "/user/",
     "/login",
-    "/signup",
+    "/admin-login",
     "/create",
     "/studio",
     "/credits",

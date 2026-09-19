@@ -9,44 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, loginWithGoogle } = useAuth();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const { loginWithGoogle } = useAuth();
   const [error, setError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    // Basic validation
-    if (!formData.email || !formData.password) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      await login(formData.email, formData.password);
-
-      // Redirect to the original page or home
-      const redirectTo = searchParams.get("redirect") || "/";
-      router.push(redirectTo);
-    } catch (err) {
-      console.error("Login error:", err);
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Failed to log in. Please check your credentials.";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse,
@@ -58,8 +22,6 @@ function LoginContent() {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       await loginWithGoogle(credentialResponse.credential);
 
@@ -70,20 +32,11 @@ function LoginContent() {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to sign in with Google.";
       setError(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleGoogleError = () => {
     setError("Failed to sign in with Google. Please try again.");
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
   };
 
   return (
@@ -118,7 +71,7 @@ function LoginContent() {
             Your pet&apos;s soul, turned into art
           </h2>
           <p className="mt-3 max-w-md text-lg text-white/90 drop-shadow-sm">
-            Log in to keep creating personalized memories that last a lifetime.
+            Sign in to keep creating personalized memories that last a lifetime.
           </p>
 
           {/* Floating trust card */}
@@ -149,10 +102,10 @@ function LoginContent() {
           {/* Header */}
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-3xl font-black leading-tight tracking-tight text-text-main sm:text-4xl">
-              Welcome back
+              Welcome
             </h1>
             <p className="text-base text-text-muted">
-              Log in to your account to continue.
+              Sign in or create your account with Google to continue.
             </p>
           </div>
 
@@ -178,120 +131,6 @@ function LoginContent() {
               width="400"
             />
           </div>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4">
-            <div className="h-px flex-1 bg-[#E0DED9]" />
-            <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
-              or continue with
-            </span>
-            <div className="h-px flex-1 bg-[#E0DED9]" />
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {/* Email */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="email"
-                className="text-sm font-semibold text-text-main"
-              >
-                Email Address
-              </label>
-              <div className="group relative">
-                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-text-muted transition-colors group-focus-within:text-primary">
-                  mail
-                </span>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="h-12 w-full rounded-xl border border-[#E0DED9] bg-white pl-12 pr-4 text-base text-text-main outline-none transition-all placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-semibold text-text-main"
-                >
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm font-medium text-primary transition-colors hover:text-primary-dark"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="group relative">
-                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-text-muted transition-colors group-focus-within:text-primary">
-                  lock
-                </span>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="h-12 w-full rounded-xl border border-[#E0DED9] bg-white pl-12 pr-12 text-base text-text-main outline-none transition-all placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-primary"
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    {showPassword ? "visibility_off" : "visibility"}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Remember me */}
-            <label
-              htmlFor="remember"
-              className="flex cursor-pointer items-center gap-2 text-sm text-text-main"
-            >
-              <input
-                id="remember"
-                name="remember"
-                type="checkbox"
-                className="h-4 w-4 rounded border-[#E0DED9] accent-primary"
-              />
-              Remember me for 30 days
-            </label>
-
-            {/* Log in button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-1 flex h-12 w-full items-center justify-center rounded-xl bg-primary px-5 text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary"
-            >
-              {isLoading ? "Logging in..." : "Log In"}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <p className="text-center text-sm text-text-muted">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/signup"
-              className="font-bold text-primary transition-colors hover:text-primary-dark"
-            >
-              Sign Up
-            </Link>
-          </p>
         </div>
       </div>
     </div>
