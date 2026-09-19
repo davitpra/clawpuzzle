@@ -26,13 +26,10 @@ const FULL_MAIN_NAV: NavLink[] = [
   { label: "Contact", href: "/contact" },
 ];
 
-// Sin "Catalog" (ruta bloqueada) y con el embudo de IA en primer lugar. El
-// destino es el ancla de `LandingStyles` (`id="styles"`) para que el usuario
-// elija un estilo; `/create` completa después el producto Digital y el formato.
-const LAUNCH_MAIN_NAV: NavLink[] = [
-  { label: "Create your art", href: "/#styles" },
-  { label: "Contact", href: "/contact" },
-];
+// Vacía a propósito: "Catalog" y "Contact" son rutas bloqueadas y "Create your
+// art" se quitó (2026-09-19); el embudo entra por la landing y el footer. El
+// contacto queda en el `mailto:` del pie del footer.
+const LAUNCH_MAIN_NAV: NavLink[] = [];
 
 export const MAIN_NAV: NavLink[] = LAUNCH_MODE
   ? LAUNCH_MAIN_NAV
@@ -115,7 +112,6 @@ const LAUNCH_FOOTER_SECTIONS: NavSection[] = [
   {
     title: "Support",
     links: [
-      { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/#faq" },
       ...SUPPORT_LINKS,
     ],

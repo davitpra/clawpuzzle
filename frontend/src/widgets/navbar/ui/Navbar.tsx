@@ -34,6 +34,12 @@ export default function Navbar() {
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // En lanzamiento `MAIN_NAV` está vacío: con sesión iniciada el menú mobile no
+  // tendría nada que mostrar, así que el botón hamburguesa desaparece.
+  const hasNavLinks = MAIN_NAV.length > 0;
+  const showAuthButtons = !isLoading && !isAuthenticated;
+  const hasMobileMenu = hasNavLinks || showAuthButtons;
+
   // Navega a la tienda con el término como query param. Si está vacío, va a
   // /catalog sin filtro, para que enviar el buscador vacío también quite la búsqueda.
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -264,16 +270,18 @@ export default function Navbar() {
               )}
 
               {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden flex items-center justify-center size-10 rounded-xl bg-white hover:bg-gray-50 border border-transparent hover:border-[#E0DED9] text-text-main transition-all shadow-sm"
-                aria-label="Toggle menu"
-                aria-expanded={mobileMenuOpen}
-              >
-                <span className="material-symbols-outlined text-[24px]">
-                  {mobileMenuOpen ? "close" : "menu"}
-                </span>
-              </button>
+              {hasMobileMenu && (
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="lg:hidden flex items-center justify-center size-10 rounded-xl bg-white hover:bg-gray-50 border border-transparent hover:border-[#E0DED9] text-text-main transition-all shadow-sm"
+                  aria-label="Toggle menu"
+                  aria-expanded={mobileMenuOpen}
+                >
+                  <span className="material-symbols-outlined text-[24px]">
+                    {mobileMenuOpen ? "close" : "menu"}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </nav>
@@ -300,26 +308,32 @@ export default function Navbar() {
       >
         <div className="container-site px-4 sm:px-6 py-4">
           {/* Navigation Links */}
-          <nav className="space-y-1">
-            {MAIN_NAV.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                tabIndex={mobileMenuOpen ? undefined : -1}
-                className={`font-display block px-4 py-3 rounded-xl text-base font-bold transition-all ${
-                  pathname === link.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-main hover:bg-gray-50"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          {hasNavLinks && (
+            <nav className="space-y-1">
+              {MAIN_NAV.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  tabIndex={mobileMenuOpen ? undefined : -1}
+                  className={`font-display block px-4 py-3 rounded-xl text-base font-bold transition-all ${
+                    pathname === link.href
+                      ? "bg-primary/10 text-primary"
+                      : "text-text-main hover:bg-gray-50"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Auth Buttons - Mobile */}
-          {!isLoading && !isAuthenticated && (
-            <div className="mt-4 pt-4 border-t border-[#E0DED9] grid grid-cols-2 gap-3">
+          {showAuthButtons && (
+            <div
+              className={`grid grid-cols-2 gap-3 ${
+                hasNavLinks ? "mt-4 pt-4 border-t border-[#E0DED9]" : ""
+              }`}
+            >
               <Link
                 href="/login"
                 tabIndex={mobileMenuOpen ? undefined : -1}

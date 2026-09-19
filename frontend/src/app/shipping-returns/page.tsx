@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/widgets/legal-page";
 import { BRAND } from "@/shared/config/navigation";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 
 export const metadata: Metadata = {
   title: "Shipping & Returns · Claw & Soul",
@@ -90,14 +91,20 @@ export default function ShippingReturnsPage() {
             href={`mailto:${BRAND.email}`}
           >
             {BRAND.email}
-          </a>{" "}
-          or use the{" "}
-          <Link
-            className="text-primary underline hover:text-primary-dark transition-colors"
-            href="/contact"
-          >
-            contact form
-          </Link>
+          </a>
+          {/* En lanzamiento `/contact` está bloqueada. */}
+          {!LAUNCH_MODE && (
+            <>
+              {" "}
+              or use the{" "}
+              <Link
+                className="text-primary underline hover:text-primary-dark transition-colors"
+                href="/contact"
+              >
+                contact form
+              </Link>
+            </>
+          )}
           .
         </p>
       </section>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Navbar } from "@/widgets/navbar";
 import { Footer } from "@/widgets/footer";
 import { Container } from "@/shared/ui/Container";
+import { LAUNCH_MODE } from "@/shared/config/launch";
+import { BRAND } from "@/shared/config/navigation";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -75,8 +77,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
             <p className="mt-8 text-sm text-text-muted">
               Still stuck?{" "}
+              {/* En lanzamiento `/contact` está bloqueada: el contacto va por email. */}
               <Link
-                href="/contact"
+                href={LAUNCH_MODE ? `mailto:${BRAND.email}` : "/contact"}
                 className="font-bold text-primary underline transition-colors hover:text-primary-dark"
               >
                 Contact us

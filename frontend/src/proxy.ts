@@ -18,7 +18,6 @@ const LAUNCH_ALLOWED_PREFIXES = [
   '/privacy',
   '/terms',
   '/shipping-returns',
-  '/contact',
   '/opengraph-image',
 ];
 
