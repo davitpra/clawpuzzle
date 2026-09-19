@@ -6,6 +6,7 @@ import ProductFAQ from "@/widgets/product-faq/ui/ProductFAQ";
 import LandingHero from "./LandingHero";
 import LandingShowcase from "./LandingShowcase";
 import LandingStyles, { LandingStylesSkeleton } from "./LandingStyles";
+import BrandBanner from "./BrandBanner";
 import WhyItMatters from "./WhyItMatters";
 import LandingProducts from "./LandingProducts";
 import LandingRelatedProducts from "./LandingRelatedProducts";
@@ -178,6 +179,7 @@ export default function StudioLandingPage() {
               when: !LAUNCH_MODE,
               node: <LandingProducts background="" />,
             },
+            { id: "brand", node: <BrandBanner /> },
             { id: "why", node: <WhyItMatters /> },
             {
               id: "faq",
