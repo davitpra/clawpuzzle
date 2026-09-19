@@ -1,5 +1,5 @@
 // Constantes y geometría pura del estudio de impresión. Extraído de
-// PrintStudioModal para separar el cálculo (sin estado) de la UI.
+// Print Studio para separar el cálculo (sin estado) de la UI.
 import type { EnhanceInfo } from "@/entities/admin/api";
 
 export const GOOD_DPI = 300;
@@ -8,7 +8,9 @@ export const LOW_DPI = 200;
 export const PRINT_DPI = 300;
 export const DEFAULT_UPSCALE_FACTOR = 2;
 
-export function dpiTone(dpi: number | null): "success" | "warning" | "critical" {
+export function dpiTone(
+  dpi: number | null,
+): "success" | "warning" | "critical" {
   if (dpi === null || dpi < LOW_DPI) return "critical";
   if (dpi < GOOD_DPI) return "warning";
   return "success";
@@ -55,7 +57,8 @@ export function computePrintGeometry(
         )
       : null;
   // When the raw upscale would exceed PRINT_DPI, the backend downscales to it.
-  const capScale = rawDpi !== null && rawDpi > PRINT_DPI ? PRINT_DPI / rawDpi : 1;
+  const capScale =
+    rawDpi !== null && rawDpi > PRINT_DPI ? PRINT_DPI / rawDpi : 1;
   const targetPx = rawTargetPx
     ? {
         w: Math.round(rawTargetPx.w * capScale),

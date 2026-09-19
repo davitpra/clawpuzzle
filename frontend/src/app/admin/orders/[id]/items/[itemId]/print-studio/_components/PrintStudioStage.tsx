@@ -63,7 +63,7 @@ export function PrintStudioStage({
       )}
 
       {/* ── LEFT: image stage ───────────────────────────────────── */}
-      <div style={{ flexShrink: 0, width: 500 }}>
+      <div style={{ width: "100%" }}>
         <BlockStack gap="200" inlineAlign="center">
           <div
             style={{

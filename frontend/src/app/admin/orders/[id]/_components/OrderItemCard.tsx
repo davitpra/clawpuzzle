@@ -9,11 +9,11 @@ import {
   InlineStack,
   BlockStack,
   Divider,
+  Button,
 } from "@shopify/polaris";
 import { adminApi, AdminOrderItem } from "@/entities/admin/api";
 import { VALID_TRANSITIONS } from "@/entities/admin/lib/order-transitions";
 import ImagePreviewModal from "@/app/admin/_components/ImagePreviewModal";
-import PrintStudioModal from "./PrintStudioModal";
 import ConvertToPbnModal from "./ConvertToPbnModal";
 import { Modal } from "@shopify/polaris";
 import { ItemActionsBar } from "./ItemActionsBar";
@@ -50,7 +50,6 @@ export function OrderItemCard({
   >(item.fulfillmentMethod as "in_house" | "pod");
   const [savingFulfillment, setSavingFulfillment] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [showStudio, setShowStudio] = useState(false);
   const [showPBN, setShowPBN] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -66,23 +65,18 @@ export function OrderItemCard({
   // (live desde Shopify) → preview del estilo. No cae al arte del cliente.
   const productImage =
     shopifyImageUrl ?? item.productRef?.style?.images?.[0]?.imageUrl ?? null;
-  // Imagen generada por el usuario (IA): thumbnail para la card, full para la vista ampliada.
-  // Los pedidos PBN no traen generación vinculada: caemos a la imagen fuente
-  // del PBN (la misma que el modal "Convertir a PBN" muestra como "Imagen a
-  // convertir"). No usamos `item.imageUrl`: es el preview ya procesado.
-  const pbnSource = item.paintByNumbers?.sourceImageUrl ?? null;
-  const generatedThumb =
-    item.generation?.thumbnailUrl ??
-    item.generation?.resultUrl ??
-    pbnSource;
+  // IA art original. Los pedidos PBN no siempre conservan la relación Generation,
+  // pero sí su imagen fuente. Nunca usamos previewUrl ni outlineSvgUrl, que son
+  // artefactos PBN procesados.
+  const generatedSource =
+    item.generation?.resultUrl ?? item.paintByNumbers?.sourceImageUrl ?? null;
+  const generatedThumb = item.generation?.thumbnailUrl ?? generatedSource;
   const generatedFull =
-    item.generation?.resultUrl ??
-    item.generation?.thumbnailUrl ??
-    pbnSource;
+    generatedSource ?? item.generation?.thumbnailUrl ?? null;
   // Imagen final para impresión. El estudio arranca desde el diseño generado por
   // el cliente, así que mientras no exista la imagen procesada mostramos esa
   // generación como vista previa (marcada "Sin procesar"). Mismo orden de fallback
-  // que PrintStudioModal.
+  // que el Print Studio.
   const printThumb =
     item.printImageUrl ?? generatedThumb ?? item.imageUrl ?? null;
   const printFull =
@@ -195,14 +189,6 @@ export function OrderItemCard({
 
   return (
     <>
-      {showStudio && (
-        <PrintStudioModal
-          orderId={orderId}
-          item={item}
-          onClose={() => setShowStudio(false)}
-          onApplied={onUpdate}
-        />
-      )}
       {showPBN && (
         <ConvertToPbnModal
           item={item}
@@ -307,6 +293,14 @@ export function OrderItemCard({
               <Text variant="bodySm" tone="subdued" as="span">
                 {item.id}
               </Text>
+              {generatedSource && (
+                <Button
+                  size="micro"
+                  url={`/admin/orders/${orderId}/items/${item.id}/print-studio`}
+                >
+                  Preparar para impresión
+                </Button>
+              )}
             </BlockStack>
           </ItemMediaRow>
 
@@ -352,7 +346,6 @@ export function OrderItemCard({
             fileInputRef={fileInputRef}
             onUploadClick={() => fileInputRef.current?.click()}
             onUploadChange={handleUploadImage}
-            onOpenStudio={() => setShowStudio(true)}
             onOpenPBN={() => setShowPBN(true)}
           />
 

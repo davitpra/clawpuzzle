@@ -17,8 +17,8 @@ import type { EnhanceInfo } from "@/entities/admin/api";
 import type { HsbColor } from "@/lib/colorUtils";
 import { GOOD_DPI, dpiTone } from "./printStudio";
 
-// Panel derecho del estudio de impresión: upscale IA, ajustes de imagen, bleed
-// y opciones de salida.
+// Panel de controles del estudio de impresión: upscale IA, ajustes de imagen,
+// bleed y opciones de salida.
 export function PrintStudioControls({
   err,
   setErr,
@@ -123,7 +123,7 @@ export function PrintStudioControls({
 
         {!hasSource && (
           <Banner tone="warning">
-            Sin imagen de origen. Sube o vincula una imagen primero.
+            Este item no tiene una imagen de IA original disponible.
           </Banner>
         )}
 

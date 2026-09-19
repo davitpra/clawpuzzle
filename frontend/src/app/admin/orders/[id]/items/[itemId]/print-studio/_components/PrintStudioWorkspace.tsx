@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Modal,
+  BlockStack,
+  Box,
+  Card,
+  Layout,
   InlineStack,
   Text,
   Spinner,
@@ -10,12 +13,7 @@ import {
   Popover,
   ActionList,
 } from "@shopify/polaris";
-import {
-  adminApi,
-  AdminOrderItem,
-  EnhanceInfo,
-  EnhanceOptions,
-} from "@/entities/admin/api";
+import { adminApi, EnhanceInfo, EnhanceOptions } from "@/entities/admin/api";
 import {
   cloudinaryDownloadUrl,
   type DownloadFormat,
@@ -30,22 +28,17 @@ import {
 import { PrintStudioStage } from "./PrintStudioStage";
 import { PrintStudioControls } from "./PrintStudioControls";
 
-export default function PrintStudioModal({
+export default function PrintStudioWorkspace({
   orderId,
-  item,
-  onClose,
-  onApplied,
+  itemId,
 }: {
   orderId: string;
-  item: AdminOrderItem;
-  onClose: () => void;
-  onApplied: () => void;
+  itemId: string;
 }) {
   const [info, setInfo] = useState<EnhanceInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  // URL of the enhanced image after a successful save — shown in the stage so the
-  // admin sees the result without reopening the modal.
+  // URL guardada durante esta sesión para mostrar el resultado inmediatamente.
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -78,8 +71,7 @@ export default function PrintStudioModal({
   const [showGuides, setShowGuides] = useState(true);
 
   // The current image to display (before any backend preview)
-  const sourceUrl =
-    item.printImageUrl ?? item.generation?.resultUrl ?? item.imageUrl ?? null;
+  const sourceUrl = info?.sourceUrl ?? null;
   const displayUrl = previewUrl ?? savedUrl ?? info?.printImageUrl ?? sourceUrl;
   // Full-res current print image (excludes the 900px backend preview) — used for
   // client-side dimension measurement and zoom.
@@ -90,11 +82,11 @@ export default function PrintStudioModal({
     const firstLoad = !info;
     (async () => {
       try {
-        const data = await adminApi.orders.enhanceInfo(orderId, item.id);
+        const data = await adminApi.orders.enhanceInfo(orderId, itemId);
         if (!active) return;
         setInfo(data);
-        // Only initialize controls on first load — subsequent refreshes (triggered
-        // by parent updating item.printImageUrl after save) just update the image URL.
+        // Solo inicializa controles en la primera carga; los refresh posteriores
+        // actualizan la imagen sin pisar los ajustes del admin.
         if (firstLoad) {
           if (data.bleedColor) {
             setBleedColor(data.bleedColor);
@@ -125,7 +117,7 @@ export default function PrintStudioModal({
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, item.id, item.printImageUrl]);
+  }, [orderId, itemId]);
 
   // Reset measured dimensions when the current image URL changes.
   useEffect(() => {
@@ -195,7 +187,7 @@ export default function PrintStudioModal({
         fitToFormat: fitToFormat || undefined,
         format,
       };
-      const res = await adminApi.orders.enhancePreview(orderId, item.id, opts);
+      const res = await adminApi.orders.enhancePreview(orderId, itemId, opts);
       setPreviewUrl(res.previewUrl);
     } catch (e) {
       setErr((e as Error).message);
@@ -222,7 +214,7 @@ export default function PrintStudioModal({
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
-        item.id,
+        itemId,
         opts,
       );
       setInfo((prev) =>
@@ -238,7 +230,6 @@ export default function PrintStudioModal({
       setPreviewUrl(null);
       setSavedUrl(printImageUrl);
       setSavedOk(true);
-      onApplied();
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -265,7 +256,7 @@ export default function PrintStudioModal({
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
-        item.id,
+        itemId,
         opts,
       );
       setInfo((prev) =>
@@ -274,7 +265,6 @@ export default function PrintStudioModal({
       setPreviewUrl(null);
       setSavedUrl(printImageUrl);
       setSavedOk(true);
-      onApplied();
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -286,9 +276,12 @@ export default function PrintStudioModal({
     setReverting(true);
     setErr(null);
     try {
-      await adminApi.orders.enhanceRevert(orderId, item.id);
-      onApplied();
-      onClose();
+      await adminApi.orders.enhanceRevert(orderId, itemId);
+      const data = await adminApi.orders.enhanceInfo(orderId, itemId);
+      setInfo(data);
+      setPreviewUrl(null);
+      setSavedUrl(null);
+      setSavedOk(false);
     } catch (e) {
       setErr((e as Error).message);
       setReverting(false);
@@ -300,7 +293,7 @@ export default function PrintStudioModal({
     const href = cloudinaryDownloadUrl(
       currentImageUrl,
       fmt,
-      `impresion-${item.id}`,
+      `impresion-${itemId}`,
     );
     const a = document.createElement("a");
     a.href = href;
@@ -320,21 +313,8 @@ export default function PrintStudioModal({
           onClose={() => setZoom(null)}
         />
       )}
-      <Modal
-        open
-        onClose={onClose}
-        title="Estudio de impresión"
-        size="large"
-        primaryAction={{
-          content: "Guardar",
-          loading: applying,
-          disabled: !canAct,
-          onAction: handleSave,
-        }}
-        secondaryActions={[
-          { content: "Cancelar", onAction: onClose, disabled: busy },
-        ]}
-        footer={
+      <BlockStack gap="400">
+        <InlineStack align="end" gap="200">
           <Popover
             active={dlOpen}
             onClose={() => setDlOpen(false)}
@@ -363,103 +343,104 @@ export default function PrintStudioModal({
               ]}
             />
           </Popover>
-        }
-      >
-        <Modal.Section>
-          {loadingInfo ? (
-            <InlineStack align="center" gap="200">
-              <Spinner size="small" />
-              <Text as="span" tone="subdued">
-                Analizando imagen…
-              </Text>
-            </InlineStack>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                gap: 24,
-                alignItems: "flex-center",
-              }}
-            >
-              <PrintStudioStage
-                currentImageUrl={currentImageUrl}
-                onMeasure={setMeasuredPx}
-                displayUrl={displayUrl}
-                stageAspect={stageAspect}
-                bleedEnabled={bleedEnabled}
-                bleedColor={bleedColor}
-                cutInsetW={cutInsetW}
-                cutInsetH={cutInsetH}
-                safeInsetW={safeInsetW}
-                safeInsetH={safeInsetH}
-                showGuides={showGuides}
-                printInches={printInches}
-                cssFilter={cssFilter}
-                previewUrl={previewUrl}
-                measuredPx={measuredPx}
-                currentDpi={currentDpi}
-                info={info}
-                onZoom={setZoom}
-              />
+          <Button
+            variant="primary"
+            loading={applying}
+            disabled={!canAct}
+            onClick={handleSave}
+          >
+            Guardar imagen
+          </Button>
+        </InlineStack>
 
-              {/* Vertical divider */}
-              <div
-                style={{
-                  alignSelf: "stretch",
-                  width: 1,
-                  background: "#e3e3e3",
-                  flexShrink: 0,
-                }}
-              />
-
-              <PrintStudioControls
-                err={err}
-                setErr={setErr}
-                savedOk={savedOk}
-                setSavedOk={setSavedOk}
-                hasSource={hasSource}
-                currentDpi={currentDpi}
-                printInches={printInches}
-                info={info}
-                upscaleFactor={upscaleFactor}
-                setUpscaleFactor={setUpscaleFactor}
-                targetPx={targetPx}
-                theoreticalDpi={theoreticalDpi}
-                canAct={canAct}
-                upscaling={upscaling}
-                onUpscale={handleUpscale}
-                brightness={brightness}
-                setBrightness={setBrightness}
-                contrast={contrast}
-                setContrast={setContrast}
-                saturation={saturation}
-                setSaturation={setSaturation}
-                sharpen={sharpen}
-                setSharpen={setSharpen}
-                improve={improve}
-                setImprove={setImprove}
-                fitToFormat={fitToFormat}
-                setFitToFormat={setFitToFormat}
-                previewing={previewing}
-                onPreview={handlePreviewExact}
-                bleedEnabled={bleedEnabled}
-                setBleedEnabled={setBleedEnabled}
-                bleedHsb={bleedHsb}
-                bleedColor={bleedColor}
-                onBleedColorChange={updateBleedColor}
-                showGuides={showGuides}
-                setShowGuides={setShowGuides}
-                format={format}
-                setFormat={setFormat}
-                reverting={reverting}
-                busy={busy}
-                onRevert={handleRevert}
-                invalidatePreview={invalidatePreview}
-              />
-            </div>
-          )}
-        </Modal.Section>
-      </Modal>
+        {loadingInfo ? (
+          <Card>
+            <Box padding="600">
+              <InlineStack align="center" gap="200">
+                <Spinner size="small" />
+                <Text as="span" tone="subdued">
+                  Analizando imagen…
+                </Text>
+              </InlineStack>
+            </Box>
+          </Card>
+        ) : (
+          <Layout>
+            <Layout.Section>
+              <Card>
+                <PrintStudioStage
+                  currentImageUrl={currentImageUrl}
+                  onMeasure={setMeasuredPx}
+                  displayUrl={displayUrl}
+                  stageAspect={stageAspect}
+                  bleedEnabled={bleedEnabled}
+                  bleedColor={bleedColor}
+                  cutInsetW={cutInsetW}
+                  cutInsetH={cutInsetH}
+                  safeInsetW={safeInsetW}
+                  safeInsetH={safeInsetH}
+                  showGuides={showGuides}
+                  printInches={printInches}
+                  cssFilter={cssFilter}
+                  previewUrl={previewUrl}
+                  measuredPx={measuredPx}
+                  currentDpi={currentDpi}
+                  info={info}
+                  onZoom={setZoom}
+                />
+              </Card>
+            </Layout.Section>
+            <Layout.Section variant="oneThird">
+              <Card>
+                <PrintStudioControls
+                  err={err}
+                  setErr={setErr}
+                  savedOk={savedOk}
+                  setSavedOk={setSavedOk}
+                  hasSource={hasSource}
+                  currentDpi={currentDpi}
+                  printInches={printInches}
+                  info={info}
+                  upscaleFactor={upscaleFactor}
+                  setUpscaleFactor={setUpscaleFactor}
+                  targetPx={targetPx}
+                  theoreticalDpi={theoreticalDpi}
+                  canAct={canAct}
+                  upscaling={upscaling}
+                  onUpscale={handleUpscale}
+                  brightness={brightness}
+                  setBrightness={setBrightness}
+                  contrast={contrast}
+                  setContrast={setContrast}
+                  saturation={saturation}
+                  setSaturation={setSaturation}
+                  sharpen={sharpen}
+                  setSharpen={setSharpen}
+                  improve={improve}
+                  setImprove={setImprove}
+                  fitToFormat={fitToFormat}
+                  setFitToFormat={setFitToFormat}
+                  previewing={previewing}
+                  onPreview={handlePreviewExact}
+                  bleedEnabled={bleedEnabled}
+                  setBleedEnabled={setBleedEnabled}
+                  bleedHsb={bleedHsb}
+                  bleedColor={bleedColor}
+                  onBleedColorChange={updateBleedColor}
+                  showGuides={showGuides}
+                  setShowGuides={setShowGuides}
+                  format={format}
+                  setFormat={setFormat}
+                  reverting={reverting}
+                  busy={busy}
+                  onRevert={handleRevert}
+                  invalidatePreview={invalidatePreview}
+                />
+              </Card>
+            </Layout.Section>
+          </Layout>
+        )}
+      </BlockStack>
     </>
   );
 }

@@ -50,8 +50,8 @@ Los componentes y helpers que solo usa una ruta van en su `_components/`. El hoo
   `_components/ProductDetailsSidebar.tsx` / `_components/LinkedVariantsCard.tsx`.
 - Detalle con muchas cards y modales co-localizados: `admin/orders/[id]/_components/`.
 - Componente grande partido en sub-piezas + helper puro:
-  `_components/PrintStudioModal.tsx` → `PrintStudioStage.tsx` +
-  `PrintStudioControls.tsx` + `printStudio.ts`.
+  `orders/[id]/items/[itemId]/print-studio/` → `PrintStudioWorkspace.tsx` +
+  `PrintStudioStage.tsx` + `PrintStudioControls.tsx` + `printStudio.ts`.
 
 ---
 
@@ -70,14 +70,14 @@ Estas reglas existen para que no se repitan los archivos gigantes que ya tenemos
 
 ## 4. Cuándo co-localizar vs. subir a `entities/admin`
 
-| Qué | Dónde |
-|-----|-------|
-| Componente/helper usado por 1 sola ruta | `<ruta>/_components/` |
-| Componente usado por ≥2 rutas admin o por el `layout` | `admin/_components/` (ej. `ImagePreviewModal.tsx`, `AdminSidebar.tsx`) |
-| Llamada a API / tipos | `entities/admin/api.ts` (siempre, ya centralizado) |
+| Qué                                                     | Dónde                                                                                          |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Componente/helper usado por 1 sola ruta                 | `<ruta>/_components/`                                                                          |
+| Componente usado por ≥2 rutas admin o por el `layout`   | `admin/_components/` (ej. `ImagePreviewModal.tsx`, `AdminSidebar.tsx`)                         |
+| Llamada a API / tipos                                   | `entities/admin/api.ts` (siempre, ya centralizado)                                             |
 | Mapeo estado→label/tone, transiciones, filtros, formato | `entities/admin/lib/*` (ej. `production-status.ts`, `order-transitions.ts`, `order-format.ts`) |
-| Hook async específico de una ruta | Co-localizado (`use<X>Detail.ts`) |
-| Hook reutilizado entre rutas | `src/hooks/` (ej. `useAdminGenerationStatus.ts`) |
+| Hook async específico de una ruta                       | Co-localizado (`use<X>Detail.ts`)                                                              |
+| Hook reutilizado entre rutas                            | `src/hooks/` (ej. `useAdminGenerationStatus.ts`)                                               |
 
 ---
 
