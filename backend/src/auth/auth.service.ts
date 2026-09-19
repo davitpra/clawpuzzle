@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,7 +7,6 @@ import { AccountStatusService } from '../users/account-status.service';
 import * as bcrypt from 'bcrypt';
 import { createHash } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import type { User } from '@prisma/client';
 import type { JwtPayload } from './strategies/jwt.strategy';
@@ -63,62 +57,6 @@ export class AuthService {
     }
   }
 
-  async register(registerDto: RegisterDto, deviceInfo?: DeviceInfo) {
-    // Check if user exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: registerDto.email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('Email already registered');
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
-
-    try {
-      // Crear usuario y otorgar el bono de bienvenida en la misma transacción:
-      // el crédito entra por el ledger (idempotente vía unique signup_bonus+userId).
-      const user = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.user.create({
-          data: {
-            email: registerDto.email,
-            passwordHash: hashedPassword,
-            fullName: registerDto.fullName,
-          },
-        });
-        await this.creditsService.grant(
-          created.id,
-          AuthService.SIGNUP_BONUS_CREDITS,
-          'signup_bonus',
-          created.id,
-          'signup',
-          tx,
-        );
-        return created;
-      });
-
-      this.logger.log(`New user registered: ${user.email}`);
-
-      // Generate tokens
-      const tokens = await this.generateTokens(
-        user.id,
-        user.email,
-        user.role,
-        deviceInfo,
-      );
-
-      return {
-        user: this.sanitizeUser(user),
-        ...tokens,
-      };
-    } catch (error) {
-      const stack = error instanceof Error ? error.stack : undefined;
-      this.logger.error('Registration failed', stack);
-      throw error;
-    }
-  }
-
   async login(loginDto: LoginDto, deviceInfo?: DeviceInfo) {
     let user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
@@ -139,6 +77,13 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Registro y acceso de usuarios solo por Google (email verificado). El
+    // password queda únicamente para cuentas admin; a los demás se les responde
+    // igual que con credenciales incorrectas.
+    if (user.role !== 'admin') {
       throw new UnauthorizedException('Invalid credentials');
     }
 
