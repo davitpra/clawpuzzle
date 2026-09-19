@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import { RGB } from "@/lib/pbn/common";
 import type { MixRecipe } from "@/lib/pbn/paintMixing";
 import { useAuth } from "@/context/AuthContext";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useSavePbn } from "./useSavePbn";
 import type {
   InputOptions,
@@ -88,7 +88,9 @@ export function useSavePbnFlow({
   exp,
   initialSavedPbn = null,
 }: UseSavePbnFlowArgs) {
-  const router = useRouter();
+  // Sin sesión se abre Google aquí mismo: ir a /login sacaría al usuario del
+  // estudio con la obra sin guardar (y en lanzamiento /login no existe).
+  const { signIn } = useGoogleSignIn();
   const { isAuthenticated } = useAuth();
   const {
     save,
@@ -107,7 +109,7 @@ export function useSavePbnFlow({
 
   const handleSave = useCallback(async (): Promise<SavedPbnRef | null> => {
     if (!isAuthenticated) {
-      router.push("/login?redirect=/studio");
+      signIn();
       return null;
     }
     const saved = await save({
@@ -133,7 +135,7 @@ export function useSavePbnFlow({
     return savedRef;
   }, [
     isAuthenticated,
-    router,
+    signIn,
     save,
     svgContainerRef,
     guideRef,
@@ -149,7 +151,7 @@ export function useSavePbnFlow({
   ]);
 
   // Resolve a saved PBN for the purchase card: reuse the existing one, or save
-  // on demand (handleSave redirects to login when there's no session).
+  // on demand (handleSave opens Google sign-in when there's no session).
   const ensureSaved = useCallback(
     () => (savedPbn ? Promise.resolve(savedPbn) : handleSave()),
     [savedPbn, handleSave],

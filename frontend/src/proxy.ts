@@ -6,11 +6,13 @@ import { LAUNCH_MODE } from '@/shared/config/launch';
  * Rutas visibles en modo lanzamiento (§3.2 de LAUNCH_PLAN.md). Todo lo demás
  * —`/catalog`, `/product/*`, `/cart`, rutas inexistentes— redirige a `/`.
  * `/api/*` no está en la lista porque queda fuera del `matcher`.
+ *
+ * `/login` (y `/signin`, que no existe) también quedan fuera: en lanzamiento el
+ * acceso es con el popup de Google in situ (`hooks/useGoogleSignIn.ts`).
  */
 const LAUNCH_ALLOWED_PREFIXES = [
   '/create',
   '/studio',
-  '/login',
   '/admin-login',
   '/user',
   '/credits',
@@ -69,6 +71,11 @@ export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get('accessToken');
 
   if (!accessToken) {
+    // En lanzamiento no hay /login: se vuelve a la landing, cuyo navbar ofrece
+    // "Sign up" con Google.
+    if (LAUNCH_MODE) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);

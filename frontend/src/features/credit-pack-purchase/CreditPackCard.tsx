@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import { useCreditPackProduct, type CreditPackOption } from "./useCreditPackProduct";
@@ -35,14 +35,15 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
-  const router = useRouter();
+  const { signIn } = useGoogleSignIn();
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const buy = async (opt: CreditPackOption) => {
     if (!product) return;
     if (!isAuthenticated) {
-      router.push("/login?redirect=/credits");
+      // Google in situ: en lanzamiento /login no existe.
+      signIn();
       return;
     }
 

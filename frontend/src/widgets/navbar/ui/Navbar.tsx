@@ -13,6 +13,7 @@ import { MAIN_NAV } from "@/shared/config/navigation";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import UserMenu from "./UserMenu";
 import CreditsBadge from "./CreditsBadge";
+import GoogleSignUpButton from "./GoogleSignUpButton";
 
 /** Por debajo de este scroll el navbar se comporta como uno normal: nunca se oculta. */
 const HIDE_AFTER_SCROLL_Y = 80;
@@ -233,12 +234,7 @@ export default function Navbar() {
                     </>
                   ) : (
                     <div className="hidden md:flex gap-2">
-                      <Link
-                        href="/login"
-                        className="font-display flex items-center justify-center rounded-xl h-10 px-5 bg-white hover:bg-gray-50 text-text-main border border-[#E0DED9] transition-all shadow-sm text-sm font-bold hover:shadow-md"
-                      >
-                        Login
-                      </Link>
+                      <GoogleSignUpButton className="font-display flex items-center justify-center rounded-xl h-10 px-5 bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20 transition-colors text-sm font-bold" />
                     </div>
                   )}
                 </>
@@ -324,17 +320,15 @@ export default function Navbar() {
           {/* Auth Buttons - Mobile */}
           {showAuthButtons && (
             <div
-              className={`grid grid-cols-2 gap-3 ${
+              className={`grid gap-3 ${
                 hasNavLinks ? "mt-4 pt-4 border-t border-[#E0DED9]" : ""
               }`}
             >
-              <Link
-                href="/login"
+              <GoogleSignUpButton
                 tabIndex={mobileMenuOpen ? undefined : -1}
-                className="font-display flex items-center justify-center rounded-xl h-12 px-5 bg-white hover:bg-gray-50 text-text-main border border-[#E0DED9] transition-all shadow-sm text-base font-bold w-full"
-              >
-                Login
-              </Link>
+                onDone={() => setMobileMenuOpen(false)}
+                className="font-display flex items-center justify-center rounded-xl h-12 px-5 bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20 transition-colors text-base font-bold w-full"
+              />
             </div>
           )}
         </div>

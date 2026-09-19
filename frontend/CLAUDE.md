@@ -144,7 +144,10 @@ What the flag changes:
   auth gate then applies to `/user/*` and `/admin/*` exactly as before. The
   `matcher` covers the whole site except `/api`, Next internals and any path
   with a file extension. **Adding a public route means adding it to that
-  allow-list**, or it will redirect to `/`.
+  allow-list**, or it will redirect to `/`. `/login` is deliberately left out:
+  unauthenticated `/user`/`/admin` visits go to `/`, and actions that need a
+  session (navbar "Sign up", studio save, credit purchase) open the Google popup
+  in place via `hooks/useGoogleSignIn.ts`.
 - **`src/app/page.tsx`** — renders `StudioLandingPage` (from
   `widgets/studio-landing`) instead of `HomeHero`/`NewCollection`/…, and adopts
   its `studioLandingMetadata` via `generateMetadata`. The landing's section

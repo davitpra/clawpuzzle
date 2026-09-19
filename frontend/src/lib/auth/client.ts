@@ -61,15 +61,20 @@ export async function login(data: LoginDto): Promise<AuthResponse> {
   }
 }
 
-export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+// `/auth/google` recibe el ID token del botón oficial de Google; `/auth/google/code`
+// el code del popup auth-code (botón propio "Sign up"). La respuesta es la misma.
+async function postGoogleAuth(
+  path: '/auth/google' | '/auth/google/code',
+  body: { idToken: string } | { code: string },
+): Promise<AuthResponse> {
   try {
-    const response = await fetch(`${API_URL}/auth/google`, {
+    const response = await fetch(`${API_URL}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include', // Include cookies in request
-      body: JSON.stringify({ idToken }),
+      body: JSON.stringify(body),
     });
 
     const json = await response.json();
@@ -94,6 +99,14 @@ export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
     console.error('Error en login con Google:', error);
     throw new AuthError(500, 'Error de conexión al servidor');
   }
+}
+
+export function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  return postGoogleAuth('/auth/google', { idToken });
+}
+
+export function loginWithGoogleCode(code: string): Promise<AuthResponse> {
+  return postGoogleAuth('/auth/google/code', { code });
 }
 
 export async function refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {

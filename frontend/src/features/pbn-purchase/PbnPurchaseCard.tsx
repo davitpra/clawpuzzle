@@ -112,7 +112,7 @@ export function PbnPurchaseCard({
         img: selected.image?.url ?? defaultImage ?? "",
       };
       if (source.kind === "saved-pbn") {
-        // Resolving can redirect to login or fail; then nothing reaches the cart.
+        // Resolving can open Google sign-in or fail; then nothing reaches the cart.
         const pbn = await source.ensureSaved();
         if (!pbn) return;
         addToCart({

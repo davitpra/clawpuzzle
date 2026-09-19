@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   login as apiLogin,
   loginWithGoogle as apiLoginWithGoogle,
+  loginWithGoogleCode as apiLoginWithGoogleCode,
   logout as apiLogout,
 } from "@/lib/auth/client";
 import { ensureFreshToken } from "@/lib/auth/fetch-with-refresh";
@@ -25,6 +26,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithGoogleCode: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => void;
 }
@@ -169,6 +171,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Flujo auth-code (botón "Sign up" del navbar): mismo resultado que loginWithGoogle.
+  const loginWithGoogleCode = async (code: string) => {
+    const response = await apiLoginWithGoogleCode(code);
+    setUser(response.user);
+  };
+
   const logout = async () => {
     try {
       // Call logout API - backend will clear httpOnly cookies
@@ -204,6 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         loginWithGoogle,
+        loginWithGoogleCode,
         logout,
         checkAuth,
       }}
