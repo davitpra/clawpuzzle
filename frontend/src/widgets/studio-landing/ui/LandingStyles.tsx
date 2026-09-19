@@ -11,21 +11,25 @@ function SectionHeading() {
         Art styles
       </span>
       <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
-        One Photo, Endless Styles
+        One Photo, Your Style
       </h2>
       <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-slate-dark/55">
-        With an Easy, Medium or Challenging paint difficulty, so there&apos;s a
-        canvas for every skill level.
+        Choose the look that feels right for your pet. Each style comes with
+        its own paint-by-numbers difficulty.
       </p>
     </div>
   );
 }
 
-export function LandingStylesSkeleton() {
+export function LandingStylesSkeleton({
+  background = "bg-white",
+}: {
+  background?: string;
+}) {
   return (
     <section
       id="styles"
-      className="relative w-full scroll-mt-24 overflow-hidden bg-white py-20"
+      className={`relative w-full scroll-mt-24 overflow-hidden py-20 ${background}`}
     >
       <Container>
         <SectionHeading />
@@ -42,7 +46,11 @@ export function LandingStylesSkeleton() {
   );
 }
 
-export default async function LandingStyles() {
+export default async function LandingStyles({
+  background = "bg-white",
+}: {
+  background?: string;
+}) {
   let publicStyles: Awaited<ReturnType<typeof fetchPublicStyles>>;
   try {
     publicStyles = await fetchPublicStyles();
@@ -62,7 +70,7 @@ export default async function LandingStyles() {
   return (
     <section
       id="styles"
-      className="relative w-full scroll-mt-24 overflow-hidden bg-white py-20"
+      className={`relative w-full scroll-mt-24 overflow-hidden py-20 ${background}`}
     >
       <Container>
         <SectionHeading />

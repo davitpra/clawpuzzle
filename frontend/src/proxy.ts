@@ -19,6 +19,7 @@ const LAUNCH_ALLOWED_PREFIXES = [
   '/terms',
   '/shipping-returns',
   '/contact',
+  '/opengraph-image',
 ];
 
 /** Rutas que exigen sesión (y rol admin en `/admin`), con o sin lanzamiento. */

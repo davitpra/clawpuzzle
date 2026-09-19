@@ -54,6 +54,8 @@ export type HeroProps = {
   badge: HeroBadge;
   /** Fade the text column in on mount */
   animateText?: boolean;
+  /** Clase de fondo; pasar "" dentro de un `SectionFlow` para que lo ponga el wrapper. */
+  background?: string;
 };
 
 export default function Hero({
@@ -68,11 +70,14 @@ export default function Hero({
   mediaClassName = "",
   badge,
   animateText = false,
+  background = "bg-cream",
 }: HeroProps) {
   const fade = animateText ? "animate-fade-in-up" : "";
 
   return (
-    <section className="relative flex w-full items-center overflow-hidden bg-cream py-12 min-h-[calc(100svh-4rem)] lg:min-h-[calc(100svh-5rem)]">
+    <section
+      className={`relative flex w-full items-center overflow-hidden py-12 min-h-[calc(100svh-4rem)] lg:min-h-[calc(100svh-5rem)] ${background}`}
+    >
       <Container>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-center">
           <div className="flex flex-col gap-6 order-2 lg:order-1">

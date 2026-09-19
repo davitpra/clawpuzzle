@@ -5,6 +5,7 @@ import "./globals.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { SITE_URL } from "@/shared/config/seo";
 
 // Epilogue es variable: sin `weight` next/font emite un solo @font-face con
 // `font-weight: 100 900`, así que pesa un archivo en vez de cuatro y los pesos
@@ -28,6 +29,7 @@ const MATERIAL_SYMBOLS_WOFF2 =
   "https://fonts.gstatic.com/s/materialsymbolsoutlined/v361/kJEPBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzBwG-RpA6RzaxHMPdY40KH8nGzv3fzfVJO1Q.woff2";
 
 export const metadata: Metadata = {
+  metadataBase: SITE_URL,
   title: "Claw & Soul",
   description: "Capture your pet's soul in art with our personalized gifts.",
 };

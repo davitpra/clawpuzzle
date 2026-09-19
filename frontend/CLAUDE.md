@@ -118,6 +118,7 @@ copy it to `.env.local` and fill in real values.
 | `NEXT_PUBLIC_API_URL` | yes | NestJS backend base URL including `/api`. ~15 call sites (`hooks/useAuthFetch.ts`, `lib/auth/*`, `entities/*/api*`) |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | yes | Google OAuth web client ID; same value as the backend's `GOOGLE_CLIENT_ID`. `app/layout.tsx` |
 | `NEXT_PUBLIC_LAUNCH_MODE` | yes | `"true"` enables launch mode (see below). `shared/config/launch.ts` |
+| `NEXT_PUBLIC_SITE_URL` | yes | Canonical public origin for metadata, Open Graph, robots and sitemap. `shared/config/seo.ts` |
 
 `NEXT_PUBLIC_*` values are **inlined at build time**, so changing one requires a
 rebuild — restart `npm run dev`, or redeploy on Vercel.

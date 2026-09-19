@@ -34,6 +34,8 @@ interface StudioShowcaseProps {
   /** `null` hides the button. */
   primaryCta?: ShowcaseCta | null;
   secondaryCta?: ShowcaseCta | null;
+  /** Clase de fondo; pasar "" dentro de un `SectionFlow` para que lo ponga el wrapper. */
+  background?: string;
 }
 
 const DEFAULT_FEATURES: ShowcaseFeature[] = [
@@ -65,9 +67,12 @@ export default function StudioShowcase({
     label: "Try the Studio — it's free",
   },
   secondaryCta = { href: "/catalog", label: "Browse finished pieces" },
+  background = "bg-cream",
 }: StudioShowcaseProps) {
   return (
-    <section className="relative overflow-hidden w-full bg-cream py-20 md:py-28">
+    <section
+      className={`relative overflow-hidden w-full py-20 md:py-28 ${background}`}
+    >
       <Container>
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div className="order-2 lg:order-1 items-center flex flex-col gap-4 text-center lg:items-start lg:text-left">

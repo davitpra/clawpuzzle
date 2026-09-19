@@ -37,9 +37,14 @@ const PRODUCT_ITEMS: ExpandingGalleryItem[] = PRODUCTS.map((product) => ({
   frameStyle: toFrameStyle(product.template),
 }));
 
-export default function LandingProducts() {
+export default function LandingProducts({
+  background,
+}: {
+  background?: string;
+}) {
   return (
     <ExpandingGallery
+      background={background}
       eyebrow="Choose your surface"
       title={"Paint Them on Paper.\nOr on Canvas."}
       description="Same design, two ways to paint it — pick the surface that fits how you like to work."

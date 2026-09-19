@@ -1,18 +1,19 @@
 import Hero from "@/widgets/home-hero/ui/Hero";
 
-export default function LandingHero() {
+export default function LandingHero({ background }: { background?: string }) {
   return (
     <Hero
-      eyebrow="Free AI-Powered Coloring Page"
+      background={background}
+      eyebrow="5 Free AI Pet Artworks"
       title="Turn Their Photo Into Art You Paint Yourself"
-      description="Upload a photo of your pet, watch our AI transform it into a custom paint-by-numbers design in the style you love — and download your free printable coloring page in minutes."
+      description="Pick a style and upload a favorite photo. We’ll turn your pet into custom AI art, then a printable paint-by-numbers PDF you can download free or order on canvas."
       primaryCta={{
-        href: "/studio",
-        label: "Create My Free Coloring Page",
-        icon: "upload",
+        href: "#styles",
+        label: "Turn My Pet Into Art",
+        icon: "palette",
       }}
-      secondaryCta={{ href: "#styles", label: "Explore Art Styles" }}
-      note="Free PDF download · Sign up only for AI styles"
+      secondaryCta={{ href: "#how-it-works", label: "See How It Works" }}
+      note="5 free artworks · Free printable PDF · Canvas available"
       media={{
         kind: "image",
         src: "/landing/hero-main-v2.webp",
@@ -22,9 +23,9 @@ export default function LandingHero() {
       }}
       mediaClassName="shadow-2xl"
       badge={{
-        icon: "download",
-        title: "Free PDF Coloring Page",
-        subtitle: "Yours in minutes",
+        icon: "auto_awesome",
+        title: "5 Free Artworks",
+        subtitle: "Free printable PDF included",
       }}
       animateText
     />

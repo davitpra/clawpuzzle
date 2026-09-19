@@ -12,7 +12,11 @@ import {
  * shows whatever is curated for it in Shopify (Search & Discovery) and renders
  * nothing while it loads or when no related product is set.
  */
-export default function LandingRelatedProducts() {
+export default function LandingRelatedProducts({
+  background,
+}: {
+  background?: string;
+}) {
   const { product } = usePbnProduct();
   const accessories = getRelatedAccessories(product);
 
@@ -21,6 +25,7 @@ export default function LandingRelatedProducts() {
   return (
     <RelatedProducts
       accessories={accessories}
+      background={background}
       heading={"Everything you need\nto paint it."}
       ctaHref="/catalog"
       ctaLabel="Shop the studio"

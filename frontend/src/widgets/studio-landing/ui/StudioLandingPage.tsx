@@ -10,7 +10,9 @@ import WhyItMatters from "./WhyItMatters";
 import LandingProducts from "./LandingProducts";
 import LandingRelatedProducts from "./LandingRelatedProducts";
 import { AIProcess, type ProcessStep } from "@/widgets/ai-process";
-import WavesDivider from "@/shared/ui/WavesDivider";
+import SectionFlow from "@/shared/ui/SectionFlow";
+import { LAUNCH_MODE } from "@/shared/config/launch";
+import { SITE_URL } from "@/shared/config/seo";
 
 /**
  * SEO de la landing del studio. La sirve `/studio-landing` con el flag apagado
@@ -18,46 +20,73 @@ import WavesDivider from "@/shared/ui/WavesDivider";
  * `page.tsx` concreto.
  */
 export const studioLandingMetadata: Metadata = {
-  title: "Free Pet Paint by Numbers from Your Photo · Claw & Soul",
+  metadataBase: SITE_URL,
+  title: "Turn Your Pet Into Art & Paint It Free · Claw & Soul",
   description:
-    "Turn your pet's photo into a custom paint-by-numbers coloring page with AI. Preview watercolor, linocut, royal portrait and more — download your free printable PDF, or order it as a canvas, poster or complete paint kit.",
+    "Create 5 free AI artworks from your pet's photo, turn your favorite into a free printable paint-by-numbers PDF, or order it on canvas.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: "/",
+    title: "Turn Your Pet Into Art & Paint It Free · Claw & Soul",
+    description:
+      "Create 5 free AI artworks from your pet's photo, download a free printable paint-by-numbers PDF, or order it on canvas.",
+    siteName: "Claw & Soul",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Turn your pet's photo into AI art and a paint-by-numbers canvas",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Turn Your Pet Into Art & Paint It Free · Claw & Soul",
+    description:
+      "Create 5 free AI artworks from your pet's photo, download a free printable paint-by-numbers PDF, or order it on canvas.",
+    images: ["/opengraph-image"],
+  },
 };
 
 const LANDING_STEPS: ProcessStep[] = [
   {
+    img: "/process/2 approve.png",
+    alt: "Choosing an AI art style for a pet portrait",
+    title: "1. Pick a Style",
+    text: "Choose the look that feels right for your pet. Each style has its own paint-by-numbers difficulty.",
+  },
+  {
     img: "/process/1. Upload Picture.png",
     alt: "Uploading a pet photo from a phone",
-    title: "1. Upload a Photo",
+    title: "2. Upload a Photo",
     text: "Any clear photo of your pet works — from phone snapshots to old favorites.",
   },
   {
-    img: "/process/2 approve.png",
-    alt: "Choosing between AI art style previews on a screen",
-    title: "2. Pick a Style",
-    text: "Our AI reimagines your pet in watercolor, linocut, royal portrait and more. See it before you commit.",
-  },
-  {
     img: "/process/3. Final Art.png",
-    alt: "Finished AI portrait of a dog framed as a poster",
-    title: "3. Get Your Final Art",
-    text: "Your pet's portrait is ready — keep it as is, or order it as a canvas, poster or full painting kit.",
+    alt: "Finished AI portrait of a pet on a screen",
+    title: "3. Get Your Art",
+    text: "Our AI turns your photo into a custom portrait in the style you chose. You get five artworks free.",
   },
   {
     img: "/process/4. Paint your art.png",
     alt: "Painting a numbered pet portrait with a brush and palette",
-    title: "4. Paint Your Art",
-    text: "Turn that art into a paint-by-numbers right in the app and download your free printable PDF, ready to paint.",
+    title: "4. Paint It",
+    text: "Turn your favorite artwork into a paint-by-numbers design. Download the free PDF or order it on canvas.",
   },
 ];
 
 const LANDING_FAQS = [
   {
     q: "Is the coloring page really free?",
-    a: "Yes. Turn your photo into a numbered design and download the printable PDF at no cost — no credit card needed. You only pay if you want a physical canvas, poster or paint kit.",
+    a: "Yes. You get 5 free AI artworks, and you can turn any of them into a printable paint-by-numbers PDF at no cost. No credit card is needed. You only pay if you want the design printed on canvas.",
   },
   {
     q: "Do I need an account?",
-    a: "Not for the coloring page. The paint-by-numbers studio runs right in your browser, so you can upload a photo and download your PDF without signing up. Creating an AI art style is the one step that needs a free account — you start with free credits, and you only buy more if you want to keep exploring styles.",
+    a: "Yes, a free account is required to create AI artwork. Every new account starts with 5 free artworks, and you never need to add a payment method to use them.",
   },
   {
     q: "What photos work best?",
@@ -65,7 +94,7 @@ const LANDING_FAQS = [
   },
   {
     q: "What happens to my pet's photo?",
-    a: "If you only use the free studio, your photo never leaves your device — the whole design is built right in your browser. It's uploaded only when you ask our AI for a style or save a design to your account, so we can create and store your artwork. You can delete any artwork from your account whenever you want, and we never sell your photos or use them without asking you first.",
+    a: "When you create AI artwork, your pet's photo is uploaded so our service can generate and save your artwork. You can delete saved photos and artwork from your account whenever you want. We never sell your photos.",
   },
   {
     q: "How does the AI styling work?",
@@ -73,19 +102,23 @@ const LANDING_FAQS = [
   },
   {
     q: "Can I choose the difficulty?",
-    a: "Yes. Every design can be generated as Easy, Medium or Challenging — fewer, larger regions for a relaxing paint, or fine detail for experienced painters.",
+    a: "The difficulty comes with the style you choose. Each style is configured as Easy, Medium or Challenging, so you can pick the look and level of detail that suits you.",
   },
   {
     q: "Can I get it as a physical product?",
-    a: "Absolutely. We print your numbered design on heavyweight matte paper or on real cotton canvas, ready for you to paint — and you can add brushes and paints to any order. Prefer it already finished? We can print the artwork itself instead.",
+    a: "Yes. The only physical product available at launch is a ready-to-paint canvas printed with your numbered design.",
   },
   {
     q: "What do I need to paint it?",
-    a: "Acrylics and a couple of brushes — a fine one for the small numbered areas and a wider one for the background. Ordering a printed design? You can add a full brush and paint set to any order at checkout, so everything arrives ready to go.",
+    a: "You will need acrylic paint and a couple of brushes: a fine one for small numbered areas and a wider one for the background. The free PDF lets you use the supplies you already have.",
   },
   {
     q: "Where do you ship, and how long does it take?",
-    a: "We ship across Canada, and most orders arrive within 5 business days. You'll get a tracking link by email as soon as your order leaves our studio.",
+    a: "Canvas orders ship across Canada. You will get a tracking link by email when your order leaves our studio.",
+  },
+  {
+    q: "What if I want another style?",
+    a: "Create another artwork in a different style with one of your remaining free artworks. You can reuse a saved pet photo or upload a new one.",
   },
   {
     q: "Is this a good memorial gift?",
@@ -99,41 +132,64 @@ export default function StudioLandingPage() {
       <Navbar />
 
       <main className="flex-1">
-        <LandingHero />
-        <WavesDivider />
-        {/* Destino de "How It Works" en el footer: /#how-it-works. */}
-        <div id="how-it-works" className="scroll-mt-20">
-          <AIProcess
-            eyebrow="How it works"
-            title="From Photo to Masterpiece in 4 Steps"
-            subtitle={
-              <>
-                Free to try, free to download.
-                <br />
-                Your first coloring page is on us.
-              </>
-            }
-            steps={LANDING_STEPS}
-            background="white"
-          />
-        </div>
-        <WavesDivider flip />
-        <LandingShowcase />
-        <WavesDivider />
-        <Suspense fallback={<LandingStylesSkeleton />}>
-          <LandingStyles />
-        </Suspense>
-        <WavesDivider flip />
-        <LandingRelatedProducts />
-        <WavesDivider />
-        <LandingProducts />
-        <WavesDivider flip />
-        <WhyItMatters />
-        <WavesDivider />
-        {/* Destino de "FAQ" en el footer: /#faq. */}
-        <div id="faq" className="scroll-mt-20">
-          <ProductFAQ faqs={LANDING_FAQS} />
-        </div>
+        <SectionFlow
+          start="cream"
+          sections={[
+            { id: "hero", node: <LandingHero background="" /> },
+
+            {
+              id: "styles",
+              node: (
+                <Suspense fallback={<LandingStylesSkeleton background="" />}>
+                  <LandingStyles background="" />
+                </Suspense>
+              ),
+            },
+            {
+              id: "process",
+              node: (
+                // Destino de "How It Works" en el footer: /#how-it-works.
+                <div id="how-it-works" className="scroll-mt-20">
+                  <AIProcess
+                    eyebrow="How it works"
+                    title="From Photo to Masterpiece in 4 Steps"
+                    subtitle={
+                      <>
+                        Free to try, free to download.
+                        <br />
+                        Your first coloring page is on us.
+                      </>
+                    }
+                    steps={LANDING_STEPS}
+                  />
+                </div>
+              ),
+            },
+            { id: "showcase", node: <LandingShowcase background="" /> },
+            {
+              id: "related",
+              pin: "white",
+              when: !LAUNCH_MODE,
+              node: <LandingRelatedProducts background="" />,
+            },
+            {
+              id: "products",
+              pin: "white",
+              when: !LAUNCH_MODE,
+              node: <LandingProducts background="" />,
+            },
+            { id: "why", node: <WhyItMatters /> },
+            {
+              id: "faq",
+              node: (
+                // Destino de "FAQ" en el footer: /#faq.
+                <div id="faq" className="scroll-mt-20">
+                  <ProductFAQ faqs={LANDING_FAQS} background="" />
+                </div>
+              ),
+            },
+          ]}
+        />
       </main>
 
       <Footer />

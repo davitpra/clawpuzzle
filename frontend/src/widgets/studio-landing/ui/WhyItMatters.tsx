@@ -30,7 +30,7 @@ export default function WhyItMatters() {
             More Than a Portrait
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-slate-dark/55">
-            Every canvas starts with a story. Here&apos;s why pet parents paint
+            Every portrait starts with a story. Here&apos;s why pet parents paint
             with us.
           </p>
         </div>
