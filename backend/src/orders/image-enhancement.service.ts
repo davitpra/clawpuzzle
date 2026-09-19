@@ -89,8 +89,9 @@ export class ImageEnhancementService {
 
   async getEnhanceInfo(orderId: string, itemId: string): Promise<EnhanceInfo> {
     const item = await this.loadItem(orderId, itemId);
-    const original = this.resolveOriginal(item);
+    const original = this.resolveGeneratedArt(item);
     const printInches = this.resolvePrintInches(item);
+    const sourceMatchesPrint = this.sourceMatchesPrint(item, original);
 
     const sourcePx = original?.storageKey
       ? await this.probeDimensions(original.storageKey)
@@ -106,13 +107,14 @@ export class ImageEnhancementService {
       sourcePx,
       printInches,
       sourceDpi,
-      printImageUrl: item.printImageUrl ?? null,
+      printImageUrl: sourceMatchesPrint ? item.printImageUrl : null,
       bleedColor,
       recommendedUpscale: this.recommendUpscale(sourceDpi),
       alreadyEnhanced:
+        sourceMatchesPrint &&
         Boolean(item.printImageUrl) &&
         item.printImageUrl !== item.printSourceUrl,
-      hasUpscaledBase: Boolean(item.printUpscaledUrl),
+      hasUpscaledBase: sourceMatchesPrint && Boolean(item.printUpscaledUrl),
     };
   }
 
@@ -138,11 +140,9 @@ export class ImageEnhancementService {
     options: EnhanceDto,
   ): Promise<{ previewUrl: string; willUpscale: boolean }> {
     const item = await this.loadItem(orderId, itemId);
-    const original = this.resolveOriginal(item);
+    const original = this.resolveGeneratedArt(item);
     if (!original) {
-      throw new BadRequestException(
-        'Item has no source image — upload or link an image first',
-      );
+      throw new BadRequestException('Item has no generated artwork');
     }
 
     const printInches = this.resolvePrintInches(item);
@@ -218,6 +218,11 @@ export class ImageEnhancementService {
     adminUserId?: string,
   ): Promise<{ printImageUrl: string }> {
     const item = await this.loadItem(orderId, itemId);
+    const original = this.resolveGeneratedArt(item);
+    if (!original) {
+      throw new BadRequestException('Item has no generated artwork');
+    }
+    const sourceMatchesPrint = this.sourceMatchesPrint(item, original);
     const printInches = this.resolvePrintInches(item);
     const ext = options.format === 'png' ? 'png' : 'jpg';
     const masterKey = `orders/${orderId}/items/${itemId}/print/${uuidv4()}.${ext}`;
@@ -234,13 +239,6 @@ export class ImageEnhancementService {
 
     if (wantsUpscale) {
       // ── Upscale path ────────────────────────────────────────────────────
-      const original = this.resolveOriginal(item);
-      if (!original) {
-        throw new BadRequestException(
-          'Item has no source image — upload or link an image first',
-        );
-      }
-
       const factor = await this.resolveUpscaleFactor(
         options,
         original,
@@ -313,15 +311,9 @@ export class ImageEnhancementService {
     } else {
       // ── Adjust-only path ─────────────────────────────────────────────────
       // Prefer the saved high-res base; fall back to original source.
-      if (item.printUpscaledUrl) {
+      if (sourceMatchesPrint && item.printUpscaledUrl) {
         baseBytes = await this.download(item.printUpscaledUrl);
       } else {
-        const original = this.resolveOriginal(item);
-        if (!original) {
-          throw new BadRequestException(
-            'Item has no source image — upload or link an image first',
-          );
-        }
         baseBytes = await this.download(original.url);
       }
     }
@@ -344,7 +336,9 @@ export class ImageEnhancementService {
 
     // Delete old master (never the source, never the upscaled base we just created).
     const safeKeys = new Set(
-      [item.printSourceStorageKey, newUpscaledKey].filter(Boolean),
+      [item.printSourceStorageKey, original.storageKey, newUpscaledKey].filter(
+        Boolean,
+      ),
     );
     if (item.printImageStorageKey && !safeKeys.has(item.printImageStorageKey)) {
       await this.storageService
@@ -365,15 +359,33 @@ export class ImageEnhancementService {
       printImageUrl,
       printImageStorageKey: masterKey,
     };
+    dbData.printSourceUrl = original.url;
+    // Generation o PBN son dueños del asset. No copiar su key al pedido: la
+    // sustitución manual elimina printSourceStorageKey y borraría el original.
+    dbData.printSourceStorageKey = null;
     if (newUpscaledKey !== null) {
       dbData.printUpscaledUrl = newUpscaledUrl;
       dbData.printUpscaledStorageKey = newUpscaledKey;
+    } else if (!sourceMatchesPrint) {
+      dbData.printUpscaledUrl = null;
+      dbData.printUpscaledStorageKey = null;
     }
 
     await this.prisma.orderItem.update({
       where: { id: itemId },
       data: dbData,
     });
+
+    if (
+      !sourceMatchesPrint &&
+      item.printUpscaledStorageKey &&
+      item.printUpscaledStorageKey !== newUpscaledKey &&
+      item.printUpscaledStorageKey !== item.printSourceStorageKey
+    ) {
+      await this.storageService
+        .delete(item.printUpscaledStorageKey)
+        .catch(() => null);
+    }
 
     await this.recordEvent(
       orderId,
@@ -637,9 +649,9 @@ export class ImageEnhancementService {
         .toColorspace('srgb')
         .stats();
       // Use dominant colour when available (sharp ≥ 0.32), else fall back to mean.
-      const d = (stats as any).dominant as
-        | { r: number; g: number; b: number }
-        | undefined;
+      const { dominant: d } = stats as typeof stats & {
+        dominant?: { r: number; g: number; b: number };
+      };
       if (d) {
         return this.rgbToHex(d.r, d.g, d.b);
       }
@@ -696,6 +708,9 @@ export class ImageEnhancementService {
       where: { id: itemId, orderId },
       include: {
         generation: { select: { resultUrl: true, resultStorageKey: true } },
+        paintByNumbers: {
+          select: { sourceImageUrl: true, sourceImageStorageKey: true },
+        },
         productVariant: { select: { podConfig: true } },
       },
     });
@@ -704,33 +719,51 @@ export class ImageEnhancementService {
   }
 
   /**
-   * Resolve the enhancement SOURCE (input) and its Cloudinary key when known.
-   * Priority: admin-uploaded source art → AI generation result → Shopify image.
-   * NEVER the already-enhanced `printImageUrl` (which is the OUTPUT).
+   * IA art original: Generation cuando sigue vinculada; en pedidos PBN legacy,
+   * la imagen fuente guardada antes de convertirla. Nunca usa preview ni SVG.
    */
-  private resolveOriginal(item: {
-    imageUrl: string | null;
-    printSourceUrl: string | null;
-    printSourceStorageKey: string | null;
+  private resolveGeneratedArt(item: {
     generation: {
       resultUrl: string | null;
       resultStorageKey: string | null;
     } | null;
+    paintByNumbers: {
+      sourceImageUrl: string | null;
+      sourceImageStorageKey: string | null;
+    } | null;
   }): { url: string; storageKey: string | null } | null {
-    if (item.printSourceUrl) {
-      return {
-        url: item.printSourceUrl,
-        storageKey: item.printSourceStorageKey,
-      };
-    }
     if (item.generation?.resultUrl) {
       return {
         url: item.generation.resultUrl,
         storageKey: item.generation.resultStorageKey,
       };
     }
-    if (item.imageUrl) return { url: item.imageUrl, storageKey: null };
+    if (item.paintByNumbers?.sourceImageUrl) {
+      return {
+        url: item.paintByNumbers.sourceImageUrl,
+        storageKey: item.paintByNumbers.sourceImageStorageKey,
+      };
+    }
     return null;
+  }
+
+  private sourceMatchesPrint(
+    item: {
+      printSourceUrl: string | null;
+      generation: { resultUrl: string | null } | null;
+      paintByNumbers: { sourceImageUrl: string | null } | null;
+    },
+    original: { url: string; storageKey: string | null } | null,
+  ): boolean {
+    if (!original) return false;
+    if (item.printSourceUrl) return item.printSourceUrl === original.url;
+
+    // Los resultados legacy no guardaban printSourceUrl. Reconocemos las dos
+    // ubicaciones válidas del IA art original.
+    return (
+      item.generation?.resultUrl === original.url ||
+      item.paintByNumbers?.sourceImageUrl === original.url
+    );
   }
 
   private resolvePrintInches(item: {
