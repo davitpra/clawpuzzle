@@ -52,6 +52,10 @@ Los componentes y helpers que solo usa una ruta van en su `_components/`. El hoo
 - Componente grande partido en sub-piezas + helper puro:
   `orders/[id]/items/[itemId]/print-studio/` → `PrintStudioWorkspace.tsx` +
   `PrintStudioStage.tsx` + `PrintStudioControls.tsx` + `printStudio.ts`.
+- Estudios de pedido como páginas independientes:
+  `orders/[id]/items/[itemId]/print-studio/` y
+  `orders/[id]/items/[itemId]/pbn-studio/`. Los estudios reciben solo IDs por la
+  URL y cargan sus datos mediante `adminApi`.
 
 ---
 

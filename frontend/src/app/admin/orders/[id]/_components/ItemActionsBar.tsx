@@ -10,18 +10,18 @@ type ItemActionsBarProps = {
   fileInputRef: RefObject<HTMLInputElement | null>;
   onUploadClick: () => void;
   onUploadChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onOpenPBN: () => void;
+  pbnStudioUrl: string;
 };
 
 // Barra de acciones del item: subir/reemplazar la imagen de impresión y crear
-// un PBN. El estudio de impresión se abre desde la imagen concreta que editará.
+// un PBN. Ambos estudios se abren como páginas independientes.
 export function ItemActionsBar({
   hasPrintImage,
   uploading,
   fileInputRef,
   onUploadClick,
   onUploadChange,
-  onOpenPBN,
+  pbnStudioUrl,
 }: ItemActionsBarProps) {
   return (
     <InlineStack gap="200" blockAlign="center">
@@ -40,7 +40,7 @@ export function ItemActionsBar({
       >
         {hasPrintImage ? "Reemplazar" : "Subir imagen"}
       </Button>
-      <Button size="micro" icon={MagicIcon} onClick={onOpenPBN}>
+      <Button size="micro" icon={MagicIcon} url={pbnStudioUrl}>
         Convertir a PBN
       </Button>
     </InlineStack>
