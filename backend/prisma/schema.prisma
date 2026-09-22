@@ -1,0 +1,704 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// AUTHENTICATION & USERS
+// ============================================
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String?   @map("password_hash")
+  googleId          String?   @unique @map("google_id")
+  fullName          String?   @map("full_name")
+  avatarUrl         String?   @map("avatar_url")
+  avatarStorageKey  String?   @map("avatar_storage_key")
+  role              String    @default("user") // Enum: user, premium, admin
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  // Invariante: isActive === (status === 'active'). Se conserva como campo propio
+  // porque el login y varias vistas ya lo leen; AccountStatusService es el único
+  // que escribe ambos, siempre a la vez.
+  isActive          Boolean   @default(true) @map("is_active")
+  // Ciclo de vida de la cuenta: active | banned | inactive | deleted
+  //   banned   → suspensión manual del admin (reversible)
+  //   inactive → baja automática por inactividad (se reactiva sola al loguear)
+  //   deleted  → baja lógica; a los 30 días el cron de purga anonimiza el PII
+  status            String    @default("active")
+  statusReason      String?   @map("status_reason")
+  statusChangedAt   DateTime? @map("status_changed_at")
+  // User.id del admin que ejecutó el cambio; null si lo hizo el cron o el propio
+  // usuario. Sin FK a propósito: una auto-relación aquí complicaría los borrados.
+  statusChangedBy   String?   @map("status_changed_by")
+  deletedAt         DateTime? @map("deleted_at")
+  anonymizedAt      DateTime? @map("anonymized_at")
+  // Saldo de créditos de generación. Es la fuente rápida de lectura; la suma de
+  // creditTransactions debe cuadrar con este valor (invariante mantenido en
+  // CreditsService). Default 0: el bono de registro entra por el ledger.
+  generationCredits Int       @default(0) @map("generation_credits")
+  lastLoginAt       DateTime? @map("last_login_at")
+  // Última señal de vida, no último login: se refresca también en cada rotación
+  // del refresh token (~15 min de uso). `lastLoginAt` solo se escribe al
+  // autenticarse, así que por sí solo hace parecer inactivo a quien usa la app a
+  // diario sin volver a loguearse. Las métricas de actividad miran las dos.
+  lastSeenAt        DateTime? @map("last_seen_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  pets               Pet[]
+  generations        Generation[]
+  auditLogs          AuditLog[]
+  refreshTokens      RefreshToken[]
+  orders             Order[]
+  expenses           Expense[]
+  creditTransactions CreditTransaction[]
+  cart               Cart?
+
+  @@index([email])
+  @@index([role])
+  @@index([googleId])
+  @@index([status])
+  @@index([deletedAt])
+  // Altas por día y comparativa con el periodo anterior en el dashboard admin.
+  @@index([createdAt(sort: Desc)])
+  // Segmentación por recencia del dashboard y filtro `activity` de /admin/users:
+  // ambos criterios miran las dos columnas, así que las dos necesitan índice.
+  @@index([lastSeenAt(sort: Desc)])
+  @@index([lastLoginAt(sort: Desc)])
+  @@map("users")
+}
+
+// Libro mayor de créditos de generación. Cada fila es un movimiento (+/-).
+// La unique (reason, referenceId) garantiza idempotencia:
+//   - signup_bonus           → referenceId = userId       (un bono por usuario)
+//   - order_bonus            → referenceId = Order.id     (un grant por orden, líneas regulares)
+//   - pack_purchase          → referenceId = Order.id     (un grant por orden, líneas de credit pack)
+//   - order_bonus_reversal   → referenceId = OrderItem.id (una reversa por línea regular reembolsada/cancelada)
+//   - pack_purchase_reversal → referenceId = OrderItem.id (una reversa por línea de credit pack reembolsada)
+//   - generation_spend       → referenceId = generationId (un gasto por generación)
+//   - generation_refund      → referenceId = generationId (un reembolso por generación)
+//   - admin_grant            → referenceId = null         (Postgres trata NULLs como distintos → repetible)
+// Las reversas pueden dejar generationCredits < 0 (el guard de gasto lo bloquea).
+model CreditTransaction {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  amount      Int // positivo = grant, negativo = spend
+  reason      String // signup_bonus | order_bonus | pack_purchase | order_bonus_reversal | pack_purchase_reversal | admin_grant | generation_spend | generation_refund
+  referenceId String?  @map("reference_id")
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reason, referenceId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("credit_transactions")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  token      String   @unique
+  expiresAt  DateTime @map("expires_at")
+  isRevoked  Boolean  @default(false) @map("is_revoked")
+  createdAt  DateTime @default(now()) @map("created_at")
+  userAgent  String?  @map("user_agent")
+  ipAddress  String?  @map("ip_address")
+  lastUsedAt DateTime @default(now()) @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  // Backfill de `User.lastSeenAt` y lectura de sesiones por usuario. El índice a
+  // secas sobre userId se queda: lo usa el ON DELETE CASCADE.
+  @@index([userId, lastUsedAt(sort: Desc)])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// SHOPPING CART
+// ============================================
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique @map("user_id")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+
+  @@map("carts")
+}
+
+model CartItem {
+  id               String   @id @default(uuid())
+  cartId           String   @map("cart_id")
+  cart             Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId        String   @map("variant_id")
+  name             String
+  size             String?
+  style            String?
+  color            String?
+  price            Decimal  @db.Decimal(10, 2)
+  quantity         Int      @default(1)
+  img              String
+  generationId     String?  @map("generation_id")
+  imageUrl         String?  @map("image_url")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+// ============================================
+// PETS & PET PHOTOS
+// ============================================
+
+model Pet {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  species     String // Enum: dog, cat, bird, rabbit, other
+  breed       String?
+  age         Int?
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos         PetPhoto[]
+  generations    Generation[]
+  @@index([userId])
+  @@index([species])
+  @@index([userId, isActive])
+  @@map("pets")
+}
+
+model PetPhoto {
+  id              String   @id @default(uuid())
+  petId           String   @map("pet_id")
+  photoUrl        String   @map("photo_url")
+  photoStorageKey String   @map("photo_storage_key")
+  isPrimary       Boolean  @default(false) @map("is_primary")
+  orderIndex      Int      @default(0) @map("order_index")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  pet         Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  generations Generation[]
+
+  @@index([petId])
+  @@index([petId, isPrimary])
+  @@index([petId, orderIndex])
+  @@map("pet_photos")
+}
+
+// ============================================
+// VISION & IMAGE GENERATION CONFIGS
+// ============================================
+
+model VisionConfig {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String? @db.Text
+
+  visionModel       String? @map("vision_model")
+  visionTemperature Float?  @map("vision_temperature")
+  systemPrompt      String? @map("system_prompt") @db.Text
+  maxTokens         Int?    @map("max_tokens")
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  styles Style[]
+
+  @@index([isActive])
+  @@map("vision_configs")
+}
+
+model ImageGenConfig {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String? @db.Text
+
+  model      String? // e.g. "fal-ai/flux/dev"
+  parameters Json?
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  styles Style[]
+
+  @@index([isActive])
+  @@map("image_gen_configs")
+}
+
+// ============================================
+// STYLES & STYLE IMAGES
+// ============================================
+
+model Style {
+  id                       String   @id @default(uuid())
+  name                     String   @unique
+  displayName              String   @map("display_name")
+  category                 String
+  // Dificultad percibida del estilo para pintar (easy | medium | challenging)
+  difficulty               String   @default("medium")
+  styleReferenceUrl        String?  @map("style_reference_url")
+  styleReferenceStorageKey String?  @map("style_reference_storage_key")
+  isActive                 Boolean  @default(true) @map("is_active")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Pipeline config
+  strategyKey        String  @default("style-driven-prompt") @map("strategy_key")
+  promptTemplate     String  @map("prompt_template") @db.Text
+  templateVars       Json?   @map("template_vars")
+  templateVarOptions Json?   @map("template_var_options")
+  // Default del estudio PBN para este estilo ({ input, render }); lo persiste
+  // el admin desde AdminPbnStudio y seedea el estudio público vía deep link.
+  visionConfigId     String? @map("vision_config_id")
+  imageGenConfigId   String? @map("image_gen_config_id")
+
+  visionConfig   VisionConfig?   @relation(fields: [visionConfigId], references: [id], onDelete: SetNull)
+  imageGenConfig ImageGenConfig? @relation(fields: [imageGenConfigId], references: [id], onDelete: SetNull)
+
+  generations       Generation[]
+  images            StyleImage[]
+  productReferences ProductReference[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([category, isActive])
+  @@index([visionConfigId])
+  @@index([imageGenConfigId])
+  @@map("styles")
+}
+
+model StyleImage {
+  id         String   @id @default(uuid())
+  styleId    String   @map("style_id")
+  imageUrl   String   @map("image_url")
+  storageKey String   @map("storage_key")
+  altImage   String?  @map("alt_image")
+  orderIndex Int      @map("order_index")
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
+
+  @@index([styleId])
+  @@index([styleId, orderIndex])
+  @@index([styleId, isPrimary])
+  @@map("style_images")
+}
+
+// ============================================
+// FORMATS & PRODUCT REFERENCES
+// ============================================
+
+model Format {
+  id                   String   @id @default(uuid())
+  name                 String   @unique
+  displayName          String   @map("display_name")
+  aspectRatio          String   @map("aspect_ratio")
+  // Dimensiones en PÍXELES de la imagen a generar (~1 MP por aspect ratio).
+  // No son el tamaño físico: fal.ai solo recibe `aspectRatio`.
+  width                Int
+  height               Int
+  // Tamaño físico del puzzle armado, en centímetros. Separado de width/height
+  // a propósito: es lo que gobierna el cálculo de DPI del estudio de impresión.
+  // ClawAndSoul no lo tenía y acababa parseándolo del título de la variante.
+  printWidthCm         Float?   @map("print_width_cm")
+  printHeightCm        Float?   @map("print_height_cm")
+  pieceCount           Int?     @map("piece_count") // 300 | 500 | 1000 — el eje de variante del puzzle
+  shopifyVariantOption String?  @map("shopify_variant_option")
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+
+  generations     Generation[]
+  productVariants ProductFormatVariant[]
+
+  @@index([isActive])
+  @@map("formats")
+}
+
+model ProductReference {
+  id                       String   @id @default(uuid())
+  shopifyProductId         String   @unique @map("shopify_product_id")
+  shopifyHandle            String?  @map("shopify_handle")
+  name                     String
+  displayName              String   @map("display_name")
+  description              String?
+  styleId                  String?  @map("style_id")
+  template                 String?  @map("template") // tipo de producto: Puzzle | Credits
+  showcaseCollectionHandle String?  @map("showcase_collection_handle")
+  isActive                 Boolean  @default(true) @map("is_active")
+  isCreditPack             Boolean  @default(false) @map("is_credit_pack")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
+
+  style              Style?                 @relation(fields: [styleId], references: [id], onDelete: SetNull)
+  generations        Generation[]
+  productVariants    ProductFormatVariant[]
+  creditPackVariants CreditPackVariant[]
+  orderItems         OrderItem[]
+
+  @@index([isActive])
+  @@index([styleId])
+  @@index([isCreditPack])
+  @@map("product_references")
+}
+
+model ProductFormatVariant {
+  id                  String   @id @default(uuid())
+  productRefId        String   @map("product_ref_id")
+  formatId            String   @map("format_id")
+  shopifyVariantId    String   @map("shopify_variant_id")
+  shopifyVariantTitle String   @map("shopify_variant_title")
+  constraints         Json?
+  printConfig         Json?    @map("print_config") // { widthCm, heightCm, targetDpi } — impresión propia
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  productRef ProductReference @relation(fields: [productRefId], references: [id], onDelete: Cascade)
+  format     Format           @relation(fields: [formatId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@unique([productRefId, shopifyVariantId])
+  @@index([shopifyVariantId])
+  @@map("product_format_variants")
+}
+
+// Mapea una variante Shopify del producto "credit pack" a la cantidad de
+// créditos que otorga. shopifyVariantId es el ID numérico (como en OrderItem),
+// para que el webhook lo cruce directo con las líneas de la orden.
+model CreditPackVariant {
+  id               String   @id @default(uuid())
+  productRefId     String   @map("product_ref_id")
+  shopifyVariantId String   @unique @map("shopify_variant_id")
+  creditAmount     Int      @map("credit_amount")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  productRef ProductReference @relation(fields: [productRefId], references: [id], onDelete: Cascade)
+
+  @@index([productRefId])
+  @@map("credit_pack_variants")
+}
+
+// ============================================
+// GENERATIONS
+// ============================================
+
+model Generation {
+  id                    String    @id @default(uuid())
+  userId                String    @map("user_id")
+  petId                 String?   @map("pet_id")
+  petPhotoId            String?   @map("pet_photo_id")
+  styleId               String    @map("style_id")
+  formatId              String?   @map("format_id")
+  productRefId          String?   @map("product_ref_id")
+  type                  String // Enum: image, video
+  status                String    @default("pending") // Enum: pending, processing, completed, failed
+  prompt                String
+  negativePrompt        String?   @map("negative_prompt")
+  resultUrl             String?   @map("result_url")
+  resultStorageKey      String?   @map("result_storage_key")
+  thumbnailUrl          String?   @map("thumbnail_url")
+  provider              String
+  processingTimeSeconds Int?      @map("processing_time_seconds")
+  errorMessage          String?   @map("error_message")
+  metadata              Json?
+  visionAnalysis        Json?     @map("vision_analysis")
+  finalPrompt           String?   @map("final_prompt") @db.Text
+  falRequestId          String?   @map("fal_request_id")
+  promptSnapshot        Json?     @map("prompt_snapshot")
+  isPublic              Boolean   @default(false) @map("is_public")
+  isFavorite            Boolean   @default(false) @map("is_favorite")
+  isAdminTest           Boolean   @default(false) @map("is_admin_test")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  completedAt           DateTime? @map("completed_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pet            Pet?              @relation(fields: [petId], references: [id], onDelete: SetNull)
+  petPhoto       PetPhoto?         @relation(fields: [petPhotoId], references: [id], onDelete: SetNull)
+  style          Style             @relation(fields: [styleId], references: [id], onDelete: Restrict)
+  format         Format?           @relation(fields: [formatId], references: [id], onDelete: SetNull)
+  productRef     ProductReference? @relation(fields: [productRefId], references: [id], onDelete: SetNull)
+  orderItems     OrderItem[]
+  expenses       Expense[]
+
+  @@index([userId])
+  @@index([petId])
+  @@index([petPhotoId])
+  @@index([status])
+  @@index([type])
+  @@index([userId, status])
+  @@index([userId, type])
+  @@index([createdAt(sort: Desc)])
+  @@index([styleId, isAdminTest])
+  @@map("generations")
+}
+
+// ============================================
+// PAINT BY NUMBERS
+// ============================================
+
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt(sort: Desc)])
+  // El historial por usuario del admin filtra por el objetivo, no por el actor
+  // (`userId` es quien actúa). Sin este índice la consulta cae en seq scan, y la
+  // tabla crece rápido: el sync de productos escribe una fila por producto.
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// ============================================
+// ORDERS
+// ============================================
+
+model Order {
+  id                       String    @id @default(uuid())
+  shopifyOrderId           String    @unique @map("shopify_order_id")
+  shopifyOrderGid          String?   @map("shopify_order_gid")
+  orderNumber              String    @map("order_number")
+  userId                   String?   @map("user_id")
+  customerEmail            String?   @map("customer_email")
+  customerName             String?   @map("customer_name")
+  customerPhone            String?   @map("customer_phone")
+  financialStatus          String?   @map("financial_status") // paid | refunded | pending | voided
+  fulfillmentStatus        String?   @map("fulfillment_status") // unfulfilled | partial | fulfilled
+  // Estado de fulfillment "display" derivado de los FulfillmentOrders de Shopify
+  // (unfulfilled|in_progress|on_hold|scheduled|partially_fulfilled|fulfilled|restocked).
+  fulfillmentDisplayStatus String?   @map("fulfillment_display_status")
+  orderStatusUrl           String?   @map("order_status_url") // Shopify order status page (envío/tracking del cliente)
+  currency                 String    @default("USD")
+  subtotalAmount           Decimal   @map("subtotal_amount") @db.Decimal(10, 2)
+  shippingAmount           Decimal?  @map("shipping_amount") @db.Decimal(10, 2)
+  taxAmount                Decimal?  @map("tax_amount") @db.Decimal(10, 2)
+  totalAmount              Decimal   @map("total_amount") @db.Decimal(10, 2)
+  shippingAddress          Json?     @map("shipping_address")
+  billingAddress           Json?     @map("billing_address")
+  customerNote             String?   @map("customer_note")
+  shopifyCreatedAt         DateTime  @map("shopify_created_at")
+  shopifyUpdatedAt         DateTime? @map("shopify_updated_at")
+  cancelledAt              DateTime? @map("cancelled_at")
+  productionCost           Decimal?  @map("production_cost") @db.Decimal(10, 2)
+  rawPayload               Json      @map("raw_payload")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user     User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items    OrderItem[]
+  events   OrderEvent[]
+  expenses Expense[]
+
+  @@index([userId])
+  @@index([customerEmail])
+  @@index([shopifyCreatedAt(sort: Desc)])
+  @@index([financialStatus])
+  // Recompra y segmento de comprador (primera vez / recurrente) del dashboard:
+  // ambas preguntan «¿tiene este usuario pedidos, y anteriores a esta fecha?».
+  @@index([userId, shopifyCreatedAt(sort: Desc)])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                      String    @id @default(uuid())
+  orderId                 String    @map("order_id")
+  shopifyLineItemId       String    @map("shopify_line_item_id")
+  shopifyVariantId        String?   @map("shopify_variant_id")
+  shopifyProductId        String?   @map("shopify_product_id")
+  productRefId            String?   @map("product_ref_id")
+  productFormatVariantId  String?   @map("product_format_variant_id")
+  generationId            String?   @map("generation_id")
+  title                   String
+  variantTitle            String?   @map("variant_title")
+  sku                     String?
+  quantity                Int
+  unitPrice               Decimal   @map("unit_price") @db.Decimal(10, 2)
+  totalPrice              Decimal   @map("total_price") @db.Decimal(10, 2)
+  imageUrl                String?   @map("image_url")
+  printImageUrl           String?   @map("print_image_url")
+  printImageStorageKey    String?   @map("print_image_storage_key")
+  // Admin-provided source art (manual upload) used as the enhancement input.
+  // Kept separate from printImageUrl so enhancing never destroys the original.
+  printSourceUrl          String?   @map("print_source_url")
+  printSourceStorageKey   String?   @map("print_source_storage_key")
+  // Raw AI-upscaled base (no colour/bleed adjustments). Lets "Guardar" re-apply
+  // adjustments without re-running fal.ai and without resolution loss.
+  printUpscaledUrl        String?   @map("print_upscaled_url")
+  printUpscaledStorageKey String?   @map("print_upscaled_storage_key")
+  style                   String?
+  size                    String?
+  productionStatus        String    @default("draft") @map("production_status") // pending | generating | art_failed | draft | pre_production | in_production | printed | packed | shipped | delivered | on_hold | cancelled | refunded | restocked
+  notes                   String?
+  shippedAt               DateTime? @map("shipped_at")
+  deliveredAt             DateTime? @map("delivered_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  order          Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productRef     ProductReference?     @relation(fields: [productRefId], references: [id], onDelete: SetNull)
+  productVariant ProductFormatVariant? @relation(fields: [productFormatVariantId], references: [id], onDelete: SetNull)
+  generation     Generation?           @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  events         OrderEvent[]
+  expenses       Expense[]
+
+  @@unique([orderId, shopifyLineItemId])
+  @@index([generationId])
+  @@index([productionStatus])
+  @@index([productRefId])
+  // Antigüedad de la cola y enviados/entregados por periodo en el dashboard.
+  @@index([createdAt(sort: Desc)])
+  @@index([shippedAt(sort: Desc)])
+  @@index([deliveredAt(sort: Desc)])
+  @@map("order_items")
+}
+
+model OrderEvent {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  orderItemId String?  @map("order_item_id")
+  eventType   String   @map("event_type") // status_change | webhook_received | manual_resync | pod_submit | pod_skip | warning
+  fromStatus  String?  @map("from_status")
+  toStatus    String?  @map("to_status")
+  payload     Json?
+  userId      String?  @map("user_id")
+  source      String   @default("system") // system | admin | webhook | pod
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt(sort: Desc)])
+  @@index([orderItemId])
+  // Actividad reciente global del dashboard (sin filtrar por pedido).
+  @@index([createdAt(sort: Desc)])
+  @@map("order_events")
+}
+
+// ============================================
+// EXPENSE LEDGER
+// ============================================
+
+model Expense {
+  id           String   @id @default(uuid())
+  category     String // pod_production | image_generation | image_upscale | manual
+  userId       String?  @map("user_id")
+  orderId      String?  @map("order_id")
+  orderItemId  String?  @map("order_item_id")
+  generationId String?  @map("generation_id")
+  provider     String? // pictorem | fal | openrouter | manual
+  providerRef  String?  @map("provider_ref")
+  amount       Decimal  @db.Decimal(12, 6)
+  currency     String   @default("USD")
+  amountBase   Decimal? @map("amount_base") @db.Decimal(12, 6)
+  baseCurrency String?  @map("base_currency")
+  fxRate       Decimal? @map("fx_rate") @db.Decimal(12, 6)
+  detail       Json?
+  note         String?
+  source       String   @default("system") // system | admin
+  createdBy    String?  @map("created_by")
+  dedupeKey    String?  @unique @map("dedupe_key")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order      Order?      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem  OrderItem?  @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  generation Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([generationId])
+  @@index([category])
+  // Costos por periodo en el dashboard: `category` sola no acota la ventana.
+  @@index([category, createdAt(sort: Desc)])
+  @@map("expenses")
+}
+
+model ProviderRate {
+  id        String   @id @default(uuid())
+  provider  String // fal
+  model     String // fal-ai/flux/dev | fal-ai/seedvr/upscale/image
+  unit      String // per_image | per_megapixel | per_call
+  amount    Decimal  @db.Decimal(12, 6)
+  currency  String   @default("USD")
+  isActive  Boolean  @default(true) @map("is_active")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@unique([provider, model])
+  @@map("provider_rates")
+}
+
+// ============================================
+// APP SETTINGS (runtime key-value flags)
+// ============================================
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@map("app_settings")
+}
+
+// ============================================
+// SYNC LOGS
+// ============================================
+
+model SyncLog {
+  id                  String    @id @default(uuid())
+  type                String // 'cron' | 'manual' | 'webhook'
+  status              String // 'running' | 'completed' | 'failed'
+  startedAt           DateTime  @map("started_at")
+  completedAt         DateTime? @map("completed_at")
+  productsChecked     Int?      @map("products_checked")
+  productsCreated     Int?      @map("products_created")
+  productsUpdated     Int?      @map("products_updated")
+  productsDeactivated Int?      @map("products_deactivated")
+  errors              Json?
+  metadata            Json?
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([status])
+  @@index([startedAt(sort: Desc)])
+  @@map("sync_logs")
+}
