@@ -1,0 +1,184 @@
+import { useEffect, useState } from "react";
+import { getCollectionProducts } from "@/lib/shopify/actions/collections";
+import { Product } from "@/entities/pet-product/model/types";
+import {
+  DIFFICULTY_LABELS,
+  StyleDifficulty,
+} from "@/entities/art-style/model/difficulty";
+
+// URL base de la API del backend
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+
+// Interfaz que define la estructura de un producto proveniente de nuestro backend
+interface BackendProduct {
+  id: string;
+  shopifyProductId: string;
+  shopifyHandle: string | null;
+  name: string;
+  displayName: string;
+  description: string | null;
+  style: { difficulty: StyleDifficulty | null } | null;
+}
+
+// Interfaz que define la estructura del nodo de un producto desde GraphQL de Shopify
+interface ShopifyProductNode {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  priceRange: {
+    minVariantPrice: { amount: string; currencyCode: string };
+  };
+  compareAtPriceRange?: {
+    minVariantPrice: { amount: string; currencyCode: string };
+  };
+  images: { edges: { node: { url: string; altText: string | null } }[] };
+}
+
+// Resultado esperado del hook
+interface UseCollectionProductsResult {
+  products: Product[];
+  title: string | null;
+  description: string | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+/**
+ * Hook personalizado para obtener los productos de una colección de Shopify.
+ * Realiza peticiones en paralelo a nuestro backend y a la colección de Shopify,
+ * y combina los datos por el "handle". Solo se incluyen los productos que
+ * existen en el backend Y pertenecen a la colección indicada.
+ */
+export function useCollectionProducts(
+  handle: string,
+): UseCollectionProductsResult {
+  // El handle resuelto se guarda junto al resultado: mientras `state.handle` no
+  // coincida con el `handle` pedido, la petición sigue en vuelo. Eso hace
+  // derivable `isLoading` y evita que el efecto llame setState de forma
+  // síncrona (react-hooks/set-state-in-effect).
+  const [state, setState] = useState<{
+    handle: string;
+    products: Product[];
+    title: string | null;
+    description: string | null;
+    error: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    // Variable para evitar actualizaciones de estado si el componente se desmonta
+    let cancelled = false;
+
+    // Realizar ambas peticiones (backend local y colección de Shopify) en paralelo
+    Promise.all([
+      // 1. Obtener productos configurados en nuestro backend
+      fetch(`${API_URL}/products`, { credentials: "include" }).then(
+        async (res) => {
+          if (!res.ok) throw new Error(`products error: ${res.status}`);
+          const json = (await res.json()) as
+            | { data: BackendProduct[] }
+            | BackendProduct[];
+          return Array.isArray(json) ? json : json.data;
+        },
+      ),
+      // 2. Obtener la colección (título, descripción y productos) desde Shopify
+      getCollectionProducts(handle, 100),
+    ])
+      .then(([backendProducts, collection]) => {
+        if (cancelled) return;
+
+        const shopifyNodes =
+          (collection?.products.edges.map(
+            (e) => e.node,
+          ) as unknown as ShopifyProductNode[]) ?? [];
+
+        // Crear un mapa para buscar rápidamente los productos de la colección por su handle
+        const shopifyByHandle = new Map<string, ShopifyProductNode>();
+        for (const node of shopifyNodes) {
+          shopifyByHandle.set(node.handle, node);
+        }
+
+        // Combinar los datos del backend con los de la colección.
+        // Solo se incluyen los productos del backend que pertenecen a la colección.
+        const merged: Product[] = backendProducts
+          .filter(
+            (bp) => bp.shopifyHandle && shopifyByHandle.has(bp.shopifyHandle),
+          )
+          .map((bp) => {
+            const shopify = shopifyByHandle.get(bp.shopifyHandle!)!;
+            const minPrice = shopify.priceRange.minVariantPrice;
+            const firstImage = shopify.images.edges[0]?.node.url;
+
+            const formatMoney = (amount: string, currencyCode: string) =>
+              new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: currencyCode,
+              }).format(parseFloat(amount));
+
+            // Precio comparativo (de lista): solo es oferta si supera al precio actual.
+            const compareAt = shopify.compareAtPriceRange?.minVariantPrice;
+            const priceAmount = minPrice ? parseFloat(minPrice.amount) : 0;
+            const compareAmount = compareAt ? parseFloat(compareAt.amount) : 0;
+            const onSale = compareAmount > priceAmount;
+
+            // Retornar un objeto de Producto formateado para los componentes de UI
+            return {
+              name: bp.displayName,
+              desc: bp.description ?? "",
+              price: minPrice
+                ? formatMoney(minPrice.amount, minPrice.currencyCode)
+                : "",
+              compareAtPrice: onSale
+                ? formatMoney(compareAt!.amount, compareAt!.currencyCode)
+                : undefined,
+              discountPercent: onSale
+                ? Math.round((1 - priceAmount / compareAmount) * 100)
+                : undefined,
+              img: firstImage ?? "https://placehold.co/400x300?text=Product",
+              shopifyHandle: bp.shopifyHandle!,
+              productRefId: bp.id,
+              // Badge de la tarjeta: dificultad del estilo asociado al producto.
+              label: bp.style?.difficulty
+                ? DIFFICULTY_LABELS[bp.style.difficulty]
+                : undefined,
+            };
+          });
+
+        // Actualizar el estado con los productos combinados, más el título y la
+        // descripción de la colección que la UI necesita exponer
+        setState({
+          handle,
+          products: merged,
+          title: collection?.title ?? null,
+          description: collection?.description ?? null,
+          error: null,
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("useCollectionProducts error:", err);
+        setState({
+          handle,
+          products: [],
+          title: null,
+          description: null,
+          error: "Failed to load products.",
+        });
+      });
+
+    // Función de limpieza para cancelar actualizaciones si el componente se desmonta antes de finalizar
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
+
+  const settled = state?.handle === handle ? state : null;
+
+  return {
+    products: settled?.products ?? [],
+    title: settled?.title ?? null,
+    description: settled?.description ?? null,
+    isLoading: settled === null,
+    error: settled?.error ?? null,
+  };
+}

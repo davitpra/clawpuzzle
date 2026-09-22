@@ -1,0 +1,216 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useAuthFetch } from "@/hooks/useAuthFetch";
+import { useShopifyVariantImages } from "@/hooks/useShopifyVariantImages";
+import { ProductCard } from "@/entities/pet-product/ui/ProductCard";
+import type { Product } from "@/entities/pet-product/model/types";
+import { useStyleData } from "@/entities/product/api/useStyleData";
+import { frameForHandle } from "@/entities/product/lib/frameStyle";
+import {
+  formatPrice,
+  resolveItemImage,
+  statusBadge,
+} from "@/entities/order/lib/presentation";
+import type {
+  ApiEnvelope,
+  PaginatedResult,
+  UserOrderListItem,
+} from "@/entities/order/types";
+import LightRays from "@/shared/ui/LightRays";
+import { EmptyState } from "./EmptyState";
+import { LAUNCH_MODE } from "@/shared/config/launch";
+
+// Adapta una orden al shape `Product` que consume ProductCard: la imagen del
+// item principal hace de "poster", el número de orden de nombre y el total de
+// precio. El badge superpuesto reutiliza el estado de fulfillment de la orden.
+// `variantImages` resuelve la imagen live de Shopify cuando el item no tiene
+// ninguna imagen persistida (accesorios).
+function orderToProduct(
+  order: UserOrderListItem,
+  variantImages: Record<string, string>,
+): Product {
+  const primary = order.items?.[0];
+  return {
+    name: `Order ${order.orderNumber}`,
+    desc: "",
+    price: formatPrice(order.totalAmount, order.currency),
+    img:
+      (primary ? resolveItemImage(primary, variantImages) : null) ??
+      "/placeholder-image.jpg",
+    label: statusBadge(order).label,
+  };
+}
+
+const PAGE_SIZE = 10;
+
+// Silueta de una <ProductCard> de orden: la imagen con su proporción por defecto
+// (aspect-2/3), el badge de estado superpuesto y el número de orden centrado
+// debajo. Al reproducir la misma estructura, la grilla no salta cuando llegan
+// las órdenes reales.
+function OrderCardSkeleton() {
+  return (
+    <div className="flex w-full min-w-0 animate-pulse flex-col gap-2">
+      <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl bg-cream">
+        <div className="absolute left-3 top-3 h-5 w-20 rounded-full bg-white/70" />
+      </div>
+      <div className="mx-auto h-5 w-28 rounded-md bg-cream" />
+    </div>
+  );
+}
+
+// Una grilla llena en lg/xl, que es lo que devuelve la primera página (PAGE_SIZE).
+const SKELETON_COUNT = 8;
+
+export function AllOrders() {
+  const { get } = useAuthFetch();
+
+  const [orders, setOrders] = useState<UserOrderListItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadPage = useCallback(
+    async (pageToLoad: number) => {
+      const isFirst = pageToLoad === 1;
+      if (isFirst) setIsLoading(true);
+      else setIsLoadingMore(true);
+      setError(null);
+
+      try {
+        const res = await get<ApiEnvelope<PaginatedResult<UserOrderListItem>>>(
+          `/orders?page=${pageToLoad}&limit=${PAGE_SIZE}`,
+        );
+        const fetched = res.data?.data ?? [];
+        setOrders((prev) => (isFirst ? fetched : [...prev, ...fetched]));
+        setTotalPages(res.data?.meta?.totalPages ?? 1);
+        setPage(pageToLoad);
+      } catch {
+        setError("Couldn't load your orders. Please try again.");
+      } finally {
+        if (isFirst) setIsLoading(false);
+        else setIsLoadingMore(false);
+      }
+    },
+    [get],
+  );
+
+  useEffect(() => {
+    let active = true;
+    // Carga inicial. loadPage actualiza estado solo si el componente sigue vivo
+    // gracias al guard implícito de React 18; usamos `active` por claridad.
+    (async () => {
+      if (active) await loadPage(1);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [loadPage]);
+
+  const hasMore = page < totalPages;
+
+  // Resuelve, best-effort, la imagen live de Shopify de los ítems primarios que
+  // no tienen imagen persistida (p. ej. accesorios sin estilo ni generación).
+  const variantImages = useShopifyVariantImages(
+    orders.map((o) => o.items?.[0]?.shopifyHandle),
+  );
+
+  // Template/formato del backend por handle (mismo origen que el catálogo), para
+  // darle a cada card el marco visual de su tipo de producto.
+  const styleData = useStyleData();
+
+  // El marco de cada card sale de `styleData`, que llega después de las órdenes.
+  // Pintando antes, todas caerían a "art" recortado y al resolverse cambiarían a
+  // proporción natural: la <Card> pasa de fondo a <img>, la imagen se recrea y la
+  // grilla salta. El skeleton cubre ambas cargas, que van en paralelo.
+  // `fetchStyles` nunca rechaza (devuelve mapas vacíos), así que null es
+  // estrictamente "cargando" y esto no puede quedarse colgado.
+  const showSkeleton = isLoading || (!error && orders.length > 0 && !styleData);
+
+  return (
+    <section className="relative overflow-hidden rounded-xl bg-white p-6 md:p-8 space-y-6">
+      {showSkeleton && (
+        <div
+          aria-hidden
+          className="grid grid-cols-2 items-center gap-8 lg:grid-cols-3 xl:grid-cols-4"
+        >
+          {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+            <OrderCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {!showSkeleton && error && (
+        <div className="flex flex-col items-center rounded-xl bg-red-50 px-4 py-8 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+            <span className="material-symbols-outlined text-[26px]">error</span>
+          </span>
+          <p className="mt-3 text-sm text-red-700">{error}</p>
+          <button
+            type="button"
+            onClick={() => loadPage(1)}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-700"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              refresh
+            </span>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!showSkeleton && !error && orders.length === 0 && (
+        <EmptyState
+          icon="shopping_bag"
+          title="No orders yet"
+          description="When you place an order it will show up here."
+          cta={
+            LAUNCH_MODE
+              ? undefined
+              : { href: "/catalog", icon: "storefront", label: "Start shopping" }
+          }
+        />
+      )}
+
+      {!showSkeleton && !error && orders.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 items-center gap-8 lg:grid-cols-3 xl:grid-cols-4">
+            {orders.map((order) => {
+              const { frameStyle, naturalAspect } = frameForHandle(
+                order.items?.[0]?.shopifyHandle,
+                styleData,
+              );
+              return (
+                <ProductCard
+                  key={order.id}
+                  product={orderToProduct(order, variantImages)}
+                  href={`/user/orders/${order.id}`}
+                  frameStyle={frameStyle}
+                  naturalAspect={naturalAspect}
+                />
+              );
+            })}
+          </div>
+
+          {hasMore && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => loadPage(page + 1)}
+                disabled={isLoadingMore}
+                className="rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoadingMore ? "Loading…" : "Load more orders"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+      {/* Rayos de luz decorativos; último hijo para pintar por encima de todo
+                              el contenido (imagen incluida) sin bloquear clics. */}
+      <LightRays />
+    </section>
+  );
+}
