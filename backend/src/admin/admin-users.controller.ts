@@ -156,21 +156,6 @@ export class AdminUsersController {
     return this.usersService.getUserShippingAddress(id);
   }
 
-  @Get(':id/paint-by-numbers')
-  @ApiOperation({
-    summary: 'Get saved Paint-by-Numbers for a user (paginated)',
-  })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'User paint-by-numbers retrieved' })
-  paintByNumbers(
-    @Param('id') id: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(24), ParseIntPipe) limit: number,
-  ) {
-    return this.usersService.getUserPaintByNumbers(id, page, limit);
-  }
-
   @Get(':id/credit-transactions')
   @ApiOperation({
     summary: 'Get credit ledger movements for a user (paginated)',

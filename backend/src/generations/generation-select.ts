@@ -28,7 +28,7 @@ export const USER_GENERATION_SELECT = {
   productRefId: true,
   pet: { select: { id: true, name: true, species: true, breed: true } },
   style: { select: { id: true, displayName: true, category: true } },
-  // Producto para el que se generó la obra. `template`/`artKind` son los dos ejes
+  // Producto para el que se generó la obra. `template` es el eje de catálogo
   // con los que el storefront nombra el producto de cara al cliente y ya salen
   // públicos por `/products/:handle/variants`: exponerlos aquí no filtra nada.
   productRef: {
@@ -36,7 +36,6 @@ export const USER_GENERATION_SELECT = {
       id: true,
       displayName: true,
       template: true,
-      artKind: true,
     },
   },
 } satisfies Prisma.GenerationSelect;

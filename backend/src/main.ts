@@ -66,9 +66,9 @@ async function bootstrap() {
   const localOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
   // FRONTEND_URL admite varios orígenes separados por comas (el dominio real y
   // el de staging, p. ej.). Cada uno se compara por igualdad exacta contra la
-  // cabecera Origin, así que van enteros y con esquema: 'clawandsoul.com' y
-  // 'www.clawandsoul.com' son dos orígenes distintos y hay que listar el que se
-  // sirva. No pongas aquí un host fuera de .clawandsoul.com esperando que la
+  // cabecera Origin, así que van enteros y con esquema: 'clawpuzzle.com' y
+  // 'www.clawpuzzle.com' son dos orígenes distintos y hay que listar el que se
+  // sirva. No pongas aquí un host fuera de .clawpuzzle.com esperando que la
   // sesión funcione: la cookie es sameSite=lax y el navegador la descarta en
   // peticiones cross-site aunque el CORS pase.
   //
@@ -95,8 +95,10 @@ async function bootstrap() {
     : !isProduction;
 
   const config = new DocumentBuilder()
-    .setTitle('Pet AI API')
-    .setDescription('API for AI-powered pet image and video generation')
+    .setTitle('ClawPuzzle API')
+    .setDescription(
+      'API for AI-generated pet art printed on custom jigsaw puzzles',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('auth', 'Authentication endpoints')

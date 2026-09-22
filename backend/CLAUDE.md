@@ -4,7 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ClawAndSoul Backend is a NestJS API for an AI-powered pet image and video generation platform. Users upload pet photos and generate unlimited free stylized AI content of their pets.
+ClawPuzzle Backend is a NestJS API for an ecommerce that turns a pet photo into
+AI-generated art and sells it printed as a custom jigsaw puzzle.
+
+It is derived from ClawAndSoul (same generation engine, different physical
+product). What changed in the fork:
+
+- **Catalog**: two product types — `Puzzle` and `Credits`. The old five-value
+  `template` axis and the parallel `artKind` (pbn | print) axis are gone.
+- **Paint-by-numbers is gone** entirely: model, module, studio and artifacts.
+- **Production is in-house**: no POD provider, no Pictorem. The admin prints,
+  die-cuts and ships; `productionStatus` drives that queue and gained a
+  `packed` step between `printed` and `shipped`.
+- **Variants are piece counts** (300 / 500 / 1000), modelled as `Format` rows
+  with `pieceCount` plus the assembled size in `printWidthCm`/`printHeightCm`.
+  Careful: `Format.width`/`height` are *generation pixels*, not the physical
+  size — they always were, but nothing depended on it until now.
+
+Unchanged from ClawAndSoul: auth, credits, pets, styles, the fal.ai +
+OpenRouter generation pipeline, the Shopify sync and the order ingestion.
 
 ## Development Commands
 
@@ -61,10 +79,15 @@ The application follows NestJS modular architecture with domain-driven modules:
 - **auth**: JWT-based authentication with refresh tokens, passport strategies
 - **users**: User management and profile operations
 - **pets**: Pet profiles and photo management
-- **styles**: AI art style catalog (categories, parameters)
+- **styles**: AI art style catalog (categories, prompt templates)
 - **generations**: Core AI generation engine (images/videos), status tracking, provider abstraction
 - **storage**: Cloudinary file upload/retrieval service (global module)
 - **prisma**: Database service (global module)
+- **orders**: Shopify order ingestion, production status machine, print masters
+- **products** / **formats**: local catalog mirrored from Shopify; `Format` is
+  the piece-count axis of a puzzle
+- **credits**: idempotent credit ledger
+- **shopify-sync**: Admin API client, HMAC guard, queued product sync
 
 ### Global Configuration
 
@@ -126,17 +149,30 @@ All endpoints prefixed with `/api` (configured in `main.ts`).
 ## Database Schema Highlights
 
 **Core Entities**:
-- **User**: Stores user credentials, role (user/premium/admin)
-- **Pet**: User-owned pet profiles (species, breed, age)
-- **PetPhoto**: Photos of pets with storage keys, order management
-- **Style**: AI art styles with premium flags and parameters
-- **Generation**: AI generation jobs with status tracking (pending/processing/completed/failed)
+- **User**: credentials, role (user/premium/admin), `generationCredits`
+- **Pet** / **PetPhoto**: user-owned pet profiles and their photos
+- **Style**: AI art styles with their prompt template and vision/imagegen config
+- **Generation**: AI generation jobs with status tracking
+- **ProductReference**: a Shopify product mirrored locally; `template` is
+  `Puzzle` or `Credits`
+- **Format**: the piece-count axis. `pieceCount` + `printWidthCm`/`printHeightCm`
+  (physical, centimetres) + `width`/`height` (generation pixels — *not* the
+  physical size)
+- **ProductFormatVariant**: ProductReference × Format × Shopify variant, with
+  `constraints` (cropMode, maxPets, bleedMm) and `printConfig`
+- **Order** / **OrderItem** / **OrderEvent**: ingested from Shopify webhooks
 
-**Enums** (stored as strings):
+**Enums** (stored as strings, no native Prisma enums):
 - User role: `user`, `premium`, `admin`
 - Pet species: `dog`, `cat`, `bird`, `rabbit`, `other`
-- Generation type: `image`, `video`
 - Generation status: `pending`, `processing`, `completed`, `failed`
+- `ProductReference.template`: `Puzzle`, `Credits`
+- `OrderItem.productionStatus`: `pending`, `generating`, `art_failed`, `draft`,
+  `pre_production`, `in_production`, `printed`, `packed`, `shipped`,
+  `delivered`, `on_hold`, `cancelled`, `refunded`, `restocked`.
+  Vocabulary and transitions live in `src/orders/production-status.util.ts`;
+  the frontend mirrors them in `entities/admin/lib/` — **edit both together or
+  the admin offers transitions the backend rejects**.
 
 ## Generation Credit Model
 

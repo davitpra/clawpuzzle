@@ -120,7 +120,6 @@ export class ProductsService {
       description: product.description,
       style: mapped.style,
       template: product.template,
-      artKind: product.artKind,
       showcaseCollectionHandle: product.showcaseCollectionHandle,
       variants: product.productVariants.map((v) => ({
         shopifyVariantId: toShopifyVariantGid(v.shopifyVariantId),
@@ -135,12 +134,11 @@ export class ProductsService {
     };
   }
 
-  /** The single active product flagged as the Paint-by-Numbers kit, with its variants. */
-  async findPbnProduct() {
+  /** El producto puzzle activo, con sus variantes por número de piezas. */
+  async findPuzzleProduct() {
     const product = await this.prisma.productReference.findFirst({
-      where: { isPaintByNumbers: true, isActive: true },
-      // Determinista: si por datos legacy hubiera varios marcados, gana el más
-      // reciente. La escritura garantiza unicidad vía setPbnProduct.
+      where: { template: 'Puzzle', isActive: true },
+      // Determinista: si hubiera varios productos puzzle, gana el más reciente.
       orderBy: { updatedAt: 'desc' },
       include: {
         ...PRODUCT_INCLUDE,
@@ -153,7 +151,7 @@ export class ProductsService {
     });
 
     if (!product) {
-      throw new NotFoundException('No Paint-by-Numbers product configured');
+      throw new NotFoundException('No puzzle product configured');
     }
 
     const mapped = addStylePreview(product);
@@ -166,7 +164,6 @@ export class ProductsService {
       description: product.description,
       style: mapped.style,
       template: product.template,
-      artKind: product.artKind,
       variants: product.productVariants.map((v) => ({
         shopifyVariantId: toShopifyVariantGid(v.shopifyVariantId),
         shopifyVariantTitle: v.shopifyVariantTitle,
@@ -237,32 +234,8 @@ export class ProductsService {
   }
 
   /**
-   * Fija EL producto dedicado al kit Paint-by-Numbers (o ninguno si productId
-   * es null), garantizando unicidad: desmarca cualquier otro que estuviera
-   * marcado dentro de la misma transacción.
-   */
-  async setPbnProduct(productId: string | null) {
-    if (productId) await this.findOne(productId);
-    return this.prisma.$transaction(async (tx) => {
-      await tx.productReference.updateMany({
-        where: {
-          isPaintByNumbers: true,
-          ...(productId ? { id: { not: productId } } : {}),
-        },
-        data: { isPaintByNumbers: false },
-      });
-      if (productId) {
-        await tx.productReference.update({
-          where: { id: productId },
-          data: { isPaintByNumbers: true },
-        });
-      }
-    });
-  }
-
-  /**
    * Fija EL producto dedicado al pack de créditos (o ninguno si productId es
-   * null), garantizando unicidad como setPbnProduct.
+   * null), garantizando unicidad.
    */
   async setCreditPackProduct(productId: string | null) {
     if (productId) await this.findOne(productId);
@@ -305,7 +278,6 @@ export class ProductsService {
       displayName: product.displayName,
       description: product.description,
       template: product.template,
-      artKind: product.artKind,
       variants: product.creditPackVariants.map((v) => ({
         shopifyVariantId: toShopifyVariantGid(v.shopifyVariantId),
         creditAmount: v.creditAmount,
@@ -397,16 +369,16 @@ export class ProductsService {
         formatId: dto.formatId,
         shopifyVariantId: dto.shopifyVariantId,
         shopifyVariantTitle: dto.shopifyVariantTitle,
-        podConfig: dto.podConfig
-          ? (dto.podConfig as unknown as Prisma.InputJsonValue)
+        printConfig: dto.printConfig
+          ? (dto.printConfig as unknown as Prisma.InputJsonValue)
           : undefined,
         isActive: true,
       },
       update: {
         formatId: dto.formatId,
         shopifyVariantTitle: dto.shopifyVariantTitle,
-        podConfig: dto.podConfig
-          ? (dto.podConfig as unknown as Prisma.InputJsonValue)
+        printConfig: dto.printConfig
+          ? (dto.printConfig as unknown as Prisma.InputJsonValue)
           : undefined,
         isActive: true,
       },
@@ -447,14 +419,12 @@ export class ProductsService {
     const data: {
       formatId?: string;
       isActive?: boolean;
-      podProvider?: string | null;
-      podConfig?: Prisma.InputJsonValue;
+      printConfig?: Prisma.InputJsonValue;
     } = {};
     if (dto.formatId !== undefined) data.formatId = dto.formatId;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
-    if (dto.podProvider !== undefined) data.podProvider = dto.podProvider;
-    if (dto.podConfig !== undefined)
-      data.podConfig = dto.podConfig as unknown as Prisma.InputJsonValue;
+    if (dto.printConfig !== undefined)
+      data.printConfig = dto.printConfig as unknown as Prisma.InputJsonValue;
 
     if (Object.keys(data).length === 0) {
       return this.prisma.productFormatVariant.findUnique({

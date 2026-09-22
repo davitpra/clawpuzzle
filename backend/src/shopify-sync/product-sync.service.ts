@@ -4,7 +4,6 @@ import {
   ShopifyProductPayload,
   ShopifyVariant,
 } from './dto/shopify-product.dto';
-import { isAccessoryArtKind, normalizeArtKind } from './art-kind.util';
 
 function normalizeVariantOption(s: string | null | undefined): string {
   return (s ?? '')
@@ -22,18 +21,8 @@ export class ProductSyncService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * @param artKind valor crudo del metafield `custom.art_kind`. Alimenta dos
-   * columnas: `artKind` (el eje de contenido, pbn | print) e `isAccessory` (los
-   * accesorios no llevan arte, así que ocupan su propio valor del metafield).
-   * Los tres estados importan:
-   * `undefined` = no se pudo averiguar → las columnas no se tocan;
-   * `null` = Shopify confirma que no tiene metafield → se limpian;
-   * string = se normaliza y se escribe.
-   */
   async upsertProduct(
     shopifyProduct: ShopifyProductPayload,
-    artKind?: string | null,
   ): Promise<{ action: 'created' | 'updated'; id: string }> {
     const shopifyProductId = String(shopifyProduct.id);
     const data = {
@@ -42,12 +31,6 @@ export class ProductSyncService {
       displayName: shopifyProduct.title,
       description: this.stripHtml(shopifyProduct.body_html),
       isActive: shopifyProduct.status === 'active',
-      ...(artKind !== undefined
-        ? {
-            artKind: normalizeArtKind(artKind),
-            isAccessory: isAccessoryArtKind(artKind),
-          }
-        : {}),
     };
 
     const existing = await this.prisma.productReference.findUnique({

@@ -1,6 +1,11 @@
-# ClawAndSoul — Backend API
+# ClawPuzzle — Backend API
 
-API REST para la plataforma de generación IA de arte de mascotas. Los usuarios suben fotos de sus mascotas y generan imágenes y videos estilizados de forma ilimitada y gratuita.
+API REST del ecommerce de rompecabezas personalizados. El usuario sube la foto
+de su mascota, genera arte con IA y lo compra impreso como puzzle. El catálogo
+y el checkout viven en Shopify; esta API ingiere las órdenes ya pagadas por
+webhook y gobierna la cola de producción.
+
+Derivado de ClawAndSoul: ver `CLAUDE.md` para qué cambió en el fork.
 
 **Stack:** NestJS · TypeScript · PostgreSQL · Prisma ORM · BullMQ · Redis · Cloudinary · Swagger
 
@@ -142,13 +147,16 @@ src/
 ├── users/              # Gestión de perfiles de usuario
 ├── pets/               # Perfiles de mascotas y subida de fotos
 ├── styles/             # Catálogo de estilos de arte IA
-├── generations/        # Motor de generación IA (imágenes/videos)
+├── generations/        # Motor de generación IA (fal.ai + OpenRouter)
 │   ├── controllers/    # Endpoints de la API
 │   ├── services/       # Lógica de negocio
 │   ├── processors/     # Procesadores de colas BullMQ
 │   └── dto/            # DTOs de validación
-├── formats/            # Formatos de salida (aspect ratios, dimensiones)
+├── formats/            # Tamaños de puzzle (nº de piezas, tamaño físico)
 ├── products/           # Referencias de productos de Shopify
+├── orders/             # Ingesta de órdenes, producción, másters de impresión
+├── credits/            # Ledger de créditos de generación
+├── expenses/           # Libro de costes (generación, impresión)
 ├── compat/             # Matriz de compatibilidad estilo/formato/producto
 ├── shopify-sync/       # Sincronización de productos Shopify (cron + webhooks)
 ├── gallery/            # Galería pública de generaciones completadas
@@ -387,12 +395,14 @@ Los productos de Shopify se sincronizan con la base de datos local como `Product
 | `RefreshToken` | Sesiones activas | `token`, `expiresAt`, `isRevoked` |
 | `Pet` | Mascota del usuario | `name`, `species`, `breed`, `age` |
 | `PetPhoto` | Fotos de mascotas | `photoUrl`, `photoStorageKey`, `isPrimary`, `orderIndex` |
-| `Style` | Estilos de arte IA | `name`, `category`, `isPremium`, `parameters` |
+| `Style` | Estilos de arte IA | `name`, `category`, `difficulty`, `promptTemplate`, `strategyKey` |
 | `StyleImage` | Imágenes de ejemplo de estilos | `imageUrl`, `isPrimary`, `orderIndex` |
-| `Format` | Formatos de salida | `aspectRatio`, `width`, `height` |
-| `ProductReference` | Productos de Shopify | `shopifyProductId`, `name` |
-| `StyleFormatProductCompat` | Matriz de compatibilidad | `styleId`, `formatId`, `productRefId` |
+| `Format` | Tamaño de puzzle | `pieceCount`, `printWidthCm`/`printHeightCm` (físico), `width`/`height` (px de generación), `aspectRatio` |
+| `ProductReference` | Productos de Shopify | `shopifyProductId`, `template` (`Puzzle` \| `Credits`), `isCreditPack` |
+| `ProductFormatVariant` | ProductReference × Format × variante | `constraints`, `printConfig` |
 | `Generation` | Trabajos de generación IA | `status`, `resultUrl`, `provider`, `processingTimeSeconds` |
+| `Order` / `OrderItem` | Órdenes ingeridas de Shopify | `productionStatus`, `printSourceUrl` → `printUpscaledUrl` → `printImageUrl` |
+| `CreditTransaction` | Ledger de créditos | `amount`, `reason`, `referenceId` (único por par) |
 | `AuditLog` | Registro de auditoría | `action`, `entityType`, `ipAddress` |
 | `SyncLog` | Historial de syncs con Shopify | `type`, `status`, estadísticas de productos |
 
@@ -402,12 +412,13 @@ Los productos de Shopify se sincronizan con la base de datos local como `Product
 |---|---|
 | `User.role` | `user`, `premium`, `admin` |
 | `Pet.species` | `dog`, `cat`, `bird`, `rabbit`, `other` |
-| `Generation.type` | `image`, `video` |
 | `Generation.status` | `pending`, `processing`, `completed`, `failed` |
+| `ProductReference.template` | `Puzzle`, `Credits` |
+| `OrderItem.productionStatus` | `pending`, `generating`, `art_failed`, `draft`, `pre_production`, `in_production`, `printed`, `packed`, `shipped`, `delivered`, `on_hold`, `cancelled`, `refunded`, `restocked` |
 
 ### Comportamiento en cascada
 
-- Eliminar `User` → elimina en cascada: pets, generations, refresh tokens, audit logs
+- Eliminar `User` → elimina en cascada: pets, generations, refresh tokens, audit logs, créditos
 - Eliminar `Pet` → elimina en cascada: photos y generations
 - Eliminar `Style` → **restringido** si existen generations asociadas
 

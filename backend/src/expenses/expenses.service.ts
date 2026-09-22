@@ -221,14 +221,16 @@ export class ExpensesService {
     detail?: Record<string, unknown>;
   }) {
     return this.record({
-      category: 'pod_production',
+      category: 'puzzle_production',
       userId: input.userId ?? undefined,
       orderId: input.orderId,
-      provider: 'pictorem',
+      // Producción propia: cartón, impresión, troquelado y caja. No hay
+      // proveedor externo que facture por pedido.
+      provider: 'in_house',
       amount: input.amount,
       currency: input.currency,
       detail: input.detail ?? undefined,
-      dedupeKey: `pod:${input.orderId}`,
+      dedupeKey: `production:${input.orderId}`,
     });
   }
 

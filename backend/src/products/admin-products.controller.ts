@@ -19,7 +19,6 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { SetPbnProductDto } from './dto/set-pbn-product.dto';
 import { SetCreditPackProductDto } from './dto/set-credit-pack-product.dto';
 import { SetCreditPackVariantsDto } from './dto/set-credit-pack-variants.dto';
 import { LinkVariantDto } from './dto/link-variant.dto';
@@ -129,8 +128,7 @@ export class AdminProductsController {
           shopifyVariantId: v.shopifyVariantId,
           shopifyVariantTitle: v.shopifyVariantTitle,
           isActive: v.isActive,
-          podProvider: v.podProvider ?? null,
-          podConfig: v.podConfig ?? null,
+          printConfig: v.printConfig ?? null,
         })),
         unlinkedVariants: [],
       };
@@ -163,8 +161,7 @@ export class AdminProductsController {
           shopifyVariantId,
           shopifyVariantTitle: variant.title,
           isActive: dbVariant.isActive,
-          podConfig: dbVariant.podConfig ?? null,
-          podProvider: dbVariant.podProvider ?? null,
+          printConfig: dbVariant.printConfig ?? null,
         });
         continue;
       }
@@ -254,16 +251,6 @@ export class AdminProductsController {
     return this.productsService.create(dto);
   }
 
-  @Patch('pbn')
-  @ApiOperation({
-    summary: 'Set the single product dedicated to the Paint-by-Numbers kit',
-  })
-  @ApiResponse({ status: 200, description: 'PBN product set' })
-  @ApiResponse({ status: 404, description: 'Product not found' })
-  setPbnProduct(@Body() dto: SetPbnProductDto) {
-    return this.productsService.setPbnProduct(dto.productId);
-  }
-
   @Patch('credit-pack')
   @ApiOperation({
     summary: 'Set the single product dedicated to the credit pack',
@@ -273,10 +260,6 @@ export class AdminProductsController {
   setCreditPackProduct(@Body() dto: SetCreditPackProductDto) {
     return this.productsService.setCreditPackProduct(dto.productId);
   }
-
-  // No hay endpoint para marcar accesorios: `isAccessory` lo escribe solo el sync
-  // desde el metafield `custom.art_kind` de Shopify (ver shopify-sync/
-  // art-kind.util.ts), así que cualquier escritura manual la revertiría.
 
   @Get(':productId/credit-pack-variants')
   @ApiOperation({

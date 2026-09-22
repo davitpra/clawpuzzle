@@ -36,8 +36,8 @@ export class AuthController {
   // Opciones compartidas por set y clear: si difieren en domain o sameSite el
   // navegador trata la cookie como otra distinta y el logout no la borra.
   //
-  // COOKIE_DOMAIN ('.clawandsoul.com') hace que la cookie emitida por
-  // api.clawandsoul.com viaje también al frontend del dominio raíz. Si algún día
+  // COOKIE_DOMAIN ('.clawpuzzle.com') hace que la cookie emitida por
+  // api.clawpuzzle.com viaje también al frontend del dominio raíz. Si algún día
   // frontend y API viven en dominios distintos, no basta con quitarlo: hay que
   // poner COOKIE_SAMESITE=none (que exige secure, y por tanto HTTPS).
   private cookieOptions() {

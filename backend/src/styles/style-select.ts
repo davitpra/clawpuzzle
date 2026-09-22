@@ -16,7 +16,6 @@ export const PUBLIC_STYLE_SELECT = {
   difficulty: true,
   isActive: true,
   templateVarOptions: true,
-  pbnConfig: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.StyleSelect;

@@ -37,9 +37,7 @@ export class StyleCompatService {
 
     const defaultProduct = products.find(
       (product) =>
-        product.template?.toLowerCase() === 'digital' &&
-        product.artKind?.toLowerCase() === 'pbn' &&
-        product.productVariants.length > 0,
+        product.template === 'Puzzle' && product.productVariants.length > 0,
     );
     const defaultVariant = defaultProduct?.productVariants[0];
 

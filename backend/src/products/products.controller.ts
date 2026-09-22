@@ -17,12 +17,12 @@ export class ProductsController {
   }
 
   @Public()
-  @Get('pbn')
-  @ApiOperation({ summary: 'Get the configured Paint-by-Numbers product' })
-  @ApiResponse({ status: 200, description: 'PBN product retrieved' })
-  @ApiResponse({ status: 404, description: 'No PBN product configured' })
-  findPbnProduct() {
-    return this.productsService.findPbnProduct();
+  @Get('puzzle')
+  @ApiOperation({ summary: 'Get the configured puzzle product' })
+  @ApiResponse({ status: 200, description: 'Puzzle product retrieved' })
+  @ApiResponse({ status: 404, description: 'No puzzle product configured' })
+  findPuzzleProduct() {
+    return this.productsService.findPuzzleProduct();
   }
 
   @Public()

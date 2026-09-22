@@ -241,7 +241,7 @@ describe('AccountStatusService', () => {
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            email: 'deleted-user-1@deleted.clawandsoul.local',
+            email: 'deleted-user-1@deleted.clawpuzzle.local',
             fullName: null,
             googleId: null,
             passwordHash: null,

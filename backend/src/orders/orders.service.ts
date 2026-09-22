@@ -8,10 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ShopifyApiService } from '../shopify-sync/shopify-api.service';
-import {
-  PaintByNumbersService,
-  PbnUploadFiles,
-} from '../paint-by-numbers/paint-by-numbers.service';
 import { ShopifyOrderPayload } from './dto/shopify-order.dto';
 import { Prisma } from '@prisma/client';
 import { CreditsService } from '../credits/credits.service';
@@ -33,22 +29,11 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
     private readonly shopifyApiService: ShopifyApiService,
-    private readonly pbnService: PaintByNumbersService,
     private readonly creditsService: CreditsService,
   ) {}
 
   // Créditos de generación otorgados por cada unidad comprada en una orden pagada.
   private static readonly CREDITS_PER_UNIT = 3;
-
-  // Los productos Digital (descarga gratuita; "PBN" es el alias legacy) no
-  // otorgan ni revierten el order_bonus: son gratis, y otorgarlo permitiría
-  // farmear créditos comprándolos a $0.
-  private static isDigitalTemplate(
-    template: string | null | undefined,
-  ): boolean {
-    const t = template?.trim();
-    return t === 'Digital' || t === 'PBN';
-  }
 
   async ingestShopifyOrder(
     payload: ShopifyOrderPayload,
@@ -58,9 +43,9 @@ export class OrdersService {
     const shopifyOrderId = String(payload.id);
 
     // Resolve userId: priority 0 = _user_id from an authenticated checkout,
-    // priority 1 = email match, priority 2 = linked generation/PBN.
-    // Email goes before generation/PBN: it's a single, unambiguous signal for
-    // the whole order, while generation_id/paint_by_numbers_id are combined
+    // priority 1 = email match, priority 2 = linked generation.
+    // Email goes before the generation: it's a single, unambiguous signal for
+    // the whole order, while generation_id is combined
     // across all line items via findFirst — in a cart with items from more
     // than one account, that pick can be arbitrary and doesn't necessarily
     // match the owner of a given line's own art, which then fails the
@@ -103,7 +88,7 @@ export class OrdersService {
     }
 
     // Prioridad 1: email del pedido — señal única por pedido, se intenta antes
-    // que generation_id/paint_by_numbers_id (ver comentario arriba).
+    // que generation_id (ver comentario arriba).
     if (!userId && payload.email) {
       const user = await this.prisma.user.findFirst({
         where: { email: { equals: payload.email, mode: 'insensitive' } },
@@ -125,21 +110,6 @@ export class OrdersService {
         select: { userId: true },
       });
       if (gen) userId = gen.userId;
-    }
-
-    // Priority 2b: from a linked Paint-by-Numbers (PBN products carry no generation).
-    if (!userId) {
-      const pbnIds = payload.line_items
-        .flatMap((li) => li.properties)
-        .filter((p) => p.name === 'paint_by_numbers_id')
-        .map((p) => p.value);
-      if (pbnIds.length > 0) {
-        const pbn = await this.prisma.paintByNumbers.findFirst({
-          where: { id: { in: pbnIds } },
-          select: { userId: true },
-        });
-        if (pbn) userId = pbn.userId;
-      }
     }
 
     const shippingTotal = payload.total_shipping_price_set?.shop_money?.amount;
@@ -299,11 +269,11 @@ export class OrdersService {
    *  1. Revertir créditos ANTES de borrar — `reverseCreditsForItems` lee los
    *     OrderItems y el grant original, y necesita que sigan existiendo.
    *  2. Desvincular las Expense — su FK a Order es `onDelete: Cascade`, así que sin
-   *     esto el borrado se llevaría gasto real ya incurrido (fal.ai, POD) y
+   *     esto el borrado se llevaría gasto real ya incurrido (fal.ai, impresión) y
    *     falsearía los costes del dashboard. `orderItemId` se limpia solo (SetNull).
    *  3. Borrar la orden: la cascada arrastra OrderItems y OrderEvents.
    *
-   * Generations y PaintByNumbers sobreviven (FK `SetNull`). Idempotente: si la
+   * Las Generations sobreviven (FK `SetNull`). Idempotente: si la
    * orden ya no está, es no-op.
    */
   async deleteShopifyOrder(shopifyOrderId: string): Promise<void> {
@@ -426,7 +396,13 @@ export class OrdersService {
           : undefined;
       if (perUnit != null) {
         packCredits += perUnit * it.quantity;
-      } else if (!OrdersService.isDigitalTemplate(it.productRef?.template)) {
+      } else {
+        // Toda línea que no sea un pack de créditos es un puzzle, y un puzzle
+        // siempre otorga bono. ClawAndSoul excluía aquí las líneas Digital y
+        // PBN porque eran descargas gratuitas y se podían farmear a $0; en
+        // ClawPuzzle el catálogo es Puzzle | Credits y no hay línea gratuita.
+        // Si algún día se añade un producto de precio cero, hay que volver a
+        // excluirlo aquí.
         regularUnits += it.quantity;
       }
     }
@@ -556,8 +532,8 @@ export class OrdersService {
           );
       } else {
         if (!bonusGrant) continue;
-        // Digital/PBN nunca sumó al order_bonus: no revertir lo no otorgado.
-        if (OrdersService.isDigitalTemplate(it.productRef?.template)) continue;
+        // Espejo exacto de grantOrderCredits: toda línea que no sea un pack de
+        // créditos otorgó bono, así que toda línea así lo revierte.
         await this.creditsService
           .revoke(
             bonusGrant.userId,
@@ -594,7 +570,6 @@ export class OrdersService {
       lineItem.properties.map((p) => [p.name, p.value]),
     );
     const generationIdAttr = attrs['generation_id'] ?? null;
-    const paintByNumbersIdAttr = attrs['paint_by_numbers_id'] ?? null;
     const imageUrl = attrs['image_url'] ?? null;
     const style = attrs['Style'] ?? attrs['style'] ?? null;
     const size = attrs['Size'] ?? attrs['size'] ?? null;
@@ -602,28 +577,19 @@ export class OrdersService {
     // Resolve DB references
     let productRefId: string | null = null;
     let productFormatVariantId: string | null = null;
-    let fulfillmentMethod = 'in_house';
     let isCreditPack = false;
-    let isAccessory = false;
 
     if (shopifyProductId) {
       const ref = await this.prisma.productReference.findUnique({
         where: { shopifyProductId },
-        select: {
-          id: true,
-          fulfillmentMethod: true,
-          isCreditPack: true,
-          isAccessory: true,
-        },
+        select: { id: true, isCreditPack: true },
       });
       if (ref) {
         productRefId = ref.id;
-        fulfillmentMethod = ref.fulfillmentMethod;
         isCreditPack = ref.isCreditPack;
-        isAccessory = ref.isAccessory;
       } else {
         this.logger.warn(
-          `shopifyProductId "${shopifyProductId}" not found in ProductReference — defaulting fulfillmentMethod to "in_house"`,
+          `shopifyProductId "${shopifyProductId}" not found in ProductReference`,
         );
       }
     }
@@ -654,27 +620,7 @@ export class OrdersService {
       }
     }
 
-    // Validate paintByNumbersId ownership
-    let paintByNumbersId: string | null = null;
-    let pbnPreviewUrl: string | null = null;
-    if (paintByNumbersIdAttr && orderUserId) {
-      const pbn = await this.prisma.paintByNumbers.findFirst({
-        where: { id: paintByNumbersIdAttr, userId: orderUserId },
-        select: { id: true, previewUrl: true },
-      });
-      if (pbn) {
-        paintByNumbersId = pbn.id;
-        pbnPreviewUrl = pbn.previewUrl;
-      } else {
-        this.logger.warn(
-          `paint_by_numbers_id "${paintByNumbersIdAttr}" not found for order user — skipping link`,
-        );
-      }
-    }
-
-    // PBN lines don't carry image_url (avoid leaking the Cloudinary URL as a
-    // Shopify property); derive the item thumbnail from the linked PBN preview.
-    const effectiveImageUrl = imageUrl ?? pbnPreviewUrl;
+    const effectiveImageUrl = imageUrl;
 
     // Estado inicial: auto-asignado desde pago + generación del arte (solo al crear).
     // Los credit packs son digitales: no entran a la cola de producción, así que
@@ -682,7 +628,6 @@ export class OrdersService {
     let initialStatus = computeAutoEarlyStatus(
       financialStatus,
       generationStatus,
-      isAccessory,
     );
     if (
       isCreditPack &&
@@ -720,11 +665,6 @@ export class OrdersService {
             ? { connect: { id: generationId } }
             : { disconnect: true }
           : undefined,
-        paintByNumbers: paintByNumbersIdAttr
-          ? paintByNumbersId
-            ? { connect: { id: paintByNumbersId } }
-            : { disconnect: true }
-          : undefined,
       };
 
       // Reembolso/cancelación de Shopify ganan siempre (pueden ocurrir tras
@@ -750,7 +690,6 @@ export class OrdersService {
           productRefId,
           productFormatVariantId,
           generationId,
-          paintByNumbersId,
           title: lineItem.title,
           variantTitle: lineItem.variant_title ?? null,
           sku: lineItem.sku ?? null,
@@ -760,25 +699,9 @@ export class OrdersService {
           imageUrl: effectiveImageUrl,
           style,
           size,
-          fulfillmentMethod,
           productionStatus: initialStatus,
         },
       });
-    }
-
-    // A pending/authorized checkout is not a purchase yet. A later paid webhook
-    // ingests the line again and performs this idempotent status update.
-    if (paintByNumbersId && financialStatus === 'paid') {
-      await this.prisma.paintByNumbers
-        .update({
-          where: { id: paintByNumbersId },
-          data: { status: 'ordered' },
-        })
-        .catch((err) => {
-          this.logger.warn(
-            `Failed to mark PBN ${paintByNumbersId} as ordered: ${(err as Error).message}`,
-          );
-        });
     }
   }
 
@@ -849,13 +772,12 @@ export class OrdersService {
       where: { id: itemId, orderId },
       include: {
         productRef: {
-          select: { isCreditPack: true, isAccessory: true, template: true },
+          select: { isCreditPack: true, template: true },
         },
       },
     });
     if (!item) throw new NotFoundException('Order item not found');
 
-    // Los accesorios tienen su propia máquina (sin producción ni impresión).
     const allowed = transitionsFor(
       item.productionStatus,
       orderItemKind(item.productRef),
@@ -897,17 +819,15 @@ export class OrdersService {
   }
 
   /**
-   * Cancel one or more items of an order, reflecting the change in Shopify
-   * (strict) and Pictorem (best-effort).
+   * Cancel one or more items of an order, reflecting the change in Shopify.
    *
    * - Only items in a cancellable state (pending|paid|in_production) are eligible.
    * - Shopify is called FIRST: if it fails, the whole operation aborts and the
    *   DB is left untouched (strict mode). When the cancellation empties the
    *   order it cancels the whole Shopify order; otherwise it refunds the
    *   affected line items.
-   * - Pictorem cancellation is best-effort: Pictorem ArtFlow 0.1 has no
-   *   cancellation endpoint, so failures are collected as warnings instead of
-   *   aborting.
+   * - La producción es propia: cancelar un item solo exige detenerlo en la
+   *   cola del admin, no avisar a ningún proveedor externo.
    */
   async cancelOrderItems(
     orderId: string,
@@ -1052,38 +972,6 @@ export class OrdersService {
     return { cancelledItemIds: [...targetIds], shopifyAction, warnings };
   }
 
-  async updateItemFulfillmentMethod(
-    orderId: string,
-    itemId: string,
-    fulfillmentMethod: 'in_house' | 'pod',
-    adminUserId?: string,
-  ): Promise<void> {
-    const item = await this.prisma.orderItem.findFirst({
-      where: { id: itemId, orderId },
-    });
-    if (!item) throw new NotFoundException('Order item not found');
-
-    await this.prisma.orderItem.update({
-      where: { id: itemId },
-      data: { fulfillmentMethod },
-    });
-
-    await this.prisma.orderEvent.create({
-      data: {
-        orderId,
-        orderItemId: itemId,
-        eventType: 'manual_resync',
-        source: 'admin',
-        userId: adminUserId ?? null,
-        payload: {
-          field: 'fulfillmentMethod',
-          from: item.fulfillmentMethod,
-          to: fulfillmentMethod,
-        } as unknown as Prisma.InputJsonValue,
-      },
-    });
-  }
-
   async linkUserToOrder(orderId: string, userId: string): Promise<void> {
     const [order, user] = await Promise.all([
       this.prisma.order.findUnique({ where: { id: orderId } }),
@@ -1203,57 +1091,6 @@ export class OrdersService {
         } as unknown as Prisma.InputJsonValue,
       },
     });
-  }
-
-  /**
-   * Admin: persist a Paint-by-Numbers rendered in the order studio and attach
-   * it to the order item. Reuses PaintByNumbersService.create (origin 'admin').
-   * The PBN is owned by the order's customer when the order is linked to a user
-   * (so it shows in their /user/pbn); otherwise by the admin.
-   */
-  async attachPbnToItem(
-    orderId: string,
-    itemId: string,
-    adminUserId: string,
-    files: PbnUploadFiles,
-    config: string,
-  ): Promise<{ id: string }> {
-    const item = await this.prisma.orderItem.findFirst({
-      where: { id: itemId, orderId },
-      include: { order: { select: { userId: true } } },
-    });
-    if (!item) throw new NotFoundException('Order item not found');
-
-    const ownerId = item.order.userId ?? adminUserId;
-    // create() validates the generation belongs to ownerId, so only forward it
-    // when the order is linked to the customer that owns that generation.
-    const generationId =
-      item.order.userId && item.generationId ? item.generationId : undefined;
-
-    const pbn = await this.pbnService.create(ownerId, 'admin', files, {
-      config,
-      generationId,
-    });
-
-    await this.prisma.orderItem.update({
-      where: { id: itemId },
-      data: { paintByNumbersId: pbn.id },
-    });
-
-    await this.prisma.orderEvent.create({
-      data: {
-        orderId,
-        orderItemId: itemId,
-        eventType: 'pbn_attached',
-        source: 'admin',
-        userId: adminUserId,
-        payload: {
-          paintByNumbersId: pbn.id,
-        } as unknown as Prisma.InputJsonValue,
-      },
-    });
-
-    return { id: pbn.id };
   }
 
   async replaceItemGenerationImage(

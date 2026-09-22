@@ -13,7 +13,7 @@ import {
 
 /**
  * Options for the image-enhancement pipeline applied to an order item's print
- * image before POD submission. The pipeline runs a real AI upscale via fal.ai
+ * image before it goes to print. The pipeline runs a real AI upscale via fal.ai
  * (optional) plus adjustments with sharp, storing the result as a flat file.
  */
 export class EnhanceDto {
@@ -103,7 +103,7 @@ export class EnhanceDto {
   @ApiProperty({
     description:
       'Crop the image to the exact product print aspect ratio (centered) so ' +
-      'Pictorem does not crop it — guarantees centering and scale.',
+      'Producción propia: garantiza centrado y escala.',
     required: false,
   })
   @IsOptional()
@@ -124,7 +124,7 @@ export class EnhanceDto {
 
   @ApiProperty({
     description:
-      'Extend the image by 3 mm on each side with a solid colour (bleed for POD). ' +
+      'Extend the image by 3 mm on each side with a solid colour (sangre para el troquelado). ' +
       'The colour is taken from bleedColor (defaults to #ffffff).',
     required: false,
   })

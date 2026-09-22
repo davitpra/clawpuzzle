@@ -26,15 +26,7 @@ export class ShopifySyncProcessor extends WorkerHost {
 
     if (job.data.jobType === 'upsert') {
       const payload = job.data.payload as ShopifyProductPayload;
-      // El payload del webhook no trae metafields: hay que pedir custom.art_kind
-      // aparte. Best-effort — si falla devuelve undefined y la columna no se toca.
-      const artKind = await this.shopifyApiService.fetchProductArtKind(
-        String(payload.id),
-      );
-      const result = await this.productSyncService.upsertProduct(
-        payload,
-        artKind,
-      );
+      const result = await this.productSyncService.upsertProduct(payload);
       await this.productSyncService.syncVariants(
         result.id,
         payload.variants ?? [],

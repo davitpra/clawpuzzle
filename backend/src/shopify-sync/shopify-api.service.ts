@@ -35,39 +35,6 @@ const PAGE_DELAY_MS = 500;
 const GRAPHQL_PAGE_SIZE = 100;
 const THROTTLE_RETRY_MS = 2000;
 
-const ART_KIND_METAFIELD = { namespace: 'custom', key: 'art_kind' } as const;
-
-const ART_KIND_PAGE_QUERY = `
-  query artKindPage($first: Int!, $cursor: String) {
-    products(first: $first, after: $cursor) {
-      pageInfo { hasNextPage endCursor }
-      nodes {
-        id
-        metafield(namespace: "${ART_KIND_METAFIELD.namespace}", key: "${ART_KIND_METAFIELD.key}") { value }
-      }
-    }
-  }
-`;
-
-const PRODUCT_ART_KIND_QUERY = `
-  query productArtKind($id: ID!) {
-    product(id: $id) {
-      metafield(namespace: "${ART_KIND_METAFIELD.namespace}", key: "${ART_KIND_METAFIELD.key}") { value }
-    }
-  }
-`;
-
-interface ArtKindPageResponse {
-  products: {
-    pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    nodes: Array<{ id: string; metafield: { value: string } | null }>;
-  };
-}
-
-interface ProductArtKindResponse {
-  product: { metafield: { value: string } | null } | null;
-}
-
 /** `gid://shopify/Product/123` → `123` (así se guarda en ProductReference). */
 function numericIdFromGid(gid: string): string {
   return gid.split('/').pop() ?? gid;
@@ -123,62 +90,6 @@ export class ShopifyApiService {
     } catch {
       this.logger.warn(`Could not fetch Shopify product ${shopifyProductId}`);
       return null;
-    }
-  }
-
-  /**
-   * Mapa shopifyProductId → valor crudo del metafield `custom.art_kind`, que es
-   * la fuente de verdad del eje de contenido (coloreable vs arte terminado).
-   * El REST `products.json` no devuelve metafields, así que esto va por GraphQL:
-   * una llamada por página en vez de una por producto.
-   * Un producto sin el metafield entra en el mapa con `null` — el llamador
-   * necesita distinguirlo de "producto no visto".
-   * @throws si Shopify falla; el llamador decide si aborta o sigue sin artKind.
-   */
-  async fetchArtKindMap(): Promise<Map<string, string | null>> {
-    const map = new Map<string, string | null>();
-    let cursor: string | null = null;
-
-    do {
-      const data: ArtKindPageResponse = await this.graphql<ArtKindPageResponse>(
-        ART_KIND_PAGE_QUERY,
-        { first: GRAPHQL_PAGE_SIZE, cursor },
-      );
-
-      for (const node of data.products.nodes) {
-        map.set(numericIdFromGid(node.id), node.metafield?.value ?? null);
-      }
-
-      cursor = data.products.pageInfo.hasNextPage
-        ? data.products.pageInfo.endCursor
-        : null;
-      if (cursor) await this.delay(PAGE_DELAY_MS);
-    } while (cursor);
-
-    this.logger.log(`Fetched custom.art_kind for ${map.size} Shopify products`);
-    return map;
-  }
-
-  /**
-   * Valor crudo de `custom.art_kind` de un solo producto, para la ruta del
-   * webhook (cuyo payload no trae metafields).
-   * Devuelve `undefined` cuando la llamada falla, para que el llamador deje la
-   * columna intacta en vez de confundir el fallo con "no tiene valor".
-   */
-  async fetchProductArtKind(
-    shopifyProductId: string,
-  ): Promise<string | null | undefined> {
-    try {
-      const data = await this.graphql<ProductArtKindResponse>(
-        PRODUCT_ART_KIND_QUERY,
-        { id: `gid://shopify/Product/${shopifyProductId}` },
-      );
-      return data.product?.metafield?.value ?? null;
-    } catch {
-      this.logger.warn(
-        `Could not fetch custom.art_kind for product ${shopifyProductId}; leaving artKind untouched`,
-      );
-      return undefined;
     }
   }
 

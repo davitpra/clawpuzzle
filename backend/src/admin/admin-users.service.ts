@@ -7,7 +7,6 @@ import {
 } from '../common/utils/pagination.util';
 import { resolveOrderBy, SortDirection } from '../common/utils/sorting.util';
 import { AdminOrdersService } from '../orders/admin-orders.service';
-import { PaintByNumbersService } from '../paint-by-numbers/paint-by-numbers.service';
 import { AuthService } from '../auth/auth.service';
 import { AUDIT_ACTION } from '../common/constants/audit-actions';
 import { lookupLocation } from '../common/utils/geoip.util';
@@ -37,7 +36,6 @@ const USER_ORDER_BY_FIELDS: Record<
   credits: (dir) => ({ generationCredits: dir }),
   pets: (dir) => ({ pets: { _count: dir } }),
   generations: (dir) => ({ generations: { _count: dir } }),
-  pbn: (dir) => ({ paintByNumbers: { _count: dir } }),
   // Solo cuenta los pedidos enlazados a la cuenta: `Order.userId` es nullable y
   // un pedido de invitado no se atribuye a nadie hasta que se enlaza a mano.
   orders: (dir) => ({ orders: { _count: dir } }),
@@ -143,7 +141,6 @@ export class AdminUsersService {
   constructor(
     private prisma: PrismaService,
     private adminOrdersService: AdminOrdersService,
-    private pbnService: PaintByNumbersService,
     private authService: AuthService,
   ) {}
 
@@ -233,7 +230,6 @@ export class AdminUsersService {
             select: {
               pets: true,
               generations: true,
-              paintByNumbers: true,
               orders: true,
             },
           },
@@ -361,15 +357,6 @@ export class AdminUsersService {
   /** `null` si el usuario nunca ha comprado: no hay dirección que mostrar. */
   async getUserShippingAddress(userId: string) {
     return this.adminOrdersService.getUserShippingAddress(userId);
-  }
-
-  /**
-   * PBNs guardados del usuario. La consulta ya existe user-scoped (la usa
-   * `GET /paint-by-numbers` con el id del JWT); aquí sólo se reexpone con el id
-   * que llega por la ruta, ya protegida por `@Roles('admin')`.
-   */
-  async getUserPaintByNumbers(userId: string, page = 1, limit = 24) {
-    return this.pbnService.findUserPbns(userId, page, limit);
   }
 
   async getUserCreditTransactions(
@@ -664,7 +651,6 @@ export class AdminUsersService {
           // `imageUrl` es la imagen personalizada; `img` la del producto.
           imageUrl: item.imageUrl ?? item.img,
           generationId: item.generationId,
-          paintByNumbersId: item.paintByNumbersId,
           createdAt: item.createdAt,
         })),
       },

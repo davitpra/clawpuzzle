@@ -30,7 +30,6 @@ export class GrowthStats {
       activeUsers,
       pets,
       generations,
-      pbnSaved,
       ordersPaid,
       abandonedCarts,
     ] = await Promise.all([
@@ -71,8 +70,7 @@ export class GrowthStats {
       }),
 
       // Mismo criterio de clientela que el resto del bloque: los otros escalones
-      // ya se lo aplican por otra vía (`isAdminTest` en generaciones, `origin`
-      // en PBN), y sin esto el primer escalón contaría las mascotas de prueba
+      // ya se lo aplican por otra vía (`isAdminTest` en generaciones), y sin esto el primer escalón contaría las mascotas de prueba
       // del equipo y las de cuentas dadas de baja, hundiendo el embudo entero.
       this.prisma.pet.count({
         where: {
@@ -84,12 +82,6 @@ export class GrowthStats {
         where: {
           isAdminTest: false,
           status: 'completed',
-          createdAt: { gte: period.from, lt: period.to },
-        },
-      }),
-      this.prisma.paintByNumbers.count({
-        where: {
-          origin: 'customer',
           createdAt: { gte: period.from, lt: period.to },
         },
       }),
@@ -120,7 +112,7 @@ export class GrowthStats {
       newUsersPrev,
       newUsersDeltaPct: deltaPct(newUsers, newUsersPrev),
       activeUsers,
-      funnel: { pets, generations, pbnSaved, ordersPaid },
+      funnel: { pets, generations, ordersPaid },
       conversionRate: conversion === null ? null : conversion * 100,
       abandonedCarts,
       abandonedAfterDays: ABANDONED_AFTER_DAYS,

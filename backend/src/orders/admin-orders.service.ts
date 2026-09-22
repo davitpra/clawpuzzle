@@ -145,7 +145,6 @@ export class AdminOrdersService {
               id: true,
               title: true,
               productionStatus: true,
-              fulfillmentMethod: true,
               imageUrl: true,
               generation: { select: { resultUrl: true } },
             },
@@ -211,7 +210,6 @@ export class AdminOrdersService {
             id: true,
             title: true,
             productionStatus: true,
-            fulfillmentMethod: true,
             imageUrl: true,
             generation: {
               select: { resultUrl: true, thumbnailUrl: true },
@@ -236,13 +234,10 @@ export class AdminOrdersService {
                 id: true,
                 name: true,
                 displayName: true,
-                fulfillmentMethod: true,
                 shopifyHandle: true,
                 // Ejes de producto: el admin los usa para distinguir arte de
                 // accesorios y packs de créditos (OrderItem no tiene el tipo).
                 template: true,
-                artKind: true,
-                isAccessory: true,
                 isCreditPack: true,
                 creditPackVariants: {
                   select: { shopifyVariantId: true, creditAmount: true },
@@ -272,14 +267,6 @@ export class AdminOrdersService {
                 thumbnailUrl: true,
                 pet: { select: { id: true, name: true, species: true } },
                 style: { select: { id: true, displayName: true } },
-              },
-            },
-            paintByNumbers: {
-              select: {
-                id: true,
-                outlineSvgUrl: true,
-                previewUrl: true,
-                sourceImageUrl: true,
               },
             },
           },

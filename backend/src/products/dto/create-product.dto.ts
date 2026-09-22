@@ -51,11 +51,6 @@ export class CreateProductDto {
   })
   @IsOptional()
   @IsString()
-  @IsIn(['Digital', 'Canvas', 'Poster', 'Credits', 'Accessory', 'PBN'])
+  @IsIn(['Puzzle', 'Credits'])
   template?: string;
-
-  // `artKind` (el eje de contenido: pbn | print) NO se acepta aquí a propósito:
-  // su fuente de verdad es el metafield `custom.art_kind` de Shopify y solo lo
-  // escribe el sync (ver shopify-sync/product-sync.service.ts). Como el
-  // ValidationPipe global usa forbidNonWhitelisted, mandarlo devuelve 400.
 }

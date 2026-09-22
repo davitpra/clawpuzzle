@@ -93,26 +93,58 @@ async function main() {
   // ============================================
   // FORMATS
   // ============================================
-  // Base catalog of print sizes. The Shopify sync matches incoming variant
-  // option1 values against shopifyVariantOption (case-insensitive, spaces
-  // stripped) to create ProductFormatVariants. width/height are informational
-  // pixel dimensions (~1MP per aspect ratio); Fal.ai receives only aspectRatio.
-  console.log('📐 Creating formats...');
+  // Catálogo de tamaños de puzzle. El sync de Shopify cruza el `option1` de
+  // cada variante contra `shopifyVariantOption` (sin distinguir mayúsculas ni
+  // espacios) para crear los ProductFormatVariant.
+  //
+  // Dos pares de dimensiones, deliberadamente separados:
+  //   width/height          → PÍXELES de la imagen a generar (~1 MP). fal.ai
+  //                           solo recibe `aspectRatio`; esto es informativo.
+  //   printWidthCm/HeightCm → tamaño físico del puzzle armado. Es lo que
+  //                           gobierna el DPI en el estudio de impresión.
+  //
+  // Un único aspect ratio (4:3) en todos los tamaños a propósito: así el mismo
+  // arte generado sirve para cualquier número de piezas y el cliente puede
+  // cambiar de tamaño sin regenerar.
+  console.log('🧩 Creating puzzle formats...');
 
   const formatsData = [
-    { name: 'portrait_8x10',  displayName: '8x10 Retrato',   aspectRatio: '4:5', width: 1024, height: 1280, shopifyVariantOption: '8x10'  },
-    { name: 'portrait_12x16', displayName: '12x16 Retrato',  aspectRatio: '3:4', width: 1024, height: 1365, shopifyVariantOption: '12x16' },
-    { name: 'portrait_16x20', displayName: '16x20 Retrato',  aspectRatio: '4:5', width: 1024, height: 1280, shopifyVariantOption: '16x20' },
-    { name: 'portrait_18x24', displayName: '18x24 Retrato',  aspectRatio: '3:4', width: 1024, height: 1365, shopifyVariantOption: '18x24' },
-    { name: 'portrait_20x30', displayName: '20x30 Retrato',  aspectRatio: '2:3', width: 1024, height: 1536, shopifyVariantOption: '20x30' },
-    { name: 'portrait_24x32', displayName: '24x32 Retrato',  aspectRatio: '3:4', width: 1024, height: 1365, shopifyVariantOption: '24x32' },
-    { name: 'portrait_24x36', displayName: '24x36 Retrato',  aspectRatio: '2:3', width: 1024, height: 1536, shopifyVariantOption: '24x36' },
-    { name: 'museum_20x25',   displayName: '20x25 Museo',    aspectRatio: '4:5', width: 1024, height: 1280, shopifyVariantOption: '20x25' },
-    { name: 'museum_30x45',   displayName: '30x45 Museo',    aspectRatio: '2:3', width: 1024, height: 1536, shopifyVariantOption: '30x45' },
-    { name: 'museum_40x50',   displayName: '40x50 Museo',    aspectRatio: '4:5', width: 1024, height: 1280, shopifyVariantOption: '40x50' },
-    // Catch-all for single-variant Shopify products (no size option): Shopify
-    // names their placeholder variant "Default Title".
-    { name: 'default_title',  displayName: 'Default 3:4',    aspectRatio: '3:4', width: 1024, height: 1365, shopifyVariantOption: 'Default Title' },
+    {
+      name: 'puzzle_300',
+      displayName: '300 pieces',
+      aspectRatio: '4:3',
+      width: 1184, height: 888,
+      printWidthCm: 40, printHeightCm: 30,
+      pieceCount: 300,
+      shopifyVariantOption: '300 pieces',
+    },
+    {
+      name: 'puzzle_500',
+      displayName: '500 pieces',
+      aspectRatio: '4:3',
+      width: 1184, height: 888,
+      printWidthCm: 48, printHeightCm: 36,
+      pieceCount: 500,
+      shopifyVariantOption: '500 pieces',
+    },
+    {
+      name: 'puzzle_1000',
+      displayName: '1000 pieces',
+      aspectRatio: '4:3',
+      width: 1184, height: 888,
+      printWidthCm: 68, printHeightCm: 51,
+      pieceCount: 1000,
+      shopifyVariantOption: '1000 pieces',
+    },
+    // Catch-all para productos Shopify de una sola variante (packs de crédito):
+    // Shopify llama "Default Title" a su variante placeholder.
+    {
+      name: 'default_title',
+      displayName: 'Default 4:3',
+      aspectRatio: '4:3',
+      width: 1184, height: 888,
+      shopifyVariantOption: 'Default Title',
+    },
   ];
 
   for (const fmt of formatsData) {
@@ -131,9 +163,11 @@ async function main() {
   // Sets per-(product, format) generation overrides on existing variants created
   // by the Shopify sync. Safe to re-run: updateMany is idempotent.
   //
-  // cropMode  → framing hint for the AI prompt ('head-shoulders' | 'portrait' | 'full-body')
-  // maxPets   → max number of pets allowed in the composition
-  // bleedMm   → extra canvas wrap bleed required for print (canvas products only)
+  // cropMode  → pista de encuadre para el prompt ('head-shoulders' | 'portrait' | 'full-body')
+  // maxPets   → número máximo de mascotas en la composición
+  // bleedMm   → sangre de troquelado (la del `printConfig` manda si está puesta)
+  //
+  // Cuantas más piezas, más grande el puzzle y más cuerpo cabe en el encuadre.
   console.log('🖼️  Seeding product format variant constraints...');
 
   const variantConstraints: {
@@ -141,43 +175,12 @@ async function main() {
     formatName: string;
     constraints: Record<string, unknown>;
   }[] = [
-    // ── Photo Paper Poster ──────────────────────────────────────────
-    { productHandle: 'photo-paper-poster', formatName: 'portrait_8x10',
-      constraints: { cropMode: 'head-shoulders', maxPets: 1 } },
-    { productHandle: 'photo-paper-poster', formatName: 'portrait_12x16',
-      constraints: { cropMode: 'head-shoulders', maxPets: 1 } },
-    { productHandle: 'photo-paper-poster', formatName: 'portrait_16x20',
-      constraints: { cropMode: 'portrait', maxPets: 1 } },
-    { productHandle: 'photo-paper-poster', formatName: 'portrait_18x24',
-      constraints: { cropMode: 'portrait', maxPets: 1 } },
-    { productHandle: 'photo-paper-poster', formatName: 'portrait_20x30',
-      constraints: { cropMode: 'full-body', maxPets: 2 } },
-    { productHandle: 'photo-paper-poster', formatName: 'portrait_24x36',
-      constraints: { cropMode: 'full-body', maxPets: 2 } },
-
-    // ── Framed Poster ───────────────────────────────────────────────
-    { productHandle: 'framed-poster', formatName: 'portrait_12x16',
-      constraints: { cropMode: 'head-shoulders', maxPets: 1 } },
-    { productHandle: 'framed-poster', formatName: 'portrait_16x20',
-      constraints: { cropMode: 'portrait', maxPets: 1 } },
-    { productHandle: 'framed-poster', formatName: 'portrait_24x36',
-      constraints: { cropMode: 'full-body', maxPets: 2 } },
-
-    // ── Museum-Quality Wooden Framed Poster ─────────────────────────
-    { productHandle: 'museum-quality-matte-paper-wooden-framed-poster', formatName: 'museum_20x25',
-      constraints: { cropMode: 'portrait', maxPets: 1 } },
-    { productHandle: 'museum-quality-matte-paper-wooden-framed-poster', formatName: 'museum_30x45',
-      constraints: { cropMode: 'full-body', maxPets: 2 } },
-    { productHandle: 'museum-quality-matte-paper-wooden-framed-poster', formatName: 'museum_40x50',
-      constraints: { cropMode: 'portrait', maxPets: 1 } },
-
-    // ── Framed Canvas (bleedMm for canvas wrap edges) ───────────────
-    { productHandle: 'framed-canvas', formatName: 'portrait_16x20',
-      constraints: { cropMode: 'portrait', maxPets: 1, bleedMm: 25 } },
-    { productHandle: 'framed-canvas', formatName: 'portrait_18x24',
-      constraints: { cropMode: 'portrait', maxPets: 1, bleedMm: 25 } },
-    { productHandle: 'framed-canvas', formatName: 'portrait_24x32',
-      constraints: { cropMode: 'full-body', maxPets: 1, bleedMm: 25 } },
+    { productHandle: 'custom-pet-puzzle', formatName: 'puzzle_300',
+      constraints: { cropMode: 'head-shoulders', maxPets: 1, bleedMm: 5 } },
+    { productHandle: 'custom-pet-puzzle', formatName: 'puzzle_500',
+      constraints: { cropMode: 'portrait', maxPets: 2, bleedMm: 5 } },
+    { productHandle: 'custom-pet-puzzle', formatName: 'puzzle_1000',
+      constraints: { cropMode: 'full-body', maxPets: 2, bleedMm: 5 } },
   ];
 
   let constraintsUpdated = 0;

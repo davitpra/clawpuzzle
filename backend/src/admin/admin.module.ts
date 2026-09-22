@@ -13,7 +13,6 @@ import { ActivityStats } from './stats/activity.stats';
 import { UsersStats } from './stats/users.stats';
 import { UserCohortStats } from './stats/user-cohort.stats';
 import { OrdersModule } from '../orders/orders.module';
-import { PaintByNumbersModule } from '../paint-by-numbers/paint-by-numbers.module';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { ExpensesModule } from '../expenses/expenses.module';
@@ -30,7 +29,6 @@ import { FxModule } from '../fx/fx.module';
   imports: [
     PrismaModule,
     OrdersModule,
-    PaintByNumbersModule,
     UsersModule,
     AuthModule,
     ExpensesModule,

@@ -15,7 +15,6 @@ interface CohortRow {
   signups: number;
   withPet: number;
   withGeneration: number;
-  withPbn: number;
   withPaidOrder: number;
   returned: number;
 }
@@ -33,7 +32,6 @@ export interface ActivationCohort {
   /** ACUMULATIVOS: cada escalón exige todos los anteriores. */
   withPet: number;
   withGeneration: number;
-  withPbn: number;
   withPaidOrder: number;
   /** Dio señales de vida más de 24 h después del alta. */
   returned: number;
@@ -99,10 +97,6 @@ export class UserCohortStats {
                 AND g.status = 'completed'
             ) AS has_generation,
             EXISTS (
-              SELECT 1 FROM paint_by_numbers b
-              WHERE b.user_id = u.id AND b.origin = 'customer'
-            ) AS has_pbn,
-            EXISTS (
               SELECT 1 FROM orders o
               WHERE o.user_id = u.id AND o.financial_status = 'paid'
             ) AS has_paid_order
@@ -115,9 +109,8 @@ export class UserCohortStats {
           COUNT(*)::int AS "signups",
           COUNT(*) FILTER (WHERE has_pet)::int AS "withPet",
           COUNT(*) FILTER (WHERE has_pet AND has_generation)::int AS "withGeneration",
-          COUNT(*) FILTER (WHERE has_pet AND has_generation AND has_pbn)::int AS "withPbn",
           COUNT(*) FILTER (
-            WHERE has_pet AND has_generation AND has_pbn AND has_paid_order
+            WHERE has_pet AND has_generation AND has_paid_order
           )::int AS "withPaidOrder",
           COUNT(*) FILTER (
             WHERE last_seen > created_at + INTERVAL '1 day'
@@ -215,7 +208,6 @@ export class UserCohortStats {
         signups: cohortRow.signups,
         withPet: cohortRow.withPet,
         withGeneration: cohortRow.withGeneration,
-        withPbn: cohortRow.withPbn,
         withPaidOrder: cohortRow.withPaidOrder,
         returned: cohortRow.returned,
         returnedPct: pct(cohortRow.returned, cohortRow.signups),

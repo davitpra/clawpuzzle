@@ -62,12 +62,6 @@ export class AddCartItemDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  paintByNumbersId?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
   @MaxLength(1000)
   imageUrl?: string;
 }

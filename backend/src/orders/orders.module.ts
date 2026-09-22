@@ -14,7 +14,6 @@ import { OrdersIngestProcessor } from './processors/orders-ingest.processor';
 import { ShopifyHmacGuard } from '../common/guards/shopify-hmac.guard';
 import { ShopifySyncModule } from '../shopify-sync/shopify-sync.module';
 import { GenerationsModule } from '../generations/generations.module';
-import { PaintByNumbersModule } from '../paint-by-numbers/paint-by-numbers.module';
 import { ImageEnhancementService } from './image-enhancement.service';
 import { ExpensesModule } from '../expenses/expenses.module';
 import { CreditsModule } from '../credits/credits.module';
@@ -25,7 +24,6 @@ import { FxModule } from '../fx/fx.module';
     BullModule.registerQueue({ name: ORDERS_QUEUE }),
     ShopifySyncModule,
     GenerationsModule,
-    PaintByNumbersModule,
     ExpensesModule,
     CreditsModule,
     FxModule,

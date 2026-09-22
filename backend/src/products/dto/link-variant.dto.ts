@@ -1,3 +1,4 @@
+import { PrintConfigDto } from './print-config.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -7,7 +8,6 @@ import {
   IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { PodConfigDto } from './pod-config.dto';
 
 export class LinkVariantDto {
   @ApiProperty({ example: '12345678901234' })
@@ -35,11 +35,11 @@ export class LinkVariantDto {
 
   @ApiPropertyOptional({
     description:
-      'Pictorem POD config for this variant (material, type, dimensions, options)',
-    type: PodConfigDto,
+      'Especificación de impresión de esta variante (tamaño en cm, sangre, DPI mínimo)',
+    type: PrintConfigDto,
   })
   @ValidateNested()
-  @Type(() => PodConfigDto)
+  @Type(() => PrintConfigDto)
   @IsOptional()
-  podConfig?: PodConfigDto;
+  printConfig?: PrintConfigDto;
 }

@@ -16,7 +16,7 @@ import { FalService } from '../generations/providers/fal/fal.service';
 import { EnhanceDto } from './dto/enhance.dto';
 import { ExpensesService } from '../expenses/expenses.service';
 
-/** Target print resolution (dots per inch) we aim for before POD submission. */
+/** Resolución objetivo de impresión (DPI) del máster que se manda a imprimir. */
 const TARGET_DPI = 300;
 
 /** Resolution we re-encode the print master at when no targetDpi is provided. */
@@ -34,8 +34,13 @@ const UPSCALE_MODEL = 'fal-ai/seedvr/upscale/image';
 /** Maximum upscale factor we expose (seedvr accepts 1–10). */
 const MAX_UPSCALE_FACTOR = 8;
 
-/** Bleed margin added on each side (millimetres). */
-const BLEED_MM = 3;
+/**
+ * Sangre por lado, en mm. ClawAndSoul usaba 3 mm, suficiente para papel
+ * guillotinado. Un troquel de puzzle tiene una tolerancia de registro de
+ * ±2–3 mm, así que el defecto sube a 5 y cada variante puede subirlo más
+ * desde su `printConfig.bleedMm`.
+ */
+const DEFAULT_BLEED_MM = 5;
 
 /**
  * Conservative output ceiling (~30 mebipixels, px / 1024²). seedvr can produce
@@ -44,13 +49,15 @@ const BLEED_MM = 3;
  */
 const MAX_UPSCALE_OUTPUT_PX = 30 * 1024 * 1024;
 
-interface PodConfigShape {
-  width?: number; // inches
-  height?: number; // inches
+interface PrintConfigShape {
+  widthCm?: number;
+  heightCm?: number;
+  bleedMm?: number;
+  safeMarginMm?: number;
+  minDpi?: number;
 }
 
 export interface EnhanceInfo {
-  isPod: boolean;
   sourceUrl: string | null;
   /** Pixel dimensions of the SOURCE art (enhancement input). */
   sourcePx: { width: number; height: number } | null;
@@ -58,7 +65,7 @@ export interface EnhanceInfo {
   /** DPI of the SOURCE art at the print size — drives the upscale recommendation. */
   sourceDpi: number | null;
   /**
-   * URL of the CURRENT print image (the file POD will ship). The client measures
+   * URL of the CURRENT print image (the file that gets printed). The client measures
    * its delivered dimensions to compute the real print DPI — this handles the
    * Cloudinary engine, whose stored asset is the un-transformed base while the
    * upscale lives in the delivery URL (`c_scale,…`), so a server-side probe of the
@@ -102,7 +109,6 @@ export class ImageEnhancementService {
       : '#ffffff';
 
     return {
-      isPod: item.fulfillmentMethod === 'pod',
       sourceUrl: original?.url ?? null,
       sourcePx,
       printInches,
@@ -319,10 +325,15 @@ export class ImageEnhancementService {
     }
 
     // Build the print master (colour/bleed adjustments applied on the base).
+    // La sangre sale de la variante: cada troquel tiene su tolerancia.
+    const printCfg = item.productVariant
+      ?.printConfig as PrintConfigShape | null;
     const outputBuffer = await this.buildPrintImage(
       baseBytes,
       printInches,
       options,
+      undefined,
+      printCfg?.bleedMm ?? DEFAULT_BLEED_MM,
     );
     const contentType = options.format === 'png' ? 'image/png' : 'image/jpeg';
     const printImageUrl = await this.storageService.upload(
@@ -541,6 +552,7 @@ export class ImageEnhancementService {
     printInches: { width: number; height: number } | null,
     options: EnhanceDto,
     capEdge?: number,
+    bleedMm: number = DEFAULT_BLEED_MM,
   ): Promise<Buffer> {
     // Cap output at PRINT_DPI (or targetDpi) at the print size. The AI upscale is
     // sized to reach this DPI; capping here keeps both the stored base and the
@@ -595,7 +607,7 @@ export class ImageEnhancementService {
 
     // Bleed extension — only on actual saves, not on previews (capEdge is undefined).
     if (options.bleed && printInches && !capEdge) {
-      const bleedPx = Math.round((BLEED_MM / 25.4) * effectiveDpi);
+      const bleedPx = Math.round((bleedMm / 25.4) * effectiveDpi);
       const bg = this.hexToRgb(options.bleedColor ?? '#ffffff');
       pipe = pipe.extend({
         top: bleedPx,
@@ -708,40 +720,29 @@ export class ImageEnhancementService {
       where: { id: itemId, orderId },
       include: {
         generation: { select: { resultUrl: true, resultStorageKey: true } },
-        paintByNumbers: {
-          select: { sourceImageUrl: true, sourceImageStorageKey: true },
+        productVariant: {
+          select: {
+            printConfig: true,
+            format: { select: { printWidthCm: true, printHeightCm: true } },
+          },
         },
-        productVariant: { select: { podConfig: true } },
       },
     });
     if (!item) throw new NotFoundException('Order item not found');
     return item;
   }
 
-  /**
-   * IA art original: Generation cuando sigue vinculada; en pedidos PBN legacy,
-   * la imagen fuente guardada antes de convertirla. Nunca usa preview ni SVG.
-   */
+  /** El arte IA original de la línea. Nunca un derivado ni un preview. */
   private resolveGeneratedArt(item: {
     generation: {
       resultUrl: string | null;
       resultStorageKey: string | null;
-    } | null;
-    paintByNumbers: {
-      sourceImageUrl: string | null;
-      sourceImageStorageKey: string | null;
     } | null;
   }): { url: string; storageKey: string | null } | null {
     if (item.generation?.resultUrl) {
       return {
         url: item.generation.resultUrl,
         storageKey: item.generation.resultStorageKey,
-      };
-    }
-    if (item.paintByNumbers?.sourceImageUrl) {
-      return {
-        url: item.paintByNumbers.sourceImageUrl,
-        storageKey: item.paintByNumbers.sourceImageStorageKey,
       };
     }
     return null;
@@ -751,53 +752,75 @@ export class ImageEnhancementService {
     item: {
       printSourceUrl: string | null;
       generation: { resultUrl: string | null } | null;
-      paintByNumbers: { sourceImageUrl: string | null } | null;
     },
     original: { url: string; storageKey: string | null } | null,
   ): boolean {
     if (!original) return false;
     if (item.printSourceUrl) return item.printSourceUrl === original.url;
 
-    // Los resultados legacy no guardaban printSourceUrl. Reconocemos las dos
-    // ubicaciones válidas del IA art original.
-    return (
-      item.generation?.resultUrl === original.url ||
-      item.paintByNumbers?.sourceImageUrl === original.url
-    );
+    // Los resultados legacy no guardaban printSourceUrl.
+    return item.generation?.resultUrl === original.url;
   }
 
+  /**
+   * Tamaño físico impreso, en pulgadas (la unidad con la que se razona el DPI).
+   *
+   * Orden de preferencia deliberado. ClawAndSoul acabó dependiendo del parser
+   * de título como fuente real desde que la producción pasó a manual, y ese
+   * parser exige el símbolo ″: con títulos de puzzle en centímetros devolvía
+   * null y el estudio de impresión perdía en silencio la recomendación de
+   * upscale y el bleed. Aquí el dato sale de la base de datos y el parser es
+   * el último recurso, no el primero.
+   */
   private resolvePrintInches(item: {
     variantTitle?: string | null;
-    productVariant: { podConfig: Prisma.JsonValue | null } | null;
+    productVariant: {
+      printConfig: Prisma.JsonValue | null;
+      format: {
+        printWidthCm: number | null;
+        printHeightCm: number | null;
+      } | null;
+    } | null;
   }): { width: number; height: number } | null {
-    const cfg = item.productVariant?.podConfig as PodConfigShape | null;
+    const cfg = item.productVariant?.printConfig as PrintConfigShape | null;
     if (
       cfg &&
-      typeof cfg.width === 'number' &&
-      typeof cfg.height === 'number'
+      typeof cfg.widthCm === 'number' &&
+      typeof cfg.heightCm === 'number'
     ) {
-      return { width: cfg.width, height: cfg.height };
+      return { width: cfg.widthCm / 2.54, height: cfg.heightCm / 2.54 };
     }
-    // Fallback: parse the inch dimensions embedded in the variant title, e.g.
-    // "30x40 cm / 12x16″ / No Frame". Since production became manual, podConfig
-    // is no longer populated, so the title is the remaining source of truth for
-    // the print size (and thus the cut/bleed/safe-zone guides).
+
+    // El Format lleva el tamaño del puzzle armado, en cm. Ojo: `width`/`height`
+    // del Format son PÍXELES de generación, no el tamaño físico.
+    const fmt = item.productVariant?.format;
+    if (fmt?.printWidthCm && fmt?.printHeightCm) {
+      return {
+        width: fmt.printWidthCm / 2.54,
+        height: fmt.printHeightCm / 2.54,
+      };
+    }
+
     return this.parseInchesFromTitle(item.variantTitle ?? null);
   }
 
   /**
-   * Extract print dimensions in inches from a variant title. Matches a
-   * "<w>x<h>" pair immediately followed by an inch mark (″ or "), e.g. the
-   * "12x16″" inside "30x40 cm / 12x16″ / No Frame".
+   * Último recurso: sacar el tamaño del título de la variante. Acepta tanto
+   * pulgadas ("12x16″") como centímetros ("48x36 cm"), porque los títulos de
+   * puzzle se escriben en el sistema métrico.
    */
   private parseInchesFromTitle(
     title: string | null,
   ): { width: number; height: number } | null {
     if (!title) return null;
-    const m = title.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:″|")/);
+    const m = title.match(
+      /(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(″|"|cm)/i,
+    );
     if (!m) return null;
-    const width = parseFloat(m[1]);
-    const height = parseFloat(m[2]);
+    // Todo se razona en pulgadas; un título métrico se convierte aquí.
+    const divisor = m[3].toLowerCase() === 'cm' ? 2.54 : 1;
+    const width = parseFloat(m[1]) / divisor;
+    const height = parseFloat(m[2]) / divisor;
     if (
       !Number.isFinite(width) ||
       !Number.isFinite(height) ||

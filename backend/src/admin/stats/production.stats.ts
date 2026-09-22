@@ -17,7 +17,6 @@ export class ProductionStats {
   async collect(period: ResolvedPeriod) {
     const [
       queueGroups,
-      methodGroups,
       artFailed,
       onHold,
       pendingPaid,
@@ -27,12 +26,6 @@ export class ProductionStats {
     ] = await Promise.all([
       this.prisma.orderItem.groupBy({
         by: ['productionStatus'],
-        where: { productionStatus: { in: PRODUCTION_QUEUE_STATUSES } },
-        _count: { _all: true },
-      }),
-
-      this.prisma.orderItem.groupBy({
-        by: ['fulfillmentMethod'],
         where: { productionStatus: { in: PRODUCTION_QUEUE_STATUSES } },
         _count: { _all: true },
       }),
@@ -75,16 +68,9 @@ export class ProductionStats {
       queueTotal += group._count._all;
     }
 
-    const byMethod = { in_house: 0, pod: 0 };
-    for (const group of methodGroups) {
-      if (group.fulfillmentMethod === 'pod') byMethod.pod = group._count._all;
-      else byMethod.in_house = group._count._all;
-    }
-
     return {
       queue,
       queueTotal,
-      byMethod,
       oldestQueuedAt: oldest?.createdAt ?? null,
       blocked: { artFailed, onHold, pendingPaid },
       shipped,

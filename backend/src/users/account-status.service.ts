@@ -221,7 +221,7 @@ export class AccountStatusService {
   /**
    * Purga el PII de una cuenta ya dada de baja. Irreversible.
    *
-   * Deliberadamente **no** toca generaciones, paint-by-numbers, pedidos ni gastos:
+   * Deliberadamente **no** toca generaciones, pedidos ni gastos:
    * los `OrderItem` apuntan a generaciones y PBN, y borrarlas rompería la
    * trazabilidad de pedidos ya pagados. Los pedidos guardan su propio
    * `customerEmail`/`customerName`, que la contabilidad necesita conservar.
@@ -257,7 +257,7 @@ export class AccountStatusService {
         data: {
           // El email es único: el sufijo del uuid basta para no colisionar y
           // libera el correo real por si la persona vuelve a registrarse.
-          email: `deleted-${userId.slice(0, 8)}@deleted.clawandsoul.local`,
+          email: `deleted-${userId.slice(0, 8)}@deleted.clawpuzzle.local`,
           fullName: null,
           googleId: null,
           passwordHash: null,

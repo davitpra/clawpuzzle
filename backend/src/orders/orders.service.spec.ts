@@ -7,7 +7,6 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ShopifyApiService } from '../shopify-sync/shopify-api.service';
-import { PaintByNumbersService } from '../paint-by-numbers/paint-by-numbers.service';
 import { CreditsService } from '../credits/credits.service';
 import type { ShopifyOrderPayload } from './dto/shopify-order.dto';
 
@@ -39,10 +38,6 @@ const mockPrisma = {
   },
   generation: {
     findFirst: jest.fn(),
-  },
-  paintByNumbers: {
-    findFirst: jest.fn(),
-    update: jest.fn(),
   },
   productReference: {
     findUnique: jest.fn(),
@@ -104,7 +99,6 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StorageService, useValue: {} },
         { provide: ShopifyApiService, useValue: mockShopifyApi },
-        { provide: PaintByNumbersService, useValue: {} },
         { provide: CreditsService, useValue: mockCredits },
       ],
     }).compile();
@@ -116,8 +110,6 @@ describe('OrdersService', () => {
     mockPrisma.orderItem.create.mockResolvedValue({});
     mockPrisma.orderItem.findMany.mockResolvedValue([]);
     mockPrisma.generation.findFirst.mockResolvedValue(null);
-    mockPrisma.paintByNumbers.findFirst.mockResolvedValue(null);
-    mockPrisma.paintByNumbers.update.mockResolvedValue({});
     mockPrisma.productReference.findUnique.mockResolvedValue(null);
     mockPrisma.productFormatVariant.findFirst.mockResolvedValue(null);
     mockPrisma.creditPackVariant.findMany.mockResolvedValue([]);
@@ -181,16 +173,16 @@ describe('OrdersService', () => {
         quantity: 1,
         price: '25.00',
         total_discount: '0.00',
-        properties: [
-          { name: 'generation_id', value: 'generation-1' },
-          { name: 'paint_by_numbers_id', value: 'pbn-1' },
-        ],
+        properties: [{ name: 'generation_id', value: 'generation-1' }],
       },
       financialStatus,
     );
 
   describe('line art linkage', () => {
-    it('does not link generation or PBN attributes owned by another user', async () => {
+    // La validación de propiedad es el control de seguridad de la ingesta: una
+    // línea puede declarar cualquier generation_id, así que solo se enlaza si
+    // pertenece al usuario resuelto para la orden.
+    it('does not link a generation owned by another user', async () => {
       mockPrisma.orderItem.findUnique.mockResolvedValue({
         id: 'item-1',
         productionStatus: 'pending',
@@ -202,28 +194,18 @@ describe('OrdersService', () => {
         where: { id: 'generation-1', userId: 'order-user' },
         select: { id: true, status: true },
       });
-      expect(mockPrisma.paintByNumbers.findFirst).toHaveBeenCalledWith({
-        where: { id: 'pbn-1', userId: 'order-user' },
-        select: { id: true, previewUrl: true },
-      });
       expect(mockPrisma.orderItem.update).toHaveBeenCalledWith({
         where: { id: 'item-1' },
         data: expect.objectContaining({
           generation: { disconnect: true },
-          paintByNumbers: { disconnect: true },
         }),
       });
-      expect(mockPrisma.paintByNumbers.update).not.toHaveBeenCalled();
     });
 
-    it('links owned art and marks a PBN ordered for a paid order', async () => {
+    it('links owned art and puts a paid line in the production queue', async () => {
       mockPrisma.generation.findFirst.mockResolvedValue({
         id: 'generation-1',
         status: 'completed',
-      });
-      mockPrisma.paintByNumbers.findFirst.mockResolvedValue({
-        id: 'pbn-1',
-        previewUrl: 'https://example.com/pbn.png',
       });
 
       await ingestLine('order-user', 'paid');
@@ -231,35 +213,25 @@ describe('OrdersService', () => {
       expect(mockPrisma.orderItem.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           generationId: 'generation-1',
-          paintByNumbersId: 'pbn-1',
           productionStatus: 'draft',
         }),
       });
-      expect(mockPrisma.paintByNumbers.update).toHaveBeenCalledWith({
-        where: { id: 'pbn-1' },
-        data: { status: 'ordered' },
-      });
     });
 
-    it('does not mark a linked PBN ordered until a later paid webhook', async () => {
+    it('keeps an authorized line pending until a later paid webhook', async () => {
       mockPrisma.generation.findFirst.mockResolvedValue({
         id: 'generation-1',
         status: 'completed',
-      });
-      mockPrisma.paintByNumbers.findFirst.mockResolvedValue({
-        id: 'pbn-1',
-        previewUrl: null,
       });
 
       await ingestLine('order-user', 'authorized');
 
       expect(mockPrisma.orderItem.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          paintByNumbersId: 'pbn-1',
+          generationId: 'generation-1',
           productionStatus: 'pending',
         }),
       });
-      expect(mockPrisma.paintByNumbers.update).not.toHaveBeenCalled();
 
       mockPrisma.orderItem.findUnique.mockResolvedValue({
         id: 'item-1',
@@ -270,10 +242,6 @@ describe('OrdersService', () => {
       expect(mockPrisma.orderItem.update).toHaveBeenCalledWith({
         where: { id: 'item-1' },
         data: expect.objectContaining({ productionStatus: 'draft' }),
-      });
-      expect(mockPrisma.paintByNumbers.update).toHaveBeenCalledWith({
-        where: { id: 'pbn-1' },
-        data: { status: 'ordered' },
       });
     });
   });
@@ -445,37 +413,38 @@ describe('OrdersService', () => {
       );
     });
 
-    it('salta líneas Digital/PBN: nunca recibieron bono, no revierte nada', async () => {
+    it('revierte el bono de cada línea de puzzle', async () => {
       stubGrants({ bonusUserId: 'user-bonus', packUserId: null });
       mockPrisma.orderItem.findMany.mockResolvedValue([
         {
-          id: 'reg-1',
-          shopifyVariantId: 'v-reg',
+          id: 'puzzle-1',
+          shopifyVariantId: 'v-500',
           quantity: 1,
-          productRef: { template: 'Canvas' },
+          productRef: { template: 'Puzzle' },
         },
         {
-          id: 'dig-1',
-          shopifyVariantId: 'v-dig',
+          id: 'puzzle-2',
+          shopifyVariantId: 'v-1000',
           quantity: 2,
-          productRef: { template: 'Digital' },
-        },
-        {
-          id: 'pbn-1',
-          shopifyVariantId: 'v-pbn',
-          quantity: 1,
-          productRef: { template: 'PBN' },
+          productRef: { template: 'Puzzle' },
         },
       ]);
 
-      await reverse('order-1', ['reg-1', 'dig-1', 'pbn-1']);
+      await reverse('order-1', ['puzzle-1', 'puzzle-2']);
 
-      expect(mockCredits.revoke).toHaveBeenCalledTimes(1);
+      expect(mockCredits.revoke).toHaveBeenCalledTimes(2);
       expect(mockCredits.revoke).toHaveBeenCalledWith(
         'user-bonus',
         3,
         'order_bonus_reversal',
-        'reg-1',
+        'puzzle-1',
+        expect.any(String),
+      );
+      expect(mockCredits.revoke).toHaveBeenCalledWith(
+        'user-bonus',
+        6,
+        'order_bonus_reversal',
+        'puzzle-2',
         expect.any(String),
       );
     });
@@ -516,50 +485,56 @@ describe('OrdersService', () => {
     ).grantOrderCredits(order);
 
   describe('grantOrderCredits', () => {
-    it('excluye líneas Digital/PBN del order_bonus (+3/unidad)', async () => {
+    it('otorga +3 por unidad de puzzle', async () => {
       mockPrisma.orderItem.findMany.mockResolvedValue([
         {
-          shopifyVariantId: 'v-reg',
+          shopifyVariantId: 'v-500',
           quantity: 2,
-          productRef: { template: 'Canvas' },
+          productRef: { template: 'Puzzle' },
         },
         {
-          shopifyVariantId: 'v-dig',
-          quantity: 3,
-          productRef: { template: 'Digital' },
-        },
-        {
-          shopifyVariantId: 'v-pbn',
+          shopifyVariantId: 'v-1000',
           quantity: 1,
-          productRef: { template: 'PBN' },
+          productRef: { template: 'Puzzle' },
         },
       ]);
 
       await grant({ id: 'order-1', userId: 'user-1', orderNumber: '#1042' });
 
-      // Solo la línea Canvas suma: 2 * 3 = 6.
+      // 3 unidades de puzzle × 3 créditos.
       expect(mockCredits.grant).toHaveBeenCalledTimes(1);
       expect(mockCredits.grant).toHaveBeenCalledWith(
         'user-1',
-        6,
+        9,
         'order_bonus',
         'order-1',
         expect.any(String),
       );
     });
 
-    it('no otorga nada si la orden solo tiene líneas Digital', async () => {
+    // Un pack de créditos ya acredita por `pack_purchase`; sumarle además el
+    // bono por unidad sería pagar dos veces la misma compra.
+    it('no otorga order_bonus por una línea de pack de créditos', async () => {
       mockPrisma.orderItem.findMany.mockResolvedValue([
         {
-          shopifyVariantId: 'v-dig',
+          shopifyVariantId: 'v-pack',
           quantity: 1,
-          productRef: { template: 'Digital' },
+          productRef: { template: 'Credits' },
         },
+      ]);
+      mockPrisma.creditPackVariant.findMany.mockResolvedValue([
+        { shopifyVariantId: 'v-pack', creditAmount: 100 },
       ]);
 
       await grant({ id: 'order-1', userId: 'user-1', orderNumber: '#1042' });
 
-      expect(mockCredits.grant).not.toHaveBeenCalled();
+      expect(mockCredits.grant).not.toHaveBeenCalledWith(
+        'user-1',
+        expect.any(Number),
+        'order_bonus',
+        'order-1',
+        expect.any(String),
+      );
     });
   });
 

@@ -5,8 +5,7 @@ jest.mock('uuid', () => ({ v4: () => 'test-uuid' }));
 
 describe('ImageEnhancementService generation source', () => {
   const generationUrl = 'https://cdn.example.com/generation.png';
-  const pbnSourceUrl = 'https://cdn.example.com/original-ai-art.png';
-  const pbnPreviewUrl = 'https://cdn.example.com/pbn-preview.png';
+  const productImageUrl = 'https://cdn.example.com/product.png';
 
   const prisma = {
     orderItem: {
@@ -27,19 +26,17 @@ describe('ImageEnhancementService generation source', () => {
     return {
       id: 'item-1',
       orderId: 'order-1',
-      imageUrl: pbnPreviewUrl,
-      fulfillmentMethod: 'pod',
-      variantTitle: '12x16″',
+      imageUrl: productImageUrl,
+      variantTitle: '500 pieces · 48x36 cm',
       generationId: 'generation-1',
       generation: {
         resultUrl: generationUrl,
         resultStorageKey: 'generation.png',
       },
-      paintByNumbers: {
-        sourceImageUrl: pbnSourceUrl,
-        sourceImageStorageKey: 'original-ai-art.png',
+      productVariant: {
+        printConfig: { widthCm: 48, heightCm: 36, bleedMm: 5 },
+        format: { printWidthCm: 48, printHeightCm: 36 },
       },
-      productVariant: { podConfig: { width: 12, height: 16 } },
       printImageUrl: null,
       printImageStorageKey: null,
       printSourceUrl: null,
@@ -67,24 +64,51 @@ describe('ImageEnhancementService generation source', () => {
       .mockResolvedValue('#ffffff' as never);
   });
 
-  it('prefers the linked generation and ignores the PBN preview', async () => {
+  it('prefers the linked generation over the product image', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(item());
 
     const result = await service.getEnhanceInfo('order-1', 'item-1');
 
     expect(result.sourceUrl).toBe(generationUrl);
-    expect(result.sourceUrl).not.toBe(pbnPreviewUrl);
+    expect(result.sourceUrl).not.toBe(productImageUrl);
   });
 
-  it('uses the original IA art saved as the PBN source when generation is unlinked', async () => {
+  // El tamaño físico gobierna el DPI y, con él, la recomendación de upscale y
+  // el bleed. ClawAndSoul lo sacaba del título de la variante, que solo casaba
+  // con el símbolo ″: un título métrico daba null en silencio. Estos tres tests
+  // fijan el orden printConfig → Format → título.
+  it('takes the print size from printConfig, in centimetres', async () => {
+    prisma.orderItem.findFirst.mockResolvedValue(item());
+
+    const result = await service.getEnhanceInfo('order-1', 'item-1');
+
+    expect(result.printInches?.width).toBeCloseTo(48 / 2.54, 2);
+    expect(result.printInches?.height).toBeCloseTo(36 / 2.54, 2);
+  });
+
+  it('falls back to the Format when the variant has no printConfig', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(
-      item({ generationId: null, generation: null }),
+      item({
+        productVariant: {
+          printConfig: null,
+          format: { printWidthCm: 68, printHeightCm: 48 },
+        },
+      }),
     );
 
     const result = await service.getEnhanceInfo('order-1', 'item-1');
 
-    expect(result.sourceUrl).toBe(pbnSourceUrl);
-    expect(result.sourceUrl).not.toBe(pbnPreviewUrl);
+    expect(result.printInches?.width).toBeCloseTo(68 / 2.54, 2);
+  });
+
+  it('parses a metric variant title as a last resort', async () => {
+    prisma.orderItem.findFirst.mockResolvedValue(
+      item({ productVariant: { printConfig: null, format: null } }),
+    );
+
+    const result = await service.getEnhanceInfo('order-1', 'item-1');
+
+    expect(result.printInches?.width).toBeCloseTo(48 / 2.54, 2);
   });
 
   it('returns no source when no original IA art exists', async () => {
@@ -111,9 +135,9 @@ describe('ImageEnhancementService generation source', () => {
   it('drops a stale base and saves the generation as the print source', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(
       item({
-        printSourceUrl: pbnPreviewUrl,
-        printUpscaledUrl: 'https://cdn.example.com/pbn-base.jpg',
-        printUpscaledStorageKey: 'pbn-base.jpg',
+        printSourceUrl: productImageUrl,
+        printUpscaledUrl: 'https://cdn.example.com/stale-base.jpg',
+        printUpscaledStorageKey: 'stale-base.jpg',
       }),
     );
     prisma.orderItem.update.mockResolvedValue({});
@@ -135,7 +159,7 @@ describe('ImageEnhancementService generation source', () => {
 
     expect(download).toHaveBeenCalledWith(generationUrl);
     expect(download).not.toHaveBeenCalledWith(
-      'https://cdn.example.com/pbn-base.jpg',
+      'https://cdn.example.com/stale-base.jpg',
     );
     const updateCall: unknown = prisma.orderItem.update.mock.calls[0]?.[0];
     expect(updateCall).toMatchObject({

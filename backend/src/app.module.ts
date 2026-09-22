@@ -19,7 +19,6 @@ import { UsersModule } from './users/users.module';
 import { PetsModule } from './pets/pets.module';
 import { StylesModule } from './styles/styles.module';
 import { GenerationsModule } from './generations/generations.module';
-import { PaintByNumbersModule } from './paint-by-numbers/paint-by-numbers.module';
 import { StorageModule } from './storage/storage.module';
 import { FormatsModule } from './formats/formats.module';
 import { ProductsModule } from './products/products.module';
@@ -69,7 +68,6 @@ import { HealthController } from './health/health.controller';
     PetsModule,
     StylesModule,
     GenerationsModule,
-    PaintByNumbersModule,
     StorageModule,
     FormatsModule,
     ProductsModule,

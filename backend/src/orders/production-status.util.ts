@@ -5,7 +5,7 @@ import { OrderItemKind } from './order-item-kind.util';
  *
  * Modelo: columna almacenada por item. El estado TEMPRANO se auto-asigna desde
  * el pago (Shopify `financial_status`) + la generación de imagen; desde `draft`
- * el admin lo avanza a mano (ya no hay sincronización con POD). El fulfillment
+ * el admin lo avanza a mano (producción propia: imprimir, troquelar, encajar). El fulfillment
  * de Shopify es informativo y NO alimenta este eje.
  */
 
@@ -17,6 +17,7 @@ export type ProductionStatus =
   | 'pre_production'
   | 'in_production'
   | 'printed'
+  | 'packed'
   | 'shipped'
   | 'delivered'
   | 'on_hold'
@@ -49,18 +50,20 @@ export const TERMINAL_STATUSES: string[] = [
  * pagados con arte listo y aún por fabricar/imprimir. Excluye tempranos no
  * listos (`pending`/`generating`/`art_failed`) y los ya enviados/terminales.
  */
+// `in_production` = imprimiendo y troquelando · `printed` = pliego impreso y
+// cortado · `packed` = piezas contadas, en caja, listo para etiqueta de envío.
 export const PRODUCTION_QUEUE_STATUSES: string[] = [
   'draft',
   'pre_production',
   'in_production',
   'printed',
+  'packed',
 ];
 
 /**
  * Transiciones manuales válidas (admin) del flujo de arte, y default del resto de
  * tipos. Los estados tempranos se omiten del avance porque los gobierna la
  * auto-asignación; solo se permite cancelar o reembolsar desde ellos.
- * Los accesorios usan `ACCESSORY_VALID_TRANSITIONS` — resuelve `transitionsFor`.
  */
 export const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ['cancelled', 'refunded'],
@@ -69,48 +72,29 @@ export const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ['pre_production', 'on_hold', 'cancelled', 'refunded'],
   pre_production: ['in_production', 'on_hold', 'cancelled', 'refunded'],
   in_production: ['printed', 'on_hold', 'cancelled', 'refunded'],
-  printed: ['shipped', 'on_hold', 'cancelled', 'refunded'],
+  printed: ['packed', 'on_hold', 'cancelled', 'refunded'],
+  packed: ['shipped', 'on_hold', 'cancelled', 'refunded'],
   shipped: ['delivered', 'refunded'],
   delivered: ['refunded', 'restocked'],
-  on_hold: ['pre_production', 'in_production', 'cancelled', 'refunded'],
+  on_hold: [
+    'pre_production',
+    'in_production',
+    'packed',
+    'cancelled',
+    'refunded',
+  ],
   cancelled: [],
   refunded: [],
   restocked: [],
 };
 
 /**
- * Transiciones de un item de accesorio (kit, pinceles). No se genera ni se
- * imprime nada: del pago pasa a preparar el envío y de ahí a enviado, saltando
- * `pre_production`/`in_production`/`printed`.
- *
- * Esos tres estados sí aparecen como origen porque un accesorio pudo avanzar a
- * ellos con la máquina anterior (compartida con el arte); son escape hatches
- * heredados hacia `shipped`, no parte del flujo nuevo.
+ * Transiciones manuales válidas para un item. ClawPuzzle tiene una sola
+ * máquina: puzzles y créditos la comparten (los créditos saltan directos a
+ * `delivered` al pagarse, así que nunca recorren la cola de producción).
  */
-export const ACCESSORY_VALID_TRANSITIONS: Record<string, string[]> = {
-  pending: ['cancelled', 'refunded'],
-  generating: ['cancelled', 'refunded'],
-  art_failed: ['cancelled', 'refunded'],
-  draft: ['shipped', 'on_hold', 'cancelled', 'refunded'],
-  pre_production: ['shipped', 'on_hold', 'cancelled', 'refunded'],
-  in_production: ['shipped', 'on_hold', 'cancelled', 'refunded'],
-  printed: ['shipped', 'on_hold', 'cancelled', 'refunded'],
-  shipped: ['delivered', 'refunded'],
-  delivered: ['refunded', 'restocked'],
-  on_hold: ['draft', 'cancelled', 'refunded'],
-  cancelled: [],
-  refunded: [],
-  restocked: [],
-};
-
-/**
- * Transiciones manuales válidas para un item según su tipo. Arte y créditos usan
- * la máquina completa; los accesorios, la reducida.
- */
-export function transitionsFor(status: string, kind: OrderItemKind): string[] {
-  const map =
-    kind === 'accessory' ? ACCESSORY_VALID_TRANSITIONS : VALID_TRANSITIONS;
-  return map[status] ?? [];
+export function transitionsFor(status: string, _kind: OrderItemKind): string[] {
+  return VALID_TRANSITIONS[status] ?? [];
 }
 
 /**
@@ -133,6 +117,7 @@ export const CANCELLABLE_STATUSES: string[] = [
   'pre_production',
   'in_production',
   'printed',
+  'packed',
 ];
 
 /**
@@ -146,7 +131,6 @@ export const CANCELLABLE_STATUSES: string[] = [
 export function computeAutoEarlyStatus(
   financialStatus?: string | null,
   generationStatus?: string | null,
-  isAccessory = false,
 ): ProductionStatus {
   switch (financialStatus) {
     case 'refunded':
@@ -159,10 +143,6 @@ export function computeAutoEarlyStatus(
     case 'partially_paid':
       return 'pending';
   }
-  // Accesorios: stock propio genérico, sin arte generado por IA. Una vez pagada
-  // la orden entran directo a `draft` (cola de producción manual); nunca pasan
-  // por `generating`/`art_failed`. El admin avanzará draft → shipped a mano.
-  if (isAccessory) return 'draft';
   // Pagado (`paid` u otros/ausente): el estado depende del arte.
   if (generationStatus === 'failed') return 'art_failed';
   if (generationStatus === 'pending' || generationStatus === 'processing') {

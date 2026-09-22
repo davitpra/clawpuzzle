@@ -1,6 +1,13 @@
 import { NotFoundException } from '@nestjs/common';
 import { StyleCompatService } from './style-compat.service';
 
+/**
+ * `defaultCreateContext` es lo que resuelve el deep-link `/create?style_id=…`,
+ * la entrada principal del embudo. Si devuelve null, el front muestra "este
+ * estilo no está conectado a un producto" y no hay venta posible — y como es un
+ * fallo de datos y no de tipos, no lo detecta ni el typecheck ni el build.
+ * De ahí que esté cubierto aquí.
+ */
 describe('StyleCompatService', () => {
   const prisma = {
     style: { findFirst: jest.fn() },
@@ -8,38 +15,37 @@ describe('StyleCompatService', () => {
   };
   const service = new StyleCompatService(prisma as never);
 
+  const puzzleProduct = {
+    id: 'puzzle-product',
+    displayName: 'Custom pet puzzle',
+    template: 'Puzzle',
+    productVariants: [
+      {
+        id: 'variant-1',
+        formatId: 'format-500',
+        format: { id: 'format-500', displayName: '500 pieces' },
+      },
+    ],
+  };
+
   beforeEach(() => jest.clearAllMocks());
 
-  it('returns a deterministic Digital create context', async () => {
+  it('returns a deterministic puzzle create context', async () => {
     prisma.style.findFirst.mockResolvedValue({ id: 'style-1' });
-    prisma.productReference.findMany.mockResolvedValue([
-      {
-        id: 'digital-product',
-        displayName: 'Digital portrait',
-        template: 'Digital',
-        artKind: 'pbn',
-        productVariants: [
-          {
-            id: 'variant-1',
-            formatId: 'format-1',
-            format: { id: 'format-1', displayName: 'Digital' },
-          },
-        ],
-      },
-    ]);
+    prisma.productReference.findMany.mockResolvedValue([puzzleProduct]);
 
     await expect(service.findCompatibleOptions('style-1')).resolves.toEqual(
       expect.objectContaining({
         styleId: 'style-1',
         defaultCreateContext: {
-          productRefId: 'digital-product',
-          formatId: 'format-1',
+          productRefId: 'puzzle-product',
+          formatId: 'format-500',
         },
       }),
     );
   });
 
-  it('returns null when no Digital product can generate the style', async () => {
+  it('returns null when no puzzle product can generate the style', async () => {
     prisma.style.findFirst.mockResolvedValue({ id: 'style-1' });
     prisma.productReference.findMany.mockResolvedValue([]);
 
@@ -48,22 +54,21 @@ describe('StyleCompatService', () => {
     expect(result.defaultCreateContext).toBeNull();
   });
 
-  it('does not use a finished-art Digital product as PBN context', async () => {
+  it('does not use a non-puzzle product as create context', async () => {
     prisma.style.findFirst.mockResolvedValue({ id: 'style-1' });
     prisma.productReference.findMany.mockResolvedValue([
-      {
-        id: 'print-product',
-        displayName: 'Finished artwork',
-        template: 'Digital',
-        artKind: 'print',
-        productVariants: [
-          {
-            id: 'variant-1',
-            formatId: 'format-1',
-            format: { id: 'format-1', displayName: 'Digital' },
-          },
-        ],
-      },
+      { ...puzzleProduct, id: 'credits-product', template: 'Credits' },
+    ]);
+
+    const result = await service.findCompatibleOptions('style-1');
+
+    expect(result.defaultCreateContext).toBeNull();
+  });
+
+  it('ignores a puzzle product with no linked variants', async () => {
+    prisma.style.findFirst.mockResolvedValue({ id: 'style-1' });
+    prisma.productReference.findMany.mockResolvedValue([
+      { ...puzzleProduct, productVariants: [] },
     ]);
 
     const result = await service.findCompatibleOptions('style-1');
