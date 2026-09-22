@@ -53,7 +53,7 @@ const DEFAULT_IMAGE: ShowcaseImage = {
 };
 
 export default function StudioShowcase({
-  eyebrow = "Claw & Soul Studio",
+  eyebrow = "ClawPuzzle Studio",
   title = (
     <>
       See your pet as a<br /> paint-by-numbers — free

@@ -2,7 +2,7 @@ import { Container } from "@/shared/ui/Container";
 import { PetDetail } from "@/widgets/user-dashboard/ui/PetDetail";
 
 export const metadata = {
-  title: "Pet — Claw & Soul",
+  title: "Pet — ClawPuzzle",
 };
 
 export default async function UserPetDetailPage({

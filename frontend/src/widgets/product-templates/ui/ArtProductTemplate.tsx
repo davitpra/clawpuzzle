@@ -4,14 +4,6 @@ import ProductDetails from "@/widgets/product-details/ui/ProductDetails";
 import { StyleShowcase, useStyleCollection } from "@/widgets/collection";
 import ProductFAQ from "@/widgets/product-faq/ui/ProductFAQ";
 import { ProductTemplateProps } from "./ProductPageTemplate";
-import {
-  ArtKindAlternative,
-  getArtKindAlternative,
-} from "@/widgets/art-kind-alternative";
-import {
-  RelatedProducts,
-  getRelatedAccessories,
-} from "@/widgets/related-products";
 import { getSimilarProducts } from "@/entities/product/lib/getSimilarProducts";
 import {
   ExpandingGallery,
@@ -21,16 +13,15 @@ import {
 import { SimilarSouls } from "@/widgets/similar-souls";
 import { AIProcess } from "@/widgets/ai-process";
 import SectionFlow from "@/shared/ui/SectionFlow";
-import { getProcessSteps, isPaintableProduct } from "../model/artTemplateConfig";
+import { PRODUCT_PROCESS_STEPS } from "../model/processSteps";
 
 /**
- * Storefront template de los productos de arte: los tres formatos de entrega
- * (Digital, Canvas, Poster) comparten la misma página —ficha + este orden de
- * secciones— y solo se diferencian en qué bloques aparecen.
+ * Storefront template del rompecabezas: ficha + este orden de secciones.
  *
- * Dos ejes deciden esas diferencias: `template` (el formato) y `artKind` (si la
- * obra es coloreable o arte terminado). Las reglas están en
- * `model/artTemplateConfig.ts`; acá solo se aplican.
+ * ClawAndSoul ramificaba aquí por dos ejes (`template` × `artKind`) porque
+ * vendía tres formatos de entrega con dos tipos de contenido. ClawPuzzle vende
+ * un solo producto físico, así que no queda nada que ramificar: la página es
+ * la misma siempre.
  */
 export default function ArtProductTemplate({
   product,
@@ -42,16 +33,9 @@ export default function ArtProductTemplate({
   faqs,
   frameStyle,
   template,
-  artKind,
 }: ProductTemplateProps) {
   const similarProducts = getSimilarProducts(product);
-  const relatedAccessories = getRelatedAccessories(product);
-  // Curado en Shopify y ya incluido en el producto: no hace falta esperar red
-  // para saber si la sección tiene contenido.
-  const alternative = getArtKindAlternative(product);
-  // Los accesorios de pintura solo aplican a la obra coloreable.
-  const isPaintable = isPaintableProduct(template, artKind);
-  const processSteps = getProcessSteps(template, isPaintable);
+  const processSteps = PRODUCT_PROCESS_STEPS;
 
   // Los datos de estas dos secciones se resuelven acá y no dentro de su widget:
   // SectionFlow necesita saber cuáles van a tener contenido antes de repartir
@@ -60,8 +44,7 @@ export default function ArtProductTemplate({
   const {
     items: sameStyleItems,
     styleName,
-    artKind: galleryArtKind,
-  } = useSameStyleItems(handle, { template, artKind });
+  } = useSameStyleItems(handle);
 
   return (
     <>
@@ -75,7 +58,6 @@ export default function ArtProductTemplate({
             setMainImage={setMainImage}
             frameStyle={frameStyle}
             template={template}
-            artKind={artKind}
           />
         </div>
       </div>
@@ -118,7 +100,7 @@ export default function ArtProductTemplate({
             node: (
               <ExpandingGallery
                 eyebrow={styleName ?? "Same style"}
-                title={sameStyleGalleryTitle(galleryArtKind)}
+                title={sameStyleGalleryTitle()}
                 items={sameStyleItems}
                 background=""
               />
@@ -128,23 +110,6 @@ export default function ArtProductTemplate({
             id: "similar",
             when: similarProducts.length > 0,
             node: <SimilarSouls products={similarProducts} />,
-          },
-          {
-            id: "accessories",
-            when: isPaintable && relatedAccessories.length > 0,
-            node: (
-              <RelatedProducts accessories={relatedAccessories} background="" />
-            ),
-          },
-          {
-            id: "alternative",
-            when: alternative.target != null && alternative.options.length > 0,
-            node: (
-              <ArtKindAlternative
-                options={alternative.options}
-                target={alternative.target!}
-              />
-            ),
           },
           {
             id: "faq",

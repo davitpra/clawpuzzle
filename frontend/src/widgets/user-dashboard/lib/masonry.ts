@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-// Mecánica compartida por las galerías del dashboard (AllArtWorks, AllPbn):
+// Mecánica compartida por las galerías del dashboard:
 // masonry con scroll infinito. Vivía dentro de AllArtWorks; se extrajo aquí para
 // que ambas galerías se comporten igual sin duplicar la lógica.
 

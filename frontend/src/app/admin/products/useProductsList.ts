@@ -5,13 +5,10 @@ import {
   AdminStyle,
   SyncStatus,
 } from "@/entities/admin/api";
-import { resolveArtKind } from "@/entities/product/model/artKind";
 import {
-  ACCESSORY_TEMPLATE,
   resolveTemplate,
 } from "./_components/ProductsTable";
 
-type FulfillmentMethod = "in_house" | "pod";
 
 /** Espera a que el backend termine la sincronización, que corre en async. */
 const SYNC_SETTLE_MS = 1500;
@@ -36,11 +33,7 @@ export function useProductsList(productTypeMap: Record<string, string>) {
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const [savingStyle, setSavingStyle] = useState<string | null>(null);
-  const [savingFulfillment, setSavingFulfillment] = useState<string | null>(
-    null,
-  );
   const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
-  const [savingPbn, setSavingPbn] = useState(false);
   const [savingCreditPack, setSavingCreditPack] = useState(false);
   const [deletingTarget, setDeletingTarget] = useState<AdminProduct | null>(
     null,
@@ -99,11 +92,11 @@ export function useProductsList(productTypeMap: Record<string, string>) {
   };
 
   /**
-   * Los roles PBN y Credit Pack son excluyentes: asignar uno desasigna al
-   * anterior. El backend garantiza la unicidad; aquí solo la reflejamos.
+   * El rol Credit Pack es excluyente: asignar uno desasigna al anterior.
+   * El backend garantiza la unicidad; aquí solo la reflejamos.
    */
   const setExclusiveRole = async (
-    field: "isPaintByNumbers" | "isCreditPack",
+    field: "isCreditPack",
     productId: string,
     save: (target: string | null) => Promise<void>,
     setSaving: (value: boolean) => void,
@@ -161,17 +154,6 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     }
   };
 
-  const handleFulfillmentChange = async (productId: string, value: string) => {
-    const fulfillmentMethod = value as FulfillmentMethod;
-    setSavingFulfillment(productId);
-    await runOptimistic(
-      (prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, fulfillmentMethod } : p)),
-      () => adminApi.products.update(productId, { fulfillmentMethod }),
-    );
-    setSavingFulfillment(null);
-  };
-
   const handleTemplateChange = async (productId: string, value: string) => {
     const template = value || null;
     setSavingTemplate(productId);
@@ -203,14 +185,6 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     setSavingStyle(null);
   };
 
-  const handlePbnChange = (productId: string) =>
-    setExclusiveRole(
-      "isPaintByNumbers",
-      productId,
-      (target) => adminApi.products.setPbn(target),
-      setSavingPbn,
-    );
-
   const handleCreditPackChange = (productId: string) =>
     setExclusiveRole(
       "isCreditPack",
@@ -219,66 +193,46 @@ export function useProductsList(productTypeMap: Record<string, string>) {
       setSavingCreditPack,
     );
 
-  const pbnProduct = products.find((p) => p.isPaintByNumbers) ?? null;
   const creditPackProduct = products.find((p) => p.isCreditPack) ?? null;
 
-  // Los productos asignados a un rol especial se muestran en su card y se
-  // excluyen de las tablas para no duplicarlos. El resto se reparte en dos
-  // pasos: primero por formato (un producto es accesorio cuando su template
-  // efectivo es "Accessory", que sale del metafield `custom.art_kind` de Shopify
-  // —sync → `isAccessory`— o, para los legacy, del template guardado / el
-  // productType) y después por contenido (`resolveArtKind`, que cae al template
-  // para los legacy sin metafield). Lo que no se puede clasificar —template
-  // vacío o "Credits"— va a su propia lista en vez de desaparecer, para que un
-  // producto mal etiquetado en Shopify se note.
-  const { pbnProducts, printProducts, unclassifiedProducts, accessoryProducts } =
-    useMemo(() => {
-      const specialIds = new Set(
-        [pbnProduct?.id, creditPackProduct?.id].filter(Boolean),
-      );
-      const buckets = {
-        pbnProducts: [] as AdminProduct[],
-        printProducts: [] as AdminProduct[],
-        unclassifiedProducts: [] as AdminProduct[],
-        accessoryProducts: [] as AdminProduct[],
-      };
+  // El producto de créditos tiene su propia card, así que se excluye de la
+  // tabla para no duplicarlo. El resto se reparte por `template`: lo que no se
+  // puede clasificar va a su propia lista en vez de desaparecer, para que un
+  // producto sin template en el admin se note.
+  const { puzzleProducts, unclassifiedProducts } = useMemo(() => {
+    const specialIds = new Set([creditPackProduct?.id].filter(Boolean));
+    const buckets = {
+      puzzleProducts: [] as AdminProduct[],
+      unclassifiedProducts: [] as AdminProduct[],
+    };
 
-      for (const p of products) {
-        if (specialIds.has(p.id)) continue;
-        const template = resolveTemplate(p, productTypeMap);
-        if (template === ACCESSORY_TEMPLATE) {
-          buckets.accessoryProducts.push(p);
-          continue;
-        }
-        const artKind = resolveArtKind(template, p.artKind);
-        if (artKind === "pbn") buckets.pbnProducts.push(p);
-        else if (artKind === "print") buckets.printProducts.push(p);
-        else buckets.unclassifiedProducts.push(p);
+    for (const p of products) {
+      if (specialIds.has(p.id)) continue;
+      if (resolveTemplate(p, productTypeMap) === "Puzzle") {
+        buckets.puzzleProducts.push(p);
+      } else {
+        buckets.unclassifiedProducts.push(p);
       }
+    }
 
-      return buckets;
-    }, [products, productTypeMap, pbnProduct?.id, creditPackProduct?.id]);
+    return buckets;
+  }, [products, productTypeMap, creditPackProduct?.id]);
 
   return {
     // data
     products,
     styles,
     syncStatus,
-    pbnProduct,
     creditPackProduct,
-    pbnProducts,
-    printProducts,
+    puzzleProducts,
     unclassifiedProducts,
-    accessoryProducts,
     // status
     loading,
     error,
     syncing,
     toggling,
     savingStyle,
-    savingFulfillment,
     savingTemplate,
-    savingPbn,
     savingCreditPack,
     deletingTarget,
     deleting,
@@ -289,10 +243,8 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     handleSync,
     handleToggle,
     handleDelete,
-    handleFulfillmentChange,
     handleTemplateChange,
     handleStyleChange,
-    handlePbnChange,
     handleCreditPackChange,
   };
 }

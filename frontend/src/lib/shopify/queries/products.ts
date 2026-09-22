@@ -130,9 +130,6 @@ export const GET_PRODUCT = `
               handle
               productType
               description
-              artKind: metafield(namespace: "custom", key: "art_kind") {
-                value
-              }
               images(first: 1) {
                 edges {
                   node {

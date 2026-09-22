@@ -35,7 +35,6 @@ interface ProductDetailsProps {
   /** Formato de entrega normalizado (Digital | Canvas | Poster…), para el label del tipo de producto. */
   template?: string;
   /** Contenido de la obra: "pbn" | "print"; undefined si no está asignado. */
-  artKind?: string | null;
 }
 
 export default function ProductDetails({
@@ -46,7 +45,6 @@ export default function ProductDetails({
   setMainImage,
   frameStyle = "art",
   template,
-  artKind,
 }: ProductDetailsProps) {
   const selectedVariant = product.variants.edges.find(
     (v) => v.node.id === selectedVariantId,
@@ -164,7 +162,6 @@ export default function ProductDetails({
             product={product}
             selectedVariant={selectedVariant}
             template={template}
-            artKind={artKind}
           />
 
           <div className="h-px w-full bg-text-main/10"></div>

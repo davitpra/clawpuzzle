@@ -12,17 +12,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 export async function fetchStyles(): Promise<StyleData> {
   const byHandle = new Map<string, string>();
   const templateByHandle = new Map<string, string>();
-  const artKindByHandle = new Map<string, string>();
   const difficultyByHandle = new Map<string, string>();
-  const pbnHandles = new Set<string>();
   const categoryByStyle = new Map<string, string>();
   const result: StyleData = {
     byHandle,
     templateByHandle,
-    artKindByHandle,
     difficultyByHandle,
-    pbnHandles,
-    pbnKitHandle: null,
     creditPackHandle: null,
     categoryByStyle,
   };
@@ -35,17 +30,11 @@ export async function fetchStyles(): Promise<StyleData> {
     const list = Array.isArray(json) ? json : json.data;
     for (const bp of list) {
       if (!bp.shopifyHandle) continue;
-      // El template del backend es el formato de entrega canónico del storefront.
+      // El template del backend es el tipo de producto canónico del storefront.
       const template = normalizeTemplate(bp.template);
       if (template) templateByHandle.set(bp.shopifyHandle, template);
-      if (bp.artKind) artKindByHandle.set(bp.shopifyHandle, bp.artKind);
-      // Un producto es coloreable (PBN) si es el kit dedicado, su contenido es
-      // "pbn", o conserva el template legacy "PBN" (datos sin artKind).
-      if (bp.isPaintByNumbers || bp.artKind === "pbn" || bp.template === "PBN")
-        pbnHandles.add(bp.shopifyHandle);
-      // Los roles dedicados (marcados en el admin) son únicos y tienen su propia
-      // landing: el kit PBN → /studio, el Credit Pack → /credits.
-      if (bp.isPaintByNumbers) result.pbnKitHandle = bp.shopifyHandle;
+      // El Credit Pack es un rol dedicado (único, marcado en el admin) con su
+      // propia landing: /credits.
       if (bp.isCreditPack) result.creditPackHandle = bp.shopifyHandle;
       const name = bp.style?.displayName;
       if (!name) continue;

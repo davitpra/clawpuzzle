@@ -10,7 +10,7 @@ export default function BrandBanner() {
     <div className="py-12 text-center">
       <Container>
         <p className="font-display text-5xl font-black uppercase leading-none tracking-tight text-slate-dark md:text-6xl">
-          Claw &amp; Soul
+          ClawPuzzle
         </p>
         <p className="mt-5 text-base font-bold uppercase tracking-wide text-slate-dark md:text-lg">
           Love with claws care with soul

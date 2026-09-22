@@ -8,21 +8,18 @@ import {
   StyleDifficulty,
 } from "@/entities/art-style/model/difficulty";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
-import { CanvasEdgeOverlay } from "@/entities/product/ui/CanvasEdgeOverlay";
+import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 
 // Aspecto de "poster flotando": ligera elevación y sombra teñida en teal al hover.
 export const posterClasses =
   "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.50)]";
 
 // Efecto por tipo de producto en la card (mismo lenguaje visual que la galería
-// del producto): "canvas" con sombra de canto + oscurecido interior de bordes;
-// "poster" con margen de papel blanco y línea hairline; "accessory" es una foto
-// de producto con sombra suave apoyada; "art" queda plano.
+// del producto): "puzzle" con sombra de canto, sobre la que se superpone la
+// retícula de piezas; "art" queda plano.
 const FRAME_CLASS: Record<FrameStyle, string> = {
   art: "",
-  canvas: "shadow-[6px_8px_16px_-8px_rgba(16,54,66,0.42)]",
-  poster: "border border-black/10 p-2",
-  accessory: "p-4 shadow-[0_12px_28px_-14px_rgba(16,54,66,0.28)]",
+  puzzle: "shadow-[6px_8px_16px_-8px_rgba(16,54,66,0.42)]",
   // Los créditos usan un layout de "moneda flotante" propio (ver más abajo), no
   // el <Card>, así que estas clases no se aplican.
   credits: "",
@@ -54,7 +51,7 @@ interface ProductCardProps {
 }
 
 /**
- * Tarjeta de producto "poster" reutilizable de Claw & Soul.
+ * Tarjeta de producto "poster" reutilizable de ClawPuzzle.
  * Es agnóstica al ancho: ocupa el 100% de su contenedor, por lo que el ancho lo
  * define el padre (celda de grilla o item de carrusel con `flex-[0_0_...]`).
  */
@@ -73,24 +70,16 @@ export function ProductCard({
   onImageError,
 }: ProductCardProps) {
   const badge = label ?? product.label;
-  // En los coloreables (contenido PBN, en cualquier formato) mostramos qué tan
-  // difícil es pintarlos. El kit dedicado es agnóstico al estilo, así que si no
-  // tiene una dificultad concreta asignada mostramos "All levels" en su lugar.
-  const difficultyLabel = product.isPaintByNumbers
-    ? (DIFFICULTY_LABELS[product.difficulty as StyleDifficulty] ?? "All levels")
-    : null;
+  // Dificultad del estilo de arte, cuando el producto tiene uno asignado.
+  const difficultyLabel =
+    DIFFICULTY_LABELS[product.difficulty as StyleDifficulty] ?? null;
   // Sin href explícito ni handle de Shopify (p. ej. items de una orden) la card no
   // enlaza a ningún sitio: se renderiza sin `<Link>` en vez de a `/product/undefined`.
   const linkHref =
     href ??
     (product.shopifyHandle ? `/product/${product.shopifyHandle}` : undefined);
 
-  // Los accesorios son fotos de producto: se sienten "apoyados", así que no
-  // reciben el lift al hover (translate + sombra profunda) del resto de tipos.
-  const hoverClasses =
-    frameStyle === "accessory"
-      ? "transition-all duration-300 ease-out"
-      : posterClasses;
+  const hoverClasses = posterClasses;
 
   const poster = (
     <Card
@@ -102,7 +91,7 @@ export function ProductCard({
     >
       {/* Oscurecido interior de bordes del canvas (va primero para no teñir el
           badge, que se pinta encima). */}
-      {frameStyle === "canvas" && <CanvasEdgeOverlay />}
+      {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
       <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
         {artKindBadge && (
           <span className="bg-white text-slate-dark text-[10px] font-bold uppercase px-4 py-1 rounded-full tracking-wider">
@@ -188,12 +177,9 @@ export function ProductCard({
         )}
 
         {/* Personalizar con IA se paga con saldo, no con dinero: 1 crédito por
-            obra. Se muestra junto al precio para dejar claro el costo del kit.
-            Los accesorios (foto de producto) y los propios packs de créditos no
-            se personalizan, así que se excluyen. */}
-        {showPrice &&
-          frameStyle !== "accessory" &&
-          frameStyle !== "credits" && (
+            obra. Se muestra junto al precio para dejar claro el costo. Los
+            packs de créditos no se personalizan, así que se excluyen. */}
+        {showPrice && frameStyle !== "credits" && (
             <p className="flex items-center gap-1 text-xs font-semibold text-slate-dark/60">
               <span className="material-symbols-outlined text-[14px] text-primary">
                 paid

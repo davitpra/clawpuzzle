@@ -22,7 +22,7 @@ interface GenerationProductCardProps {
   generationId: string;
   /** La obra generada: miniatura de la card y `image_url` de la línea de carrito. */
   artworkUrl: string;
-  /** "Canvas Print · Print Art", que el consumidor arma con template + artKind. */
+  /** Label del tipo de producto, que el consumidor arma con `template`. */
   productLabel: string;
   /** Nombre del estilo; viaja al checkout como atributo "Style". */
   styleName?: string | null;

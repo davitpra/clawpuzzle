@@ -27,11 +27,9 @@ import { Container } from "@/shared/ui/Container";
 // defecto de la barra.
 const ALL_CHIPS = "all";
 
-// Solo los productos con rol dedicado en el admin ("Producto Paint by Numbers" y
-// "Producto Credit Pack") tienen su propia landing en vez de la página genérica
-// /product/{handle}. El resto de los PBN por estilo mantienen su página normal.
+// El Credit Pack es el único producto con rol dedicado en el admin: tiene su
+// propia landing en vez de la página genérica /product/{handle}.
 function productHref(product: CatalogProduct): string | undefined {
-  if (product.isPbnKit) return "/studio";
   if (product.isCreditPack) return "/credits";
   return undefined;
 }

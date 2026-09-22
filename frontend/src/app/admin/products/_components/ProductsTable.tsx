@@ -15,29 +15,16 @@ import { AdminProduct, AdminStyle } from "@/entities/admin/api";
 import { ActiveToggleBadge } from "@/app/admin/_components/ActiveToggleBadge";
 import {
   normalizeTemplate,
-  templateLabel,
 } from "@/entities/product/lib/template";
 import { SortColumn, useTableSort } from "@/hooks/useTableSort";
 
-// El template es el formato de entrega del storefront: Digital es la descarga
-// del coloreable; Canvas/Poster son los físicos. El contenido (coloreable vs
-// arte terminado) es el otro eje, artKind; no tiene columna propia porque la
-// página ya reparte los productos en una tabla por artKind.
+// El template es el tipo de producto del storefront. ClawPuzzle vende dos
+// cosas, así que la lista es corta: el rompecabezas y los packs de créditos.
 export const TEMPLATE_OPTIONS = [
   { label: "Por defecto", value: "" },
-  { label: "Digital (descarga)", value: "Digital" },
-  { label: "Canvas", value: "Canvas" },
-  { label: "Poster", value: "Poster" },
+  { label: "Puzzle", value: "Puzzle" },
   { label: "Credits", value: "Credits" },
-  { label: "Accessory", value: "Accessory" },
 ];
-
-/**
- * Formato de los accesorios. Su fuente de verdad es el metafield `custom.art_kind`
- * de Shopify, que el sync baja a `isAccessory`; este valor sigue existiendo como
- * template para los productos legacy marcados a mano o vía `productType`.
- */
-export const ACCESSORY_TEMPLATE = "Accessory";
 
 /** Valores de template que el Select acepta (sin la opción vacía "Por defecto"). */
 const VALID_TEMPLATES = new Set(
@@ -45,17 +32,14 @@ const VALID_TEMPLATES = new Set(
 );
 
 /**
- * Template efectivo de un producto: si Shopify lo marcó como accesorio (metafield
- * `custom.art_kind`, que el sync baja a `isAccessory`) manda eso; si no, el
- * template guardado; si no, el `productType` de Shopify (solo si es una opción
- * válida); si no, "". normalizeTemplate absorbe el valor legacy "PBN" (alias de
- * "Digital"). Compartido entre la partición de la página y el default del Select.
+ * Template efectivo de un producto: el template guardado; si no, el
+ * `productType` de Shopify (solo si es una opción válida); si no, "".
+ * Compartido entre la partición de la página y el default del Select.
  */
 export function resolveTemplate(
-  p: Pick<AdminProduct, "template" | "shopifyHandle" | "isAccessory">,
+  p: Pick<AdminProduct, "template" | "shopifyHandle">,
   productTypeMap: Record<string, string>,
 ): string {
-  if (p.isAccessory) return ACCESSORY_TEMPLATE;
   if (p.template) return normalizeTemplate(p.template);
   const shopifyType = normalizeTemplate(
     p.shopifyHandle ? productTypeMap[p.shopifyHandle] : undefined,
@@ -72,12 +56,10 @@ interface ProductsTableProps {
   /** La tabla de accesorios no asigna estilo, así que oculta esa columna. */
   showStyleColumn?: boolean;
   savingStyle: string | null;
-  savingFulfillment: string | null;
   savingTemplate: string | null;
   toggling: string | null;
   onRowClick: (id: string) => void;
   onStyleChange: (productId: string, styleId: string) => void;
-  onFulfillmentChange: (productId: string, value: string) => void;
   onTemplateChange: (productId: string, value: string) => void;
   onToggleActive: (product: AdminProduct) => void;
   onDelete: (product: AdminProduct) => void;
@@ -94,12 +76,10 @@ export function ProductsTable({
   productTypeMap,
   showStyleColumn = false,
   savingStyle,
-  savingFulfillment,
   savingTemplate,
   toggling,
   onRowClick,
   onStyleChange,
-  onFulfillmentChange,
   onTemplateChange,
   onToggleActive,
   onDelete,
@@ -118,7 +98,6 @@ export function ProductsTable({
           },
         ]
       : []),
-    { title: "Fulfillment", sortBy: (p) => p.fulfillmentMethod ?? "in_house" },
     { title: "Template", sortBy: (p) => resolveTemplate(p, productTypeMap) },
     {
       title: "Estado",
@@ -193,40 +172,7 @@ export function ProductsTable({
           )}
 
           <IndexTable.Cell>
-            <div onClick={(e) => e.stopPropagation()}>
-              <InlineStack gap="200" blockAlign="center">
-                <div style={{ minWidth: 170 }}>
-                  <Select
-                    label=""
-                    labelHidden
-                    disabled={savingFulfillment === p.id}
-                    value={p.fulfillmentMethod ?? "in_house"}
-                    onChange={(value) => onFulfillmentChange(p.id, value)}
-                    options={[
-                      { label: "Taller (in-house)", value: "in_house" },
-                      { label: "POD (externo)", value: "pod" },
-                    ]}
-                  />
-                </div>
-                {savingFulfillment === p.id && <Spinner size="small" />}
-              </InlineStack>
-            </div>
-          </IndexTable.Cell>
-
-          <IndexTable.Cell>
-            {/* Los accesorios los declara el metafield custom.art_kind de
-                Shopify, así que su formato es de solo lectura: dejarlo editable
-                invitaría a un cambio que el siguiente sync revierte. */}
-            {p.isAccessory ? (
-              <BlockStack gap="0">
-                <Text variant="bodyMd" as="span">
-                  {templateLabel(ACCESSORY_TEMPLATE)}
-                </Text>
-                <Text variant="bodySm" tone="subdued" as="span">
-                  Se edita en Shopify
-                </Text>
-              </BlockStack>
-            ) : (
+            {(
               <div onClick={(e) => e.stopPropagation()}>
                 <InlineStack gap="200" blockAlign="center">
                   <div style={{ minWidth: 150 }}>

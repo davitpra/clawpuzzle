@@ -4,9 +4,9 @@ import { ShopifyProduct } from "@/lib/shopify";
 import Image from "next/image";
 import { Carousel } from "@/shared/ui/Carousel";
 import { ImageZoom } from "@/shared/ui/ImageZoom";
-import { FRAME_SHADOWS, POSTER_FRAME } from "@/entities/product/lib/frameStyle";
+import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
-import { CanvasEdgeOverlay } from "@/entities/product/ui/CanvasEdgeOverlay";
+import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 import { SetLighting } from "@/entities/product/ui/SetLighting";
 import {
   setArtworkFilter,
@@ -37,24 +37,20 @@ export default function ProductGallery({
 
   const baseImageClassName =
     "w-full h-auto bg-white transition-all duration-300 ease-out";
-  // The frame effect (canvas/poster/art) only applies to the primary product
-  // image; secondary catalog images stay neutral with the art float. La sombra
-  // de la principal ya no va aquí: la pone SetLighting (cálida), así que del
-  // marco solo queda el margen de papel del póster.
-  const primaryImageClassName = `${baseImageClassName} ${
-    frameStyle === "poster" ? POSTER_FRAME : ""
-  }`;
+  // La sombra de la principal no va aquí: la pone SetLighting (cálida). El
+  // efecto de puzzle es un overlay aparte, así que la imagen queda limpia.
+  const primaryImageClassName = baseImageClassName;
   const secondaryImageClassName = `${baseImageClassName} ${FRAME_SHADOWS.art}`;
-  // Only "art" deepens its shadow on hover; canvas/poster keep their base shadow
-  // so the edge effect survives the hover state. The lift is on the wrapper so
-  // the canvas darkening overlay travels together with the image.
+  // Only "art" deepens its shadow on hover; "puzzle" keeps its base shadow so
+  // the piece grid survives the hover state. The lift is on the wrapper so the
+  // overlay travels together with the image.
   const hoverShadowClass = frameStyle === "art" ? SET_ARTWORK_SHADOW_HOVER : "";
   const sizes = "(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px";
 
   const isCarousel = uniqueImages.length > 1;
 
   // The primary image: width-scaled wrapper that lifts on hover and carries the
-  // optional canvas darkening overlay on top of the image. La luz del set
+  // optional puzzle piece overlay on top of the image. La luz del set
   // (sombra cálida + sol + penumbra) envuelve todo eso, así que se levanta junto
   // con la imagen en el hover.
   const renderPrimary = (src: string) => (
@@ -75,7 +71,7 @@ export default function ProductGallery({
           priority
         />
       </ImageZoom>
-      {frameStyle === "canvas" && <CanvasEdgeOverlay />}
+      {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
     </SetLighting>
   );
 

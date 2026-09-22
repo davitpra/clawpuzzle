@@ -60,7 +60,7 @@ export default function WhyItMatters() {
                   >
                     <Image
                       src="/Logo.svg"
-                      alt="Claw & Soul"
+                      alt="ClawPuzzle"
                       width={32}
                       height={32}
                       className="mx-auto size-8 brightness-0 invert"

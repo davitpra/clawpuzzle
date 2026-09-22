@@ -1,8 +1,5 @@
 // Tipos para el dashboard de cuenta de usuario. Reflejan las respuestas de los
-// endpoints user-scoped del backend (orders / generations / paint-by-numbers /
-// users/me).
-
-import type { PbnConfig } from "@/lib/pbn/config";
+// endpoints user-scoped del backend (orders / generations / users/me).
 
 // El backend envuelve todas las respuestas con un Transform interceptor global.
 export interface ApiEnvelope<T> {
@@ -102,7 +99,7 @@ export interface UserGeneration {
   id: string;
   status: string;
   // Medio de la generación ("image" | "video"), NO el producto. El tipo de
-  // producto sale de `productRef` (template + artKind).
+  // producto sale de `productRef` (template).
   type: string;
   resultUrl: string | null;
   thumbnailUrl: string | null;
@@ -115,7 +112,6 @@ export interface UserGeneration {
     id: string;
     displayName?: string;
     template?: string | null;
-    artKind?: string | null;
   } | null;
 }
 
@@ -135,57 +131,6 @@ export interface UserGenerationDetail extends UserGeneration {
 }
 
 // Respuesta de GET /paint-by-numbers/:id (user-scoped). El backend proyecta con
-// USER_PBN_SELECT: fuera `userId` y las storage keys, y de la generación de
-// origen sólo viaja el estilo — el prompt engineering es IP y no sale de las
-// rutas admin.
-export interface UserPbnDetail {
-  id: string;
-  generationId: string | null;
-  petId: string | null;
-  sourceImageUrl: string | null;
-  outlineSvgUrl: string | null;
-  previewUrl: string | null;
-  paletteUrl: string | null;
-  colorCount: number | null;
-  /** customer | admin */
-  origin: string;
-  /** saved | ordered */
-  status: string;
-  isPublic: boolean;
-  createdAt: string;
-  config: PbnConfig | null;
-  /** Null en los PBNs guardados antes de heredar el pet de la generación. */
-  pet: { id: string; name: string } | null;
-  generation: {
-    id: string;
-    pet: { id: string; name: string } | null;
-    style: { displayName?: string | null; category?: string | null } | null;
-  } | null;
-}
-
-// Respuesta de GET /paint-by-numbers (user-scoped, paginada). El backend proyecta
-// con USER_PBN_LIST_SELECT: como el detalle pero sin `config` ni las storage keys.
-export interface UserPbnListItem {
-  id: string;
-  sourceImageUrl: string | null;
-  previewUrl: string | null;
-  outlineSvgUrl: string | null;
-  paletteUrl: string | null;
-  colorCount: number | null;
-  /** saved | ordered */
-  status: string;
-  /** customer | admin */
-  origin: string;
-  createdAt: string;
-  /** Casi siempre null: al guardar un PBN no se manda `petId`. Ver `generation.pet`. */
-  pet: { id: string; name: string } | null;
-  generation: {
-    id: string;
-    pet: { id: string; name: string } | null;
-    style: { displayName?: string | null; category?: string | null } | null;
-  } | null;
-}
-
 export interface UserPetPhoto {
   id: string;
   photoUrl: string;

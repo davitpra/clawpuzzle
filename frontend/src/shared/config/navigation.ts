@@ -21,7 +21,6 @@ export interface NavSection {
 
 /** Links principales del header, en el orden en que se muestran. */
 const FULL_MAIN_NAV: NavLink[] = [
-  { label: "Studio", href: "/studio" },
   { label: "Catalog", href: "/catalog" },
   { label: "Contact", href: "/contact" },
 ];
@@ -43,7 +42,6 @@ const ACCOUNT_SECTION: NavSection = {
   links: [
     { label: "My Account", href: "/user" },
     { label: "My Artworks", href: "/user/generations" },
-    { label: "My PBN Projects", href: "/user/pbn" },
     { label: "Orders", href: "/user/orders" },
   ],
 };
@@ -63,10 +61,7 @@ const FULL_FOOTER_SECTIONS: NavSection[] = [
   {
     title: "Create",
     links: [
-      { label: "Paint by Numbers Studio", href: "/studio" },
-      // El generador solo se abre desde la ficha de un producto, así que el
-      // link entra por el catálogo de prints.
-      { label: "AI Pet Portraits", href: "/catalog?intent=print" },
+      { label: "Custom Pet Puzzle", href: "/catalog" },
       { label: "How It Works", href: "/studio-landing" },
       { label: "Buy Credits", href: "/credits" },
     ],
@@ -74,13 +69,8 @@ const FULL_FOOTER_SECTIONS: NavSection[] = [
   {
     title: "Shop",
     links: [
-      // `all` en ambos ejes desmarca los chips: sin él /catalog abre con los
-      // valores por defecto (Paint by numbers + Digital), que no es "todo".
-      { label: "All Products", href: "/catalog?intent=all&format=all" },
-      { label: "Paint by Numbers", href: "/catalog?intent=pbn" },
-      { label: "Canvas Prints", href: "/catalog?intent=print&format=Canvas" },
-      { label: "Posters", href: "/catalog?intent=print&format=Poster" },
-      { label: "Accessories", href: "/catalog?intent=accessory" },
+      { label: "All Puzzles", href: "/catalog" },
+      { label: "Buy Credits", href: "/credits" },
     ],
   },
   ACCOUNT_SECTION,
@@ -96,8 +86,6 @@ const FULL_FOOTER_SECTIONS: NavSection[] = [
 
 // Se cae la columna "Shop" entera (todo son links a `/catalog`) y los anclas
 // apuntan a las secciones de la landing, que en lanzamiento vive en `/`.
-// "Free PBN studio" es el único acceso a la puerta lateral desde la navegación,
-// y a propósito va discreto al final de la columna.
 const LAUNCH_FOOTER_SECTIONS: NavSection[] = [
   {
     title: "Create",
@@ -105,7 +93,6 @@ const LAUNCH_FOOTER_SECTIONS: NavSection[] = [
       { label: "Create your art", href: "/#styles" },
       { label: "How It Works", href: "/#how-it-works" },
       { label: "Buy Credits", href: "/credits" },
-      { label: "Free PBN studio", href: "/studio" },
     ],
   },
   ACCOUNT_SECTION,
@@ -128,8 +115,8 @@ export const FOOTER_SECTIONS: NavSection[] = LAUNCH_MODE
  * perfiles reales antes de producción.
  */
 export const BRAND = {
-  name: "Claw & Soul",
-  email: "hello@clawandsoul.com",
+  name: "ClawPuzzle",
+  email: "hello@clawpuzzle.com",
   facebookUrl: "#",
   instagramUrl: "#",
 } as const;

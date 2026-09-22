@@ -56,11 +56,8 @@ function toCatalogProduct(
     productType:
       styleData.templateByHandle.get(node.handle) ??
       normalizeTemplate(node.productType),
-    artKind: styleData.artKindByHandle.get(node.handle) ?? "",
     style: styleData.byHandle.get(node.handle) ?? "",
     difficulty: styleData.difficultyByHandle.get(node.handle) ?? "",
-    isPaintByNumbers: styleData.pbnHandles.has(node.handle),
-    isPbnKit: node.handle === styleData.pbnKitHandle,
     isCreditPack: node.handle === styleData.creditPackHandle,
     priceAmount,
     onSale,

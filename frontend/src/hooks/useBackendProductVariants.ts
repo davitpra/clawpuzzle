@@ -22,7 +22,6 @@ export interface BackendProductWithVariants {
   description: string | null;
   template?: string | null;
   /** Contenido de la obra: "pbn" (coloreable) o "print" (arte terminado); null si no está asignado. */
-  artKind?: string | null;
   variants: BackendProductVariant[];
 }
 

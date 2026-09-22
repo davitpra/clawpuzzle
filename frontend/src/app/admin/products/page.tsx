@@ -12,7 +12,6 @@ import {
 } from "@shopify/polaris";
 import { RefreshIcon } from "@shopify/polaris-icons";
 import { DeleteProductModal } from "@/app/admin/_components/DeleteProductModal";
-import { ART_KIND_LABELS } from "@/entities/product/model/artKind";
 import { ProductsTableCard } from "./_components/ProductsTableCard";
 import { SpecialRoleCard } from "./_components/SpecialRoleCard";
 import { SyncStatusCard } from "./_components/SyncStatusCard";
@@ -26,20 +25,15 @@ export default function AdminProductsPage() {
     products,
     styles,
     syncStatus,
-    pbnProduct,
     creditPackProduct,
-    pbnProducts,
-    printProducts,
+    puzzleProducts,
     unclassifiedProducts,
-    accessoryProducts,
     loading,
     error,
     syncing,
     toggling,
     savingStyle,
-    savingFulfillment,
     savingTemplate,
-    savingPbn,
     savingCreditPack,
     deletingTarget,
     deleting,
@@ -48,10 +42,8 @@ export default function AdminProductsPage() {
     handleSync,
     handleToggle,
     handleDelete,
-    handleFulfillmentChange,
     handleTemplateChange,
     handleStyleChange,
-    handlePbnChange,
     handleCreditPackChange,
   } = useProductsList(productTypeMap);
 
@@ -64,12 +56,10 @@ export default function AdminProductsPage() {
     imageMap,
     productTypeMap,
     savingStyle,
-    savingFulfillment,
     savingTemplate,
     toggling,
     onRowClick: goToProduct,
     onStyleChange: handleStyleChange,
-    onFulfillmentChange: handleFulfillmentChange,
     onTemplateChange: handleTemplateChange,
     onToggleActive: handleToggle,
     onDelete: setDeletingTarget,
@@ -106,50 +96,24 @@ export default function AdminProductsPage() {
           <>
             <ProductsTableCard
               {...tableProps}
-              title={ART_KIND_LABELS.pbn}
-              helpText="Productos cuyo contenido es un coloreable para pintar."
-              products={pbnProducts}
-              showStyleColumn
-            />
-
-            <ProductsTableCard
-              {...tableProps}
-              title={ART_KIND_LABELS.print}
-              helpText="Productos cuyo contenido es arte terminado, listo para colgar."
-              products={printProducts}
+              title="Rompecabezas"
+              helpText="Productos con template Puzzle: el rompecabezas personalizado."
+              products={puzzleProducts}
               showStyleColumn
             />
 
             <ProductsTableCard
               {...tableProps}
               title="Sin clasificar"
-              helpText="Sin contenido asignado: define el metafield custom.art_kind en Shopify y vuelve a sincronizar."
+              helpText="Sin template asignado. Ponles Puzzle o Credits desde su ficha."
               products={unclassifiedProducts}
               showStyleColumn
               hideWhenEmpty
-            />
-
-            <ProductsTableCard
-              {...tableProps}
-              title="Accesorios"
-              products={accessoryProducts}
             />
           </>
         )}
         {!loading && (
           <>
-            <SpecialRoleCard
-              title="Producto Paint by Numbers"
-              label="Kit dedicado al comprar un PBN guardado"
-              helpText="Solo puede haber uno. Elegir otro reemplaza al anterior automáticamente."
-              products={products}
-              selected={pbnProduct}
-              imageMap={imageMap}
-              saving={savingPbn}
-              onChange={handlePbnChange}
-              onRowClick={goToProduct}
-            />
-
             <SpecialRoleCard
               title="Producto Credit Pack"
               label="Producto dedicado a la venta de créditos"

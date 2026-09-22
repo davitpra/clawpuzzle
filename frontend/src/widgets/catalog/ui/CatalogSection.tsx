@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ProductCard } from "@/entities/pet-product/ui/ProductCard";
 import { toFrameStyle } from "@/entities/product/lib/frameStyle";
-import { artKindLabel } from "@/entities/product/model/artKind";
 import { CatalogProduct } from "../model/types";
 
 // Cuántos productos muestra una sección al inicio y cuántos añade cada "Show more".
@@ -57,7 +56,6 @@ export function CatalogSection({
             href={productHref(product)}
             frameStyle={toFrameStyle(product.productType)}
             naturalAspect={product.productType !== CROPPED_ASPECT_TYPE}
-            artKindBadge={artKindLabel(product.artKind)}
             showPrice={true}
             showBadge={false}
           />

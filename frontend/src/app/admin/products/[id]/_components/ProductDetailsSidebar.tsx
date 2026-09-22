@@ -18,8 +18,6 @@ type ProductDetailsSidebarProps = {
   styles: AdminStyle[];
   styleId: string;
   onStyleChange: (value: string) => void;
-  fulfillmentMethod: "in_house" | "pod";
-  onFulfillmentChange: (value: "in_house" | "pod") => void;
   saving: boolean;
   onSave: () => void;
 };
@@ -29,8 +27,6 @@ export function ProductDetailsSidebar({
   styles,
   styleId,
   onStyleChange,
-  fulfillmentMethod,
-  onFulfillmentChange,
   saving,
   onSave,
 }: ProductDetailsSidebarProps) {
@@ -53,16 +49,6 @@ export function ProductDetailsSidebar({
           ]}
           value={styleId}
           onChange={onStyleChange}
-        />
-        <Select
-          label="Método de fulfillment"
-          options={[
-            { label: "Taller (in-house)", value: "in_house" },
-            { label: "POD (proveedor externo)", value: "pod" },
-          ]}
-          value={fulfillmentMethod}
-          onChange={(v) => onFulfillmentChange(v as "in_house" | "pod")}
-          helpText="Define cómo se cumplirán los pedidos de este producto por defecto."
         />
         {assignedStyle?.previewUrl && (
           <InlineStack gap="200" blockAlign="center">

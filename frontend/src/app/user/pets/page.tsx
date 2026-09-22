@@ -4,7 +4,7 @@ import { AllPets } from "@/widgets/user-dashboard/ui/AllPets";
 import { getPetsServer } from "@/lib/auth/server-fetch";
 
 export const metadata = {
-  title: "My Pets — Claw & Soul",
+  title: "My Pets — ClawPuzzle",
 };
 
 export default async function UserPetsPage() {

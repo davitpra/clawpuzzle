@@ -9,10 +9,6 @@ import ExpandingGallery from "./ExpandingGallery";
 interface SameStyleGalleryProps {
   /** Handle de Shopify del producto actual; se excluye de los resultados. */
   handle?: string | null;
-  /** Formato de entrega del producto actual; acota los hermanos junto a `artKind`. */
-  template?: string | null;
-  /** Tipo de obra del producto actual; sin él (ni template) no se filtra por ese eje. */
-  artKind?: string | null;
   eyebrow?: string;
   title?: string;
   description?: string;
@@ -31,25 +27,19 @@ interface SameStyleGalleryProps {
  */
 export default function SameStyleGallery({
   handle,
-  template,
-  artKind,
   eyebrow,
   title,
   description,
   background,
 }: SameStyleGalleryProps) {
-  const {
-    items,
-    styleName,
-    artKind: galleryArtKind,
-  } = useSameStyleItems(handle, { template, artKind });
+  const { items, styleName } = useSameStyleItems(handle);
 
   if (items.length === 0) return null;
 
   return (
     <ExpandingGallery
       eyebrow={eyebrow ?? styleName ?? "Same style"}
-      title={title ?? sameStyleGalleryTitle(galleryArtKind)}
+      title={title ?? sameStyleGalleryTitle()}
       description={description}
       items={items}
       background={background}

@@ -8,7 +8,6 @@ import {
   AdminProductVariants,
   AdminProductVariantLink,
 } from "@/entities/admin/api";
-type FulfillmentMethod = "in_house" | "pod";
 
 /**
  * Encapsula toda la carga de datos, estado y acciones de la página de detalle
@@ -38,8 +37,6 @@ export function useProductDetail(id: string) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [styleId, setStyleId] = useState("");
-  const [fulfillmentMethod, setFulfillmentMethod] =
-    useState<FulfillmentMethod>("in_house");
 
   const loadFormats = async () => {
     try {
@@ -75,9 +72,6 @@ export function useProductDetail(id: string) {
         setFormats(f.filter((x) => x.isActive));
         setAllFormats(f);
         setStyleId(p.styleId ?? "");
-        setFulfillmentMethod(
-          (p.fulfillmentMethod as FulfillmentMethod) ?? "in_house",
-        );
         loadVariants(p.id);
       })
       .catch((e: Error) => setError(e.message))
@@ -91,7 +85,6 @@ export function useProductDetail(id: string) {
     try {
       const updated = await adminApi.products.update(product.id, {
         styleId: styleId || null,
-        fulfillmentMethod,
       } as Partial<AdminProduct>);
       setProduct(updated);
     } catch (e: unknown) {
@@ -169,14 +162,12 @@ export function useProductDetail(id: string) {
     deleting,
     // form state
     styleId,
-    fulfillmentMethod,
     // setters
     setError,
     setSaveError,
     setSyncResult,
     setDeleteOpen,
     setStyleId,
-    setFulfillmentMethod,
     // actions
     loadFormats,
     loadVariants,

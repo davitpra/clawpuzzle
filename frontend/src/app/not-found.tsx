@@ -6,7 +6,7 @@ import { Container } from "@/shared/ui/Container";
 import { MAIN_NAV } from "@/shared/config/navigation";
 
 export const metadata: Metadata = {
-  title: "Page not found · Claw & Soul",
+  title: "Page not found · ClawPuzzle",
 };
 
 /** Destinos que ya tienen su propio botón arriba: no se repiten en la fila de

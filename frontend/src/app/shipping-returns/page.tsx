@@ -9,9 +9,9 @@ import { BRAND } from "@/shared/config/navigation";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 
 export const metadata: Metadata = {
-  title: "Shipping & Returns · Claw & Soul",
+  title: "Shipping & Returns · ClawPuzzle",
   description:
-    "How Claw & Soul orders are made, packed and delivered — and what happens if something arrives wrong.",
+    "How ClawPuzzle orders are made, packed and delivered — and what happens if something arrives wrong.",
 };
 
 export default function ShippingReturnsPage() {

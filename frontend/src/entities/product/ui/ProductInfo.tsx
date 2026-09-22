@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { templateLabel } from "@/entities/product/lib/template";
-import { artKindLabel } from "@/entities/product/model/artKind";
 
 interface ProductInfoProps {
   product: ShopifyProduct;
@@ -11,19 +10,17 @@ interface ProductInfoProps {
   /** Formato de entrega normalizado (Digital | Canvas | Poster…). */
   template?: string;
   /** Contenido de la obra: "pbn" | "print"; undefined si no está asignado. */
-  artKind?: string | null;
 }
 
 export default function ProductInfo({
   product,
   selectedVariant,
   template,
-  artKind,
 }: ProductInfoProps) {
   // Tipo de producto de cara al cliente: formato + contenido, ej.
   // "Canvas Print · Paint by Numbers". Cae a "Personalized" si no hay nada.
   const typeLabel =
-    [templateLabel(template), artKindLabel(artKind)]
+    [templateLabel(template)]
       .filter(Boolean)
       .join(" · ") || "Personalized";
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);

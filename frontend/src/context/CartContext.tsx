@@ -38,7 +38,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const GUEST_CART_KEY = "claw_soul_cart";
+const GUEST_CART_KEY = "clawpuzzle_cart";
 
 // Backend wraps responses in { data }
 type CartResponse = { data: { items: CartItem[] } };

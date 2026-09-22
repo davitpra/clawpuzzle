@@ -15,10 +15,6 @@ export interface Product {
   label?: string;
   /** Formato de entrega del storefront configurado en el admin (Digital, Canvas, Poster…). */
   template?: string | null;
-  /** Contenido de la obra: "pbn" (coloreable) o "print" (arte terminado); vacío/null si no está asignado. */
-  artKind?: string | null;
-  /** Marca los kits Paint-by-Numbers; habilita mostrar la dificultad en la card. */
-  isPaintByNumbers?: boolean;
   /** Dificultad del estilo (easy/medium/challenging); solo se muestra en PBN. */
   difficulty?: string;
 }

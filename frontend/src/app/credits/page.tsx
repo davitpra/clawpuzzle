@@ -4,7 +4,7 @@ import { Footer } from "@/widgets/footer";
 import { CreditPackCard } from "@/features/credit-pack-purchase/CreditPackCard";
 
 export const metadata: Metadata = {
-  title: "Buy Generation Credits — Claw & Soul",
+  title: "Buy Generation Credits — ClawPuzzle",
   description:
     "Top up your generation credits to create more AI art of your pet.",
 };

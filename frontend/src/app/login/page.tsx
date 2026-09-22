@@ -61,7 +61,7 @@ function LoginContent() {
           className="absolute left-10 top-10 z-10 flex items-center gap-2 text-white"
         >
           <h2 className="font-display text-white text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] hidden sm:block">
-            Claw & Soul
+            ClawPuzzle
           </h2>
         </Link>
 
@@ -95,7 +95,7 @@ function LoginContent() {
             className="flex items-center gap-2 text-text-main lg:hidden"
           >
             <h2 className="font-display text-text-main text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] hidden sm:block">
-              Claw & Soul
+              ClawPuzzle
             </h2>
           </Link>
 

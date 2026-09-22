@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Container } from "@/shared/ui/Container";
 import { useRouter } from "next/navigation";
-import { CanvasEdgeOverlay } from "@/entities/product/ui/CanvasEdgeOverlay";
+import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 import { SetLighting } from "@/entities/product/ui/SetLighting";
-import { toFrameStyle, POSTER_FRAME } from "@/entities/product/lib/frameStyle";
+import { toFrameStyle } from "@/entities/product/lib/frameStyle";
 import { setArtworkFilter } from "@/entities/product/lib/setLighting";
 import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
@@ -140,7 +140,6 @@ export function IAThanksStep({
                   // Imagen del producto centrada y escalada a la proporción y al
                   // tamaño del formato elegido. Conserva sombra + lienzo + luz.
                   <SetLighting
-                    className={frameStyle === "poster" ? POSTER_FRAME : ""}
                     style={{
                       width: `${widthPct}%`,
                       ...(aspectRatio ? { aspectRatio } : {}),
@@ -160,7 +159,7 @@ export function IAThanksStep({
                       }`}
                       style={setArtworkFilter}
                     />
-                    {frameStyle === "canvas" && <CanvasEdgeOverlay />}
+                    {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
                     {isGenerating && (
                       <div
                         aria-hidden

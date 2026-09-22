@@ -30,7 +30,7 @@ const MATERIAL_SYMBOLS_WOFF2 =
 
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
-  title: "Claw & Soul",
+  title: "ClawPuzzle",
   description: "Capture your pet's soul in art with our personalized gifts.",
 };
 

@@ -4,10 +4,9 @@ import { CSSProperties, useState } from "react";
 import Link from "next/link";
 import { Container } from "@/shared/ui/Container";
 import {
-  POSTER_THUMB_FRAME,
   type FrameStyle,
 } from "@/entities/product/lib/frameStyle";
-import { CanvasEdgeOverlay } from "@/entities/product/ui/CanvasEdgeOverlay";
+import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 
 export interface ExpandingGalleryItem {
   /** Titular de la card; también es el alt por defecto de la imagen. */
@@ -124,9 +123,7 @@ export default function ExpandingGallery({
                 <div className="absolute -inset-[50%] hidden h-[200%] w-[200%] md:block lg:group-data-[state=closed]:blur-sm">
                   <div className="absolute top-[calc(25%+40px)] right-[calc(50%+40px)] aspect-square h-[calc(50%+40px)]">
                     <div
-                      className={`relative h-full w-full overflow-clip ${
-                        item.frameStyle === "poster" ? POSTER_THUMB_FRAME : ""
-                      }`}
+                      className="relative h-full w-full overflow-clip"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -136,7 +133,7 @@ export default function ExpandingGallery({
                         decoding="async"
                         className="h-full w-full object-cover object-top-left"
                       />
-                      {item.frameStyle === "canvas" && <CanvasEdgeOverlay />}
+                      {item.frameStyle === "puzzle" && <PuzzlePieceOverlay />}
                     </div>
                   </div>
                   {item.logoUrl && (

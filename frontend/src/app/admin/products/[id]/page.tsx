@@ -19,7 +19,7 @@ import { LinkedVariantsCard } from "./_components/LinkedVariantsCard";
 import { CreditPackVariantsCard } from "./_components/CreditPackVariantsCard";
 import { DeleteProductModal } from "@/app/admin/_components/DeleteProductModal";
 import { FormatsModal } from "./_components/FormatsModal";
-import { PodConfigModal } from "./_components/PodConfigModal";
+import { PrintConfigModal } from "./_components/PrintConfigModal";
 import {
   useProductDetail,
   type AdminProductVariantLink,
@@ -47,13 +47,11 @@ export default function AdminProductDetailPage() {
     deleteOpen,
     deleting,
     styleId,
-    fulfillmentMethod,
     setError,
     setSaveError,
     setSyncResult,
     setDeleteOpen,
     setStyleId,
-    setFulfillmentMethod,
     loadFormats,
     loadVariants,
     handleSave,
@@ -64,7 +62,7 @@ export default function AdminProductDetailPage() {
 
   // Modal state with no async logic of its own stays local to the view.
   const [formatsModalOpen, setFormatsModalOpen] = useState(false);
-  const [podConfigVariant, setPodConfigVariant] =
+  const [printConfigVariant, setPrintConfigVariant] =
     useState<AdminProductVariantLink | null>(null);
 
   if (loading) {
@@ -151,10 +149,9 @@ export default function AdminProductDetailPage() {
               product={product}
               variants={variants}
               formats={formats}
-              fulfillmentMethod={fulfillmentMethod}
               loadingVariants={loadingVariants}
               onChanged={() => loadVariants(product.id)}
-              onOpenPodConfig={setPodConfigVariant}
+              onOpenPrintConfig={setPrintConfigVariant}
               onManageFormats={() => setFormatsModalOpen(true)}
               onError={setError}
             />
@@ -171,8 +168,6 @@ export default function AdminProductDetailPage() {
             styles={styles}
             styleId={styleId}
             onStyleChange={setStyleId}
-            fulfillmentMethod={fulfillmentMethod}
-            onFulfillmentChange={setFulfillmentMethod}
             saving={saving}
             onSave={handleSave}
           />
@@ -194,13 +189,13 @@ export default function AdminProductDetailPage() {
         onChanged={loadFormats}
       />
 
-      <PodConfigModal
-        variant={podConfigVariant}
+      <PrintConfigModal
+        variant={printConfigVariant}
         productId={product.id}
-        onClose={() => setPodConfigVariant(null)}
+        onClose={() => setPrintConfigVariant(null)}
         onSaved={() => {
           loadVariants(product.id);
-          setPodConfigVariant(null);
+          setPrintConfigVariant(null);
         }}
       />
     </Page>

@@ -9,7 +9,6 @@ import LandingStyles, { LandingStylesSkeleton } from "./LandingStyles";
 import BrandBanner from "./BrandBanner";
 import WhyItMatters from "./WhyItMatters";
 import LandingProducts from "./LandingProducts";
-import LandingRelatedProducts from "./LandingRelatedProducts";
 import { AIProcess, type ProcessStep } from "@/widgets/ai-process";
 import SectionFlow from "@/shared/ui/SectionFlow";
 import { LAUNCH_MODE } from "@/shared/config/launch";
@@ -22,7 +21,7 @@ import { SITE_URL } from "@/shared/config/seo";
  */
 export const studioLandingMetadata: Metadata = {
   metadataBase: SITE_URL,
-  title: "Turn Your Pet Into Art & Paint It Free · Claw & Soul",
+  title: "Turn Your Pet Into Art & Paint It Free · ClawPuzzle",
   description:
     "Create 5 free AI artworks from your pet's photo, turn your favorite into a free printable paint-by-numbers PDF, or order it on canvas.",
   alternates: {
@@ -31,10 +30,10 @@ export const studioLandingMetadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    title: "Turn Your Pet Into Art & Paint It Free · Claw & Soul",
+    title: "Turn Your Pet Into Art & Paint It Free · ClawPuzzle",
     description:
       "Create 5 free AI artworks from your pet's photo, download a free printable paint-by-numbers PDF, or order it on canvas.",
-    siteName: "Claw & Soul",
+    siteName: "ClawPuzzle",
     images: [
       {
         url: "/opengraph-image",
@@ -46,7 +45,7 @@ export const studioLandingMetadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Turn Your Pet Into Art & Paint It Free · Claw & Soul",
+    title: "Turn Your Pet Into Art & Paint It Free · ClawPuzzle",
     description:
       "Create 5 free AI artworks from your pet's photo, download a free printable paint-by-numbers PDF, or order it on canvas.",
     images: ["/opengraph-image"],
@@ -167,12 +166,6 @@ export default function StudioLandingPage() {
               ),
             },
             { id: "showcase", node: <LandingShowcase background="" /> },
-            {
-              id: "related",
-              pin: "white",
-              when: !LAUNCH_MODE,
-              node: <LandingRelatedProducts background="" />,
-            },
             {
               id: "products",
               pin: "white",

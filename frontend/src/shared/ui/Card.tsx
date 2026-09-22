@@ -21,7 +21,7 @@ interface CardProps {
 }
 
 /**
- * Card visual base de Claw & Soul. Por defecto recorta la imagen a 4/5.
+ * Card visual base de ClawPuzzle. Por defecto recorta la imagen a 4/5.
  * Con `naturalAspect` el alto se adapta a la proporción real de la imagen.
  * Los `children` se posicionan con `absolute` sobre la imagen.
  */

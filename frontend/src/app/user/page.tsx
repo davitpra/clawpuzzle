@@ -1,7 +1,7 @@
 import { UserDashboard } from "@/widgets/user-dashboard";
 
 export const metadata = {
-  title: "My Account — Claw & Soul",
+  title: "My Account — ClawPuzzle",
 };
 
 export default function UserDashboardPage() {

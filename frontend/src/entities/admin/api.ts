@@ -1,4 +1,3 @@
-import type { PbnConfig } from "@/lib/pbn/config";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -284,7 +283,6 @@ export interface AdminOrderItem {
     fulfillmentMethod: string;
     shopifyHandle: string | null;
     template: string | null;
-    artKind: string | null;
     isAccessory: boolean;
     isCreditPack: boolean;
     style: { images: { imageUrl: string }[] } | null;
@@ -307,21 +305,6 @@ export interface AdminOrderItem {
     previewUrl: string | null;
     sourceImageUrl: string | null;
   } | null;
-}
-
-// Config JSON persisted with a PBN. Vive en `lib/pbn` porque también la lee el
-// dashboard de usuario; se reexporta aquí para no romper los imports de admin.
-export type { PbnConfig };
-
-export interface AdminPaintByNumbers {
-  id: string;
-  sourceImageUrl: string | null;
-  outlineSvgUrl: string | null;
-  previewUrl: string | null;
-  paletteUrl: string | null;
-  colorCount: number | null;
-  origin: string;
-  config: PbnConfig;
 }
 
 export interface AdminOrderEvent {
@@ -744,8 +727,6 @@ export interface AdminStyle {
   promptTemplate: string;
   templateVars: Record<string, unknown> | null;
   templateVarOptions: Record<string, unknown> | null;
-  // Default del estudio PBN para el estilo ({ input, render }); ver PbnConfig.
-  pbnConfig: PbnConfig | null;
   visionConfigId: string | null;
   imageGenConfigId: string | null;
   visionConfig: AdminVisionConfig | null;
@@ -784,18 +765,7 @@ export interface AdminProduct {
     previewUrl: string | null;
   } | null;
   template: string | null;
-  /** Contenido de la obra: "pbn" (coloreable) o "print" (arte terminado); null = sin asignar. */
-  artKind: string | null;
-  fulfillmentMethod: string;
-  isPaintByNumbers: boolean;
   isCreditPack: boolean;
-  /**
-   * Es un accesorio (pincel, caballete…). Lo declara el metafield
-   * `custom.art_kind` de Shopify y solo lo escribe el sync: en el admin es de
-   * solo lectura. Decide la tabla en la que cae el producto y que su OrderItem
-   * entre a producción directo en `draft`.
-   */
-  isAccessory: boolean;
   showcaseCollectionHandle: string | null;
 }
 
@@ -811,13 +781,17 @@ export interface AdminCreditPackVariants {
   variants: AdminCreditPackVariant[];
 }
 
-export interface PodConfig {
-  material: string;
-  type: string;
-  orientation?: string;
-  width: number;
-  height: number;
-  additional?: string[];
+/**
+ * Especificación de impresión de una variante. Espejo del `PrintConfigDto`
+ * del backend: tamaño en centímetros (lo que gobierna el DPI del estudio de
+ * impresión) más los márgenes del troquelado.
+ */
+export interface PrintConfig {
+  widthCm?: number;
+  heightCm?: number;
+  bleedMm?: number;
+  safeMarginMm?: number;
+  minDpi?: number;
 }
 
 export interface AdminProductVariantLink {
@@ -826,8 +800,7 @@ export interface AdminProductVariantLink {
   shopifyVariantId: string;
   shopifyVariantTitle: string;
   isActive: boolean;
-  podProvider?: string | null;
-  podConfig?: PodConfig | null;
+  printConfig?: PrintConfig | null;
 }
 
 export interface AdminProductUnlinkedVariant {
@@ -1227,12 +1200,6 @@ export const adminApi = {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
-    /** Fija EL producto dedicado al kit PBN (o ninguno si es null). Garantiza unicidad en backend. */
-    setPbn: (productId: string | null) =>
-      adminFetch<void>("/admin/products/pbn", {
-        method: "PATCH",
-        body: JSON.stringify({ productId }),
-      }),
     /** Fija EL producto dedicado al pack de créditos (o ninguno si es null). */
     setCreditPack: (productId: string | null) =>
       adminFetch<void>("/admin/products/credit-pack", {
@@ -1279,8 +1246,7 @@ export const adminApi = {
       body: {
         formatId?: string;
         isActive?: boolean;
-        podProvider?: string | null;
-        podConfig?: PodConfig | null;
+        printConfig?: PrintConfig | null;
       },
     ) =>
       adminFetch<AdminProductVariantLink>(
@@ -1626,11 +1592,6 @@ export const adminApi = {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
-  },
-  pbn: {
-    // Full saved PBN (config + source) used to preload the studio on reopen.
-    get: (id: string) =>
-      adminFetch<AdminPaintByNumbers>(`/admin/paint-by-numbers/${id}`),
   },
 };
 

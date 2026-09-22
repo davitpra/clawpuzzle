@@ -18,7 +18,23 @@ npm run lint         # Run ESLint
 
 ## Architecture Overview
 
-This is a Next.js 16.1.1 e-commerce frontend for "Claw & Soul", a pet art personalization platform integrated with Shopify. The codebase follows Feature-Sliced Design (FSD) architectural principles.
+This is a Next.js 16.1.1 e-commerce frontend for ClawPuzzle: a pet photo is
+turned into AI art and sold printed as a custom jigsaw puzzle, with Shopify
+handling catalog and checkout. The codebase follows Feature-Sliced Design (FSD).
+
+Derived from ClawAndSoul. What changed in the fork:
+
+- **Two product types**: `Puzzle` and `Credits`. The `artKind` axis (pbn |
+  print) is gone, and so are the Canvas / Poster / Digital / Accessory
+  templates. The canonical table is `entities/product/lib/template.ts`.
+- **The whole paint-by-numbers side is gone**: `lib/pbn`, `widgets/studio`,
+  `features/pbn-studio`, `/studio`, `/user/pbn`, `/admin/pbn`.
+- **`FrameStyle` is the leverage point**. `entities/product/lib/frameStyle.ts`
+  maps a template to a presentation, and `PuzzlePieceOverlay` renders the piece
+  grid over the art. Seven storefront surfaces consume it through the same
+  `{frameStyle === "puzzle" && <PuzzlePieceOverlay />}` line — home, catalog,
+  product gallery, collections, expanding gallery, thank-you, similar styles.
+  Change that component and the whole storefront changes with it.
 
 ### Tech Stack
 
@@ -81,7 +97,7 @@ const data = await fetchJSON('/api/endpoint');
 ### Cart System
 
 - Global cart state managed via `CartContext` (src/context/CartContext.tsx)
-- Persisted to `localStorage` with key `claw_soul_cart`
+- Persisted to `localStorage` with key `clawpuzzle_cart`
 - Cart items include: variantId, name, size, style, color, price, quantity, img
 - Access cart via `useCart()` hook from `src/hooks/useCart.ts`
 
@@ -126,9 +142,8 @@ rebuild — restart `npm run dev`, or redeploy on Vercel.
 ## Launch Mode
 
 `NEXT_PUBLIC_LAUNCH_MODE=true` narrows the site to the launch funnel — landing →
-AI art → PBN studio → canvas offer — and hides the rest of the store. Nothing is
-deleted: turning the flag off restores the full storefront. The plan this
-implements lives in `../LAUNCH_PLAN.md`.
+AI art → puzzle offer — and hides the rest of the store. Nothing is deleted:
+turning the flag off restores the full storefront.
 
 Read the flag **only** through `src/shared/config/launch.ts`:
 

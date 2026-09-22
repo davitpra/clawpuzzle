@@ -2,7 +2,7 @@ import { Container } from "@/shared/ui/Container";
 import { OrderDetail } from "@/widgets/user-dashboard/ui/OrderDetail";
 
 export const metadata = {
-  title: "Order details — Claw & Soul",
+  title: "Order details — ClawPuzzle",
 };
 
 export default async function UserOrderDetailPage({

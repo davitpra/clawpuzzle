@@ -8,16 +8,16 @@ import { LegalPage } from "@/widgets/legal-page";
 import { BRAND } from "@/shared/config/navigation";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · Claw & Soul",
+  title: "Privacy Policy · ClawPuzzle",
   description:
-    "How Claw & Soul collects, uses and protects your data — including the pet photos you upload and the artwork you generate.",
+    "How ClawPuzzle collects, uses and protects your data — including the pet photos you upload and the artwork you generate.",
 };
 
 export default function PrivacyPolicyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      intro="This policy explains what we collect when you use Claw & Soul, why we collect it, and the control you have over it."
+      intro="This policy explains what we collect when you use ClawPuzzle, why we collect it, and the control you have over it."
       lastUpdated="July 30, 2026"
     >
       <section>
@@ -108,7 +108,7 @@ export default function PrivacyPolicyPage() {
       <section>
         <h2>Children</h2>
         <p>
-          Claw & Soul is not directed at children under 13, and we do not
+          ClawPuzzle is not directed at children under 13, and we do not
           knowingly collect their personal information.
         </p>
       </section>

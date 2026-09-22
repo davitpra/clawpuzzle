@@ -7,16 +7,16 @@ import { LegalPage } from "@/widgets/legal-page";
 import { BRAND } from "@/shared/config/navigation";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · Claw & Soul",
+  title: "Terms of Service · ClawPuzzle",
   description:
-    "The terms that govern your use of Claw & Soul — accounts, credits, uploaded photos, generated artwork and orders.",
+    "The terms that govern your use of ClawPuzzle — accounts, credits, uploaded photos, generated artwork and orders.",
 };
 
 export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      intro="These terms cover your use of Claw & Soul: the Studio, the AI generator, credits and anything you order from us."
+      intro="These terms cover your use of ClawPuzzle: the Studio, the AI generator, credits and anything you order from us."
       lastUpdated="July 30, 2026"
     >
       <section>
@@ -91,7 +91,7 @@ export default function TermsPage() {
       <section>
         <h2>Availability</h2>
         <p>
-          We work to keep Claw & Soul running, but we can&apos;t promise it will
+          We work to keep ClawPuzzle running, but we can&apos;t promise it will
           always be available or free of errors. Features may change or be
           retired as the product evolves.
         </p>

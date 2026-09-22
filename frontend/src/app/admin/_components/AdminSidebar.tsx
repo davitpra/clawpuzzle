@@ -48,7 +48,7 @@ export default function AdminSidebar() {
         >
           <Image
             src="/Logo.svg"
-            alt="Claw & Soul Logo"
+            alt="ClawPuzzle Logo"
             width={20}
             height={20}
             priority
@@ -58,7 +58,7 @@ export default function AdminSidebar() {
               font-size:1em/font-weight:regular en headings y gana sobre las
               utilidades de Tailwind, que sí están en @layer. */}
           <span className="font-display text-text-main text-xl font-black leading-tight tracking-[-0.015em] whitespace-nowrap">
-            Claw & Soul
+            ClawPuzzle
           </span>
         </Link>
       </div>

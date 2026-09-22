@@ -11,7 +11,6 @@ interface GenerationProductRef {
   shopifyHandle: string | null;
   displayName?: string;
   template?: string | null;
-  artKind?: string | null;
   isActive?: boolean;
 }
 

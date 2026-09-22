@@ -28,10 +28,9 @@ type LinkedVariantsCardProps = {
   product: AdminProduct;
   variants: AdminProductVariants | null;
   formats: AdminFormat[];
-  fulfillmentMethod: "in_house" | "pod";
   loadingVariants: boolean;
   onChanged: () => void;
-  onOpenPodConfig: (v: AdminProductVariantLink) => void;
+  onOpenPrintConfig: (v: AdminProductVariantLink) => void;
   onManageFormats: () => void;
   onError: (message: string) => void;
 };
@@ -40,10 +39,9 @@ export function LinkedVariantsCard({
   product,
   variants,
   formats,
-  fulfillmentMethod,
   loadingVariants,
   onChanged,
-  onOpenPodConfig,
+  onOpenPrintConfig,
   onManageFormats,
   onError,
 }: LinkedVariantsCardProps) {
@@ -164,9 +162,7 @@ export function LinkedVariantsCard({
               { title: "Formato" },
               { title: "Variante Shopify" },
               { title: "Estado" },
-              ...(fulfillmentMethod === "pod"
-                ? [{ title: "POD Config" }]
-                : []),
+              { title: "Impresión" },
               { title: "Acciones" },
             ]}
             selectable={false}
@@ -264,28 +260,18 @@ export function LinkedVariantsCard({
                       {isToggling && <Spinner size="small" />}
                     </InlineStack>
                   </IndexTable.Cell>
-                  {fulfillmentMethod === "pod" && (
-                    <IndexTable.Cell>
-                      {v.podConfig ? (
-                        <BlockStack gap="050">
-                          <InlineStack gap="100" blockAlign="center">
-                            <Badge tone="success">Configurado</Badge>
-                            {v.podProvider && <Badge>{v.podProvider}</Badge>}
-                          </InlineStack>
-                          <Text variant="bodySm" tone="subdued" as="span">
-                            {String(v.podConfig.material)} /{" "}
-                            {String(v.podConfig.type)}
-                          </Text>
-                          <Text variant="bodySm" tone="subdued" as="span">
-                            {String(v.podConfig.width)}&quot; ×{" "}
-                            {String(v.podConfig.height)}&quot;
-                          </Text>
-                        </BlockStack>
-                      ) : (
-                        <Badge tone="warning">Sin config</Badge>
-                      )}
-                    </IndexTable.Cell>
-                  )}
+                  <IndexTable.Cell>
+                    {v.printConfig?.widthCm && v.printConfig?.heightCm ? (
+                      <BlockStack gap="050">
+                        <Badge tone="success">Configurado</Badge>
+                        <Text variant="bodySm" tone="subdued" as="span">
+                          {v.printConfig.widthCm} × {v.printConfig.heightCm} cm
+                        </Text>
+                      </BlockStack>
+                    ) : (
+                      <Badge tone="warning">Sin tamaño</Badge>
+                    )}
+                  </IndexTable.Cell>
                   <IndexTable.Cell>
                     <InlineStack gap="200">
                       {isEditing ? (
@@ -315,13 +301,13 @@ export function LinkedVariantsCard({
                           Editar
                         </Button>
                       )}
-                      {fulfillmentMethod === "pod" && !isEditing && (
+                      {!isEditing && (
                         <Button
                           size="slim"
-                          variant={v.podConfig ? "secondary" : "primary"}
-                          onClick={() => onOpenPodConfig(v)}
+                          variant={v.printConfig ? "secondary" : "primary"}
+                          onClick={() => onOpenPrintConfig(v)}
                         >
-                          POD Config
+                          Impresión
                         </Button>
                       )}
                     </InlineStack>

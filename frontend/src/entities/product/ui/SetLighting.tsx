@@ -10,7 +10,7 @@ import {
 // luz (sol y penumbra) encima del contenido. Sin eso, la obra se lee como un
 // recorte pegado.
 //
-// Solo aporta sombra y luz: el marco (POSTER_FRAME, CanvasEdgeOverlay), el
+// Solo aporta sombra y luz: el marco (PuzzlePieceOverlay), el
 // filtro de temperatura (`setArtworkFilter`) y el tamaño/posición son de quien
 // lo usa. Los `children` se pintan bajo la luz, así que las capas propias del
 // marco van dentro y en su propio orden.

@@ -161,14 +161,14 @@ export default function Navbar() {
             >
               <Image
                 src="/Logo.svg"
-                alt="Claw & Soul Logo"
+                alt="ClawPuzzle Logo"
                 width={20}
                 height={20}
                 priority
                 className="size-9 lg:size-11 transition-transform group-hover:scale-105"
               />
               <h2 className="font-display text-text-main text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] hidden sm:block">
-                Claw & Soul
+                ClawPuzzle
               </h2>
             </Link>
 

@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClawPuzzle — Storefront
 
-## Getting Started
+Frontend Next.js 16 (App Router) del ecommerce de rompecabezas personalizados.
+El cliente sube la foto de su mascota, genera arte con IA y lo compra impreso
+como puzzle. El catálogo y el checkout viven en Shopify.
 
-First, run the development server:
+Derivado de ClawAndSoul. Lo que cambió en el fork está en `CLAUDE.md`.
+
+## Arranque
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+cp .env.example .env.local   # y rellena los valores
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Necesita el backend corriendo en `NEXT_PUBLIC_API_URL` (por defecto
+`http://localhost:3001/api`) para auth, estilos, generación y créditos. El
+catálogo y el carrito funcionan solo con las credenciales de Shopify.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Comandos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev         # desarrollo
+npm run build       # build de producción
+npm run start       # servir el build
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
+```
 
-## Learn More
+## Dónde está cada cosa
 
-To learn more about Next.js, take a look at the following resources:
+| Qué | Dónde |
+|---|---|
+| Arquitectura, convenciones y qué cambió en el fork | `CLAUDE.md` |
+| Reglas del panel admin (Polaris, no Tailwind) | `src/app/admin/ARCHITECTURE.md` |
+| Tokens de diseño (Tailwind v4, sin config file) | `src/app/globals.css` |
+| Sistema de diseño | `docs/DESIGN.md` |
+| Tipo de producto (`Puzzle` \| `Credits`) | `src/entities/product/lib/template.ts` |
+| Presentación del producto y retícula de piezas | `src/entities/product/lib/frameStyle.ts`, `src/entities/product/ui/PuzzlePieceOverlay.tsx` |
+| Llamadas autenticadas al backend | `src/lib/auth/fetch-with-refresh.ts` |
+| Cliente de Shopify (dual-mode) | `src/lib/shopify/` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Variables de entorno
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Están documentadas una por una en `.env.example` y en la sección
+"Environment Variables" de `CLAUDE.md`. Las `NEXT_PUBLIC_*` se inlinean en el
+build: cambiarlas exige redeploy.

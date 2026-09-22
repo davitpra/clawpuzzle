@@ -14,7 +14,7 @@
  * foto sigue funcionando — solo sin red de seguridad.
  */
 
-const DB_NAME = "claw_soul_create";
+const DB_NAME = "clawpuzzle_create";
 const DB_VERSION = 1;
 const STORE = "draft";
 // Un único borrador a la vez: empezar otro estilo reemplaza el anterior.

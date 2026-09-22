@@ -33,14 +33,14 @@ export function IAHeader({
           <div className="size-10 relative bg-white rounded-full">
             <Image
               src="/Logo.svg"
-              alt="Claw and Soul Logo"
+              alt="ClawPuzzle Logo"
               fill
               className="object-contain"
               priority
             />
           </div>
           <h2 className="font-display text-slate-dark text-xl font-black tracking-tight">
-            Claw and Soul
+            ClawPuzzle
           </h2>
         </Link>
 

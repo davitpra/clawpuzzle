@@ -12,7 +12,6 @@ import { LAUNCH_MODE } from '@/shared/config/launch';
  */
 const LAUNCH_ALLOWED_PREFIXES = [
   '/create',
-  '/studio',
   '/admin-login',
   '/user',
   '/credits',
@@ -26,8 +25,8 @@ const LAUNCH_ALLOWED_PREFIXES = [
 /** Rutas que exigen sesión (y rol admin en `/admin`), con o sin lanzamiento. */
 const AUTH_PREFIXES = ['/user', '/admin'];
 
-// El `/` final es lo que evita que el prefijo `/studio` autorice también
-// `/studio-landing`.
+// El `/` final es lo que evita que un prefijo autorice de más: `/user` no debe
+// abrir `/users-something`.
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),

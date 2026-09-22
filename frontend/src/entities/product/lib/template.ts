@@ -1,20 +1,23 @@
-// El template del backend es el formato de entrega del storefront:
-// Digital (descarga) | Canvas | Poster | Accessory | Credits.
-// "PBN" es el valor legacy del formato digital: puede seguir llegando desde el
-// productType de Shopify (fallback cuando un producto no tiene template propio),
-// así que se normaliza a "Digital" en todos los consumidores.
+// El template del backend es el tipo de producto del storefront.
+// ClawPuzzle vende dos cosas: el rompecabezas físico y packs de créditos.
+//
+// ClawAndSoul manejaba cinco (Digital | Canvas | Poster | Accessory | Credits)
+// más un eje paralelo `artKind` (pbn | print) para distinguir el contenido.
+// Con un único producto físico ese segundo eje no tiene nada que separar, así
+// que desapareció: el template basta.
+export type Template = "Puzzle" | "Credits";
+
+export const TEMPLATES: Template[] = ["Puzzle", "Credits"];
+
+/** Normaliza el valor tal como llega del backend. Sin alias legacy. */
 export function normalizeTemplate(value?: string | null): string {
-  const trimmed = value?.trim() ?? "";
-  return trimmed === "PBN" ? "Digital" : trimmed;
+  return value?.trim() ?? "";
 }
 
-// User-facing copy for the delivery format (storefront is in English).
+// User-facing copy (storefront is in English).
 const TEMPLATE_LABELS: Record<string, string> = {
-  Digital: "Digital Download",
-  Canvas: "Canvas Print",
-  Poster: "Poster Print",
+  Puzzle: "Jigsaw Puzzle",
   Credits: "Credits",
-  Accessory: "Accessory",
 };
 
 /** Label visible del template. Devuelve el valor normalizado tal cual si no

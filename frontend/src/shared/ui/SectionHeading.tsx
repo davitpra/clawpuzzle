@@ -10,7 +10,7 @@ interface SectionHeadingProps {
 }
 
 /**
- * Encabezado de sección de Claw & Soul: chip de icono teal + título.
+ * Encabezado de sección de ClawPuzzle: chip de icono teal + título.
  * Da una jerarquía visual consistente a las secciones de una página.
  */
 export default function SectionHeading({

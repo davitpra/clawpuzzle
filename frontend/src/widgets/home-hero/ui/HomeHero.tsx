@@ -20,7 +20,7 @@ export default function HomeHero() {
         width: 1127,
         height: 1395,
       }}
-      frameStyle="canvas"
+      frameStyle="puzzle"
       badge={{
         icon: "palette",
         title: "100% Unique",
