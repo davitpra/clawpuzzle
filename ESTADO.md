@@ -3,7 +3,7 @@
 Ecommerce de rompecabezas personalizados, derivado de ClawAndSoul. El cliente
 sube la foto de su mascota, genera arte con IA y lo compra impreso como puzzle.
 
-Última actualización: 2026-09-21.
+Última actualización: 2026-09-22.
 
 > Las casillas son listas de tareas de Markdown: `- [ ]` pendiente, `- [x]`
 > hecho. Se marcan clicando en la vista previa de VS Code, o con `Alt+C` sobre
@@ -13,12 +13,11 @@ sube la foto de su mascota, genera arte con IA y lo compra impreso como puzzle.
 
 ## Qué está hecho
 
-- [x] **Fase 0 — copia y saneamiento.** `backend/` y `frontend/` son dos repos
-      git independientes, clonados de ClawAndSoul con su historia completa (152 y
-      391 commits) y **sin remotos**: no pueden empujar al original por accidente.
-      Renombrado de marca aplicado en 41 archivos de código, nombres de paquete
-      (`clawpuzzle-api`, `clawpuzzle-web`), título de Swagger y clave de
-      localStorage del carrito (`clawpuzzle_cart`).
+- [x] **Fase 0 — copia y saneamiento.** `backend/` y `frontend/` se clonaron de
+      ClawAndSoul con su historia completa (152 y 391 commits) y **sin remotos**:
+      no pueden empujar al original por accidente. Renombrado de marca aplicado en
+      41 archivos de código, nombres de paquete (`clawpuzzle-api`, `clawpuzzle-web`),
+      título de Swagger y clave de localStorage del carrito (`clawpuzzle_cart`).
 
 - [x] **Fase 1 — poda.** Eliminado todo lo que no aplica a un puzzle:
 
@@ -40,6 +39,16 @@ sube la foto de su mascota, genera arte con IA y lo compra impreso como puzzle.
     de estados (la de accesorios desapareció).
   - `PuzzlePieceOverlay` sustituye a `CanvasEdgeOverlay` en los siete puntos del
     storefront que consumían el eje `FrameStyle`.
+
+- [x] **Fase 3 — repositorio único.** Los dos repos independientes se fusionaron en
+      uno solo en la raíz del proyecto: ~550 commits, rama `main`. Cada historia
+      se reescribió bajo su prefijo (`backend/`, `frontend/`) antes de fusionarse,
+      así que `git log --follow` y `git blame` siguen funcionando archivo por archivo
+      hasta el `inicio repo` original. Un cambio que toca las dos mitades a la vez
+      —la máquina de estados duplicada, sin ir más lejos— ya viaja en un commit
+      atómico. Remoto: `git@github.com:davitpra/clawpuzzle.git`, privado. Los `.git`
+      previos quedaron respaldados en `../clawpuzzle-git-backup/`; se pueden borrar
+      cuando el remoto esté confirmado.
 
 **Verificado:** backend y frontend pasan `typecheck`, `lint` y `build`. El
 backend pasa sus 72 tests.
@@ -74,8 +83,9 @@ runtime**, no en compilación:
 
 ### Bloqueante para vender
 
-- [x] **1. Migración de Prisma.** El schema está editado y validado, pero las 66
-      migraciones heredadas describen el schema viejo. Con una Postgres vacía:
+- [x] **1. Migración de Prisma.** Las 66 migraciones heredadas describían el
+      schema viejo; se squashearon a una sola `init` (`20260922004355_init`), que
+      elimina la arqueología de PBN y POD. Con una Postgres vacía se regenera así:
 
   ```bash
   cd backend
@@ -84,8 +94,8 @@ runtime**, no en compilación:
   npm run seed
   ```
 
-  Squashear a una sola `init` vale la pena: elimina la arqueología de PBN y POD,
-  y hace gratis cualquier ajuste de schema que quede por hacer. Congelarla
+  Mientras la Postgres de producción no exista, cualquier ajuste de schema que
+  quede por hacer sale gratis repitiendo esos comandos. Congelar la migración
   justo antes del primer deploy.
 
 - [ ] **2. Infraestructura** (todo nuevo, en este orden):
@@ -145,9 +155,9 @@ troquelado requiere proveedor o maquinaria, y eso es lo que puede invalidar el
 precio de venta y con él todo el modelo. Conviene tener una muestra impresa
 antes de tocar nada más.
 
-**Los dos repos divergen desde hoy.** Un bug que se arregle en ClawAndSoul no
-llegará aquí. Es el precio de la copia independiente; lo caro sería intentar
-re-sincronizarlos más adelante.
+**ClawPuzzle y ClawAndSoul divergen desde el 21 de septiembre.** Un bug que se
+arregle en ClawAndSoul no llegará aquí. Es el precio de la copia independiente;
+lo caro sería intentar re-sincronizarlos más adelante.
 
 **La máquina de estados está duplicada a propósito.**
 `backend/src/orders/production-status.util.ts` y
