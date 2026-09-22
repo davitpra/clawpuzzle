@@ -1,0 +1,22 @@
+# Este .gitignore cubre solo la raiz del monorepo. backend/ y frontend/
+# conservan el suyo y git los sigue respetando por directorio.
+
+# Dependencias y builds (por si algun dia se instala algo en la raiz)
+node_modules/
+
+# Variables de entorno: nunca se versionan, solo los .env.example
+.env
+.env.local
+.env.*.local
+
+# Claude Code: ajustes locales de cada maquina y worktrees temporales.
+# El resto de .claude/ (skills, comandos) si se versiona.
+.claude/settings.local.json
+.claude/worktrees/
+
+# Respaldos de los .git previos a la unificacion, por si acaban aqui
+clawpuzzle-git-backup/
+
+# OS
+.DS_Store
+Thumbs.db
