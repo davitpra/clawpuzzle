@@ -37,15 +37,4 @@ export class UpdateFormatDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  @ApiProperty({
-    example: '8x10',
-    required: false,
-    description:
-      'Shopify variant option value used to match this format during sync',
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  shopifyVariantOption?: string;
 }

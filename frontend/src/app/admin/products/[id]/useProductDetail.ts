@@ -37,6 +37,7 @@ export function useProductDetail(id: string) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [styleId, setStyleId] = useState("");
+  const [formatId, setFormatId] = useState("");
 
   const loadFormats = async () => {
     try {
@@ -72,6 +73,7 @@ export function useProductDetail(id: string) {
         setFormats(f.filter((x) => x.isActive));
         setAllFormats(f);
         setStyleId(p.styleId ?? "");
+        setFormatId(p.formatId ?? "");
         loadVariants(p.id);
       })
       .catch((e: Error) => setError(e.message))
@@ -83,10 +85,14 @@ export function useProductDetail(id: string) {
     setSaving(true);
     setSaveError(null);
     try {
+      const formatChanged = !!formatId && formatId !== product.formatId;
       const updated = await adminApi.products.update(product.id, {
         styleId: styleId || null,
+        ...(formatChanged ? { formatId } : {}),
       } as Partial<AdminProduct>);
       setProduct(updated);
+      // Cambiar el formato re-apunta todas las variantes en el backend.
+      if (formatChanged) await loadVariants(product.id);
     } catch (e: unknown) {
       setSaveError((e as Error).message);
     } finally {
@@ -162,12 +168,14 @@ export function useProductDetail(id: string) {
     deleting,
     // form state
     styleId,
+    formatId,
     // setters
     setError,
     setSaveError,
     setSyncResult,
     setDeleteOpen,
     setStyleId,
+    setFormatId,
     // actions
     loadFormats,
     loadVariants,

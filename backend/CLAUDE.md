@@ -16,10 +16,14 @@ product). What changed in the fork:
 - **Production is in-house**: no POD provider, no Pictorem. The admin prints,
   die-cuts and ships; `productionStatus` drives that queue and gained a
   `packed` step between `printed` and `shipped`.
-- **Variants are piece counts** (300 / 500 / 1000), modelled as `Format` rows
-  with `pieceCount` plus the assembled size in `printWidthCm`/`printHeightCm`.
-  Careful: `Format.width`/`height` are *generation pixels*, not the physical
-  size — they always were, but nothing depended on it until now.
+- **A `Format` is only an aspect ratio** (e.g. `ratio_4_3`) — the shape of the
+  image to generate. Piece count and physical size belong to the Shopify
+  variant (`ProductFormatVariant.printConfig.widthCm/heightCm`). Each
+  `ProductReference` has a `formatId`, and the sync gives it to all its
+  variants. Careful: `Format.width`/`height` are *generation pixels*, not the
+  physical size — they are sent to fal.ai as `image_size` (flux ignores
+  `aspect_ratio`). Seeded formats: `ratio_4_3` (default for new products) and
+  `a3_portrait` (A3 vertical, 848×1200).
 
 Unchanged from ClawAndSoul: auth, credits, pets, styles, the fal.ai +
 OpenRouter generation pipeline, the Shopify sync and the order ingestion.
@@ -85,7 +89,7 @@ The application follows NestJS modular architecture with domain-driven modules:
 - **prisma**: Database service (global module)
 - **orders**: Shopify order ingestion, production status machine, print masters
 - **products** / **formats**: local catalog mirrored from Shopify; `Format` is
-  the piece-count axis of a puzzle
+  the aspect ratio of the generated image
 - **credits**: idempotent credit ledger
 - **shopify-sync**: Admin API client, HMAC guard, queued product sync
 
@@ -154,12 +158,12 @@ All endpoints prefixed with `/api` (configured in `main.ts`).
 - **Style**: AI art styles with their prompt template and vision/imagegen config
 - **Generation**: AI generation jobs with status tracking
 - **ProductReference**: a Shopify product mirrored locally; `template` is
-  `Puzzle` or `Credits`
-- **Format**: the piece-count axis. `pieceCount` + `printWidthCm`/`printHeightCm`
-  (physical, centimetres) + `width`/`height` (generation pixels — *not* the
-  physical size)
+  `Puzzle` or `Credits`; `formatId` is the aspect ratio all its variants share
+- **Format**: an aspect ratio. `aspectRatio` + `width`/`height` (generation
+  pixels — *not* the physical size)
 - **ProductFormatVariant**: ProductReference × Format × Shopify variant, with
-  `constraints` (cropMode, maxPets, bleedMm) and `printConfig`
+  `constraints` (cropMode, maxPets, bleedMm) and `printConfig` (physical size
+  in cm, bleed, min DPI)
 - **Order** / **OrderItem** / **OrderEvent**: ingested from Shopify webhooks
 
 **Enums** (stored as strings, no native Prisma enums):

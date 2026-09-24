@@ -103,9 +103,7 @@ export class AdminProductsController {
     const dbVariants = await this.prisma.productFormatVariant.findMany({
       where: { productRefId: productId },
       include: {
-        format: {
-          select: { id: true, displayName: true, shopifyVariantOption: true },
-        },
+        format: { select: { id: true, displayName: true } },
       },
     });
 
@@ -134,21 +132,11 @@ export class AdminProductsController {
       };
     }
 
-    // Get all formats indexed by shopifyVariantOption for fast lookup
-    const formats = await this.prisma.format.findMany({
-      where: { isActive: true, shopifyVariantOption: { not: null } },
-      select: { id: true, displayName: true, shopifyVariantOption: true },
-    });
-    const formatByOption = new Map(
-      formats.map((f) => [f.shopifyVariantOption, f]),
-    );
-
     const linkedVariants: object[] = [];
     const unlinkedVariants: object[] = [];
 
     for (const variant of shopifyProduct.variants) {
       const shopifyVariantId = String(variant.id);
-      const sizeValue = variant.option1?.trim();
 
       if (linkedVariantsMap.has(shopifyVariantId)) {
         const dbVariant = linkedVariantsMap.get(shopifyVariantId)!;
@@ -166,33 +154,14 @@ export class AdminProductsController {
         continue;
       }
 
-      // Not linked — determine why
-      if (!sizeValue) {
-        unlinkedVariants.push({
-          shopifyVariantId,
-          shopifyVariantTitle: variant.title,
-          shopifyVariantOption: null,
-          reason: 'La variante no tiene opción de tamaño (option1 vacío)',
-        });
-        continue;
-      }
-
-      const matchedFormat = formatByOption.get(sizeValue);
-      if (!matchedFormat) {
-        unlinkedVariants.push({
-          shopifyVariantId,
-          shopifyVariantTitle: variant.title,
-          shopifyVariantOption: sizeValue,
-          reason: `No hay formato configurado para '${sizeValue}'`,
-        });
-      } else {
-        unlinkedVariants.push({
-          shopifyVariantId,
-          shopifyVariantTitle: variant.title,
-          shopifyVariantOption: sizeValue,
-          reason: `Formato '${matchedFormat.displayName}' existe pero no hay registro de vínculo (re-sincronizar)`,
-        });
-      }
+      // Not linked — the sync gives every variant the product's format
+      unlinkedVariants.push({
+        shopifyVariantId,
+        shopifyVariantTitle: variant.title,
+        reason: product.formatId
+          ? 'El producto tiene formato pero la variante no está vinculada (re-sincronizar)'
+          : 'El producto no tiene formato asignado',
+      });
     }
 
     return {

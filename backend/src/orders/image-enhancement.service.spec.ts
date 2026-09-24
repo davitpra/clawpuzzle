@@ -35,7 +35,6 @@ describe('ImageEnhancementService generation source', () => {
       },
       productVariant: {
         printConfig: { widthCm: 48, heightCm: 36, bleedMm: 5 },
-        format: { printWidthCm: 48, printHeightCm: 36 },
       },
       printImageUrl: null,
       printImageStorageKey: null,
@@ -75,8 +74,9 @@ describe('ImageEnhancementService generation source', () => {
 
   // El tamaño físico gobierna el DPI y, con él, la recomendación de upscale y
   // el bleed. ClawAndSoul lo sacaba del título de la variante, que solo casaba
-  // con el símbolo ″: un título métrico daba null en silencio. Estos tres tests
-  // fijan el orden printConfig → Format → título.
+  // con el símbolo ″: un título métrico daba null en silencio. Estos dos tests
+  // fijan el orden printConfig → título. El Format no entra: solo es la
+  // proporción de la imagen, no el tamaño físico.
   it('takes the print size from printConfig, in centimetres', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(item());
 
@@ -86,24 +86,9 @@ describe('ImageEnhancementService generation source', () => {
     expect(result.printInches?.height).toBeCloseTo(36 / 2.54, 2);
   });
 
-  it('falls back to the Format when the variant has no printConfig', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({
-        productVariant: {
-          printConfig: null,
-          format: { printWidthCm: 68, printHeightCm: 48 },
-        },
-      }),
-    );
-
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
-
-    expect(result.printInches?.width).toBeCloseTo(68 / 2.54, 2);
-  });
-
   it('parses a metric variant title as a last resort', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(
-      item({ productVariant: { printConfig: null, format: null } }),
+      item({ productVariant: { printConfig: null } }),
     );
 
     const result = await service.getEnhanceInfo('order-1', 'item-1');

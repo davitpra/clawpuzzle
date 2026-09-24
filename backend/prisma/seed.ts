@@ -13,7 +13,7 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // NOTE: This seed creates the base format catalog (sizes/aspect-ratios).
+  // NOTE: This seed creates the base format catalog (aspect ratios).
   // ProductFormatVariants and ProductReferences are still managed by the Shopify
   // sync service. Product types are a string column on ProductReference, synced
   // from Shopify on upsert.
@@ -93,57 +93,36 @@ async function main() {
   // ============================================
   // FORMATS
   // ============================================
-  // Catálogo de tamaños de puzzle. El sync de Shopify cruza el `option1` de
-  // cada variante contra `shopifyVariantOption` (sin distinguir mayúsculas ni
-  // espacios) para crear los ProductFormatVariant.
+  // Un formato es la PROPORCIÓN de la imagen a generar, nada más. El número de
+  // piezas y el tamaño físico son de la variante de Shopify (su `printConfig`),
+  // así que el mismo arte sirve para cualquier tamaño con esa proporción y el
+  // cliente puede cambiar de tamaño sin regenerar.
   //
-  // Dos pares de dimensiones, deliberadamente separados:
-  //   width/height          → PÍXELES de la imagen a generar (~1 MP). fal.ai
-  //                           solo recibe `aspectRatio`; esto es informativo.
-  //   printWidthCm/HeightCm → tamaño físico del puzzle armado. Es lo que
-  //                           gobierna el DPI en el estudio de impresión.
+  // Cada producto elige su formato (`ProductReference.formatId`) y el sync de
+  // Shopify se lo asigna a todas sus variantes.
   //
-  // Un único aspect ratio (4:3) en todos los tamaños a propósito: así el mismo
-  // arte generado sirve para cualquier número de piezas y el cliente puede
-  // cambiar de tamaño sin regenerar.
-  console.log('🧩 Creating puzzle formats...');
+  // width/height son PÍXELES de la imagen a generar (~1 MP, múltiplos de 16):
+  // se envían a fal.ai como `image_size`. `aspectRatio` es la etiqueta y lo que
+  // reciben los modelos que usan `aspect_ratio` en vez de `image_size`.
+  //
+  // El primero es el formato por defecto: el sync se lo asigna a los productos
+  // nuevos de Shopify (el formato activo más antiguo).
+  console.log('🧩 Creating formats...');
 
   const formatsData = [
     {
-      name: 'puzzle_300',
-      displayName: '300 pieces',
+      name: 'ratio_4_3',
+      displayName: '4:3',
       aspectRatio: '4:3',
       width: 1184, height: 888,
-      printWidthCm: 40, printHeightCm: 30,
-      pieceCount: 300,
-      shopifyVariantOption: '300 pieces',
     },
+    // A3 vertical (29,7 × 42 cm, 1:√2). 848×1200 da 1:1,415; '5:7' es la
+    // proporción entera más cercana.
     {
-      name: 'puzzle_500',
-      displayName: '500 pieces',
-      aspectRatio: '4:3',
-      width: 1184, height: 888,
-      printWidthCm: 48, printHeightCm: 36,
-      pieceCount: 500,
-      shopifyVariantOption: '500 pieces',
-    },
-    {
-      name: 'puzzle_1000',
-      displayName: '1000 pieces',
-      aspectRatio: '4:3',
-      width: 1184, height: 888,
-      printWidthCm: 68, printHeightCm: 51,
-      pieceCount: 1000,
-      shopifyVariantOption: '1000 pieces',
-    },
-    // Catch-all para productos Shopify de una sola variante (packs de crédito):
-    // Shopify llama "Default Title" a su variante placeholder.
-    {
-      name: 'default_title',
-      displayName: 'Default 4:3',
-      aspectRatio: '4:3',
-      width: 1184, height: 888,
-      shopifyVariantOption: 'Default Title',
+      name: 'a3_portrait',
+      displayName: 'A3 vertical',
+      aspectRatio: '5:7',
+      width: 848, height: 1200,
     },
   ];
 
@@ -158,71 +137,72 @@ async function main() {
   console.log(`  ✓ ${formatsData.length} formats upserted`);
 
   // ============================================
-  // PRODUCT FORMAT VARIANT CONSTRAINTS
+  // PRODUCT VARIANT PRINT SPECS
   // ============================================
-  // Sets per-(product, format) generation overrides on existing variants created
-  // by the Shopify sync. Safe to re-run: updateMany is idempotent.
+  // Tamaño físico y overrides de generación por variante, sobre las variantes
+  // que ya creó el sync de Shopify. Se identifican por el título de la variante.
+  // Idempotente: updateMany.
   //
-  // cropMode  → pista de encuadre para el prompt ('head-shoulders' | 'portrait' | 'full-body')
-  // maxPets   → número máximo de mascotas en la composición
-  // bleedMm   → sangre de troquelado (la del `printConfig` manda si está puesta)
-  //
-  // Cuantas más piezas, más grande el puzzle y más cuerpo cabe en el encuadre.
-  console.log('🖼️  Seeding product format variant constraints...');
+  // printConfig → tamaño del puzzle armado en cm; gobierna el DPI del estudio de impresión
+  // cropMode    → pista de encuadre para el prompt ('head-shoulders' | 'portrait' | 'full-body')
+  // maxPets     → número máximo de mascotas en la composición
+  // bleedMm     → sangre de troquelado (la del `printConfig` manda si está puesta)
+  console.log('🖼️  Seeding product variant print specs...');
 
-  const variantConstraints: {
+  const variantSpecs: {
     productHandle: string;
-    formatName: string;
+    variantTitle: string;
+    printConfig: Record<string, unknown>;
     constraints: Record<string, unknown>;
   }[] = [
-    { productHandle: 'custom-pet-puzzle', formatName: 'puzzle_300',
+    { productHandle: 'custom-pet-puzzle', variantTitle: '300 pieces',
+      printConfig: { widthCm: 40, heightCm: 30, bleedMm: 5 },
       constraints: { cropMode: 'head-shoulders', maxPets: 1, bleedMm: 5 } },
-    { productHandle: 'custom-pet-puzzle', formatName: 'puzzle_500',
+    { productHandle: 'custom-pet-puzzle', variantTitle: '500 pieces',
+      printConfig: { widthCm: 48, heightCm: 36, bleedMm: 5 },
       constraints: { cropMode: 'portrait', maxPets: 2, bleedMm: 5 } },
-    { productHandle: 'custom-pet-puzzle', formatName: 'puzzle_1000',
+    { productHandle: 'custom-pet-puzzle', variantTitle: '1000 pieces',
+      printConfig: { widthCm: 68, heightCm: 51, bleedMm: 5 },
       constraints: { cropMode: 'full-body', maxPets: 2, bleedMm: 5 } },
   ];
 
-  let constraintsUpdated = 0;
-  let constraintsSkipped = 0;
+  let specsUpdated = 0;
+  let specsSkipped = 0;
 
-  for (const entry of variantConstraints) {
+  for (const entry of variantSpecs) {
+    const label = `${entry.productHandle}/${entry.variantTitle}`;
     const product = await prisma.productReference.findFirst({
       where: { shopifyHandle: entry.productHandle },
     });
-    const format = await prisma.format.findFirst({
-      where: { name: entry.formatName },
-    });
 
-    if (!product || !format) {
-      console.warn(
-        `  ⚠ Skipping constraints for ${entry.productHandle}/${entry.formatName}: product or format not found`,
-      );
-      constraintsSkipped++;
+    if (!product) {
+      console.warn(`  ⚠ Skipping ${label}: product not found`);
+      specsSkipped++;
       continue;
     }
 
     const result = await prisma.productFormatVariant.updateMany({
-      where: { productRefId: product.id, formatId: format.id },
-      data: { constraints: entry.constraints as Prisma.InputJsonValue },
+      where: { productRefId: product.id, shopifyVariantTitle: entry.variantTitle },
+      data: {
+        printConfig: entry.printConfig as Prisma.InputJsonValue,
+        constraints: entry.constraints as Prisma.InputJsonValue,
+      },
     });
 
     if (result.count === 0) {
-      console.warn(
-        `  ⚠ No variant found for ${entry.productHandle}/${entry.formatName}`,
-      );
-      constraintsSkipped++;
+      console.warn(`  ⚠ No variant found for ${label}`);
+      specsSkipped++;
     } else {
-      constraintsUpdated++;
+      specsUpdated++;
     }
   }
 
-  console.log(`  ✓ ${constraintsUpdated} variant constraints updated (${constraintsSkipped} skipped)`);
+  console.log(`  ✓ ${specsUpdated} variant print specs updated (${specsSkipped} skipped)`);
 
   console.log('\n✅ Seeding completed successfully!');
   console.log(`   - Styles: ${Object.keys(createdStyles).length}`);
   console.log(`   - Formats: ${formatsData.length}`);
-  console.log(`   - Variant constraints: ${constraintsUpdated} updated`);
+  console.log(`   - Variant print specs: ${specsUpdated} updated`);
 }
 
 main()

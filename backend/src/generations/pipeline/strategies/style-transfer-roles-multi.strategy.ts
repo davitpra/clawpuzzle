@@ -5,6 +5,7 @@ import {
   DEFAULT_ASPECT_RATIO,
   PipelineContext,
   PipelineResult,
+  resolveImageSize,
 } from '../pipeline.types';
 import { FalService } from '../../providers/fal/fal.service';
 import { StorageService } from '../../../storage/storage.service';
@@ -114,6 +115,7 @@ export class StyleTransferRolesMultiStrategy extends BaseStyleStrategy {
       prompt,
       imageUrls: [styleReferenceUrl, ...subjectUrls],
       aspectRatio,
+      imageSize: resolveImageSize(ctx),
       params: falParameters as Record<string, any>,
     });
 

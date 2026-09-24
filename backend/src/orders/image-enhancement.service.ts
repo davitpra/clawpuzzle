@@ -721,10 +721,7 @@ export class ImageEnhancementService {
       include: {
         generation: { select: { resultUrl: true, resultStorageKey: true } },
         productVariant: {
-          select: {
-            printConfig: true,
-            format: { select: { printWidthCm: true, printHeightCm: true } },
-          },
+          select: { printConfig: true },
         },
       },
     });
@@ -776,10 +773,6 @@ export class ImageEnhancementService {
     variantTitle?: string | null;
     productVariant: {
       printConfig: Prisma.JsonValue | null;
-      format: {
-        printWidthCm: number | null;
-        printHeightCm: number | null;
-      } | null;
     } | null;
   }): { width: number; height: number } | null {
     const cfg = item.productVariant?.printConfig as PrintConfigShape | null;
@@ -789,16 +782,6 @@ export class ImageEnhancementService {
       typeof cfg.heightCm === 'number'
     ) {
       return { width: cfg.widthCm / 2.54, height: cfg.heightCm / 2.54 };
-    }
-
-    // El Format lleva el tamaño del puzzle armado, en cm. Ojo: `width`/`height`
-    // del Format son PÍXELES de generación, no el tamaño físico.
-    const fmt = item.productVariant?.format;
-    if (fmt?.printWidthCm && fmt?.printHeightCm) {
-      return {
-        width: fmt.printWidthCm / 2.54,
-        height: fmt.printHeightCm / 2.54,
-      };
     }
 
     return this.parseInchesFromTitle(item.variantTitle ?? null);

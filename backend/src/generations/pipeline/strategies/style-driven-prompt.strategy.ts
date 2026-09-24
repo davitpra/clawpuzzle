@@ -5,6 +5,7 @@ import {
   DEFAULT_ASPECT_RATIO,
   PipelineContext,
   PipelineResult,
+  resolveImageSize,
 } from '../pipeline.types';
 import { OpenRouterPromptService } from '../../providers/openrouter/openrouter-prompt.service';
 import { FalService } from '../../providers/fal/fal.service';
@@ -125,6 +126,7 @@ export class StyleDrivenPromptStrategy extends BaseStyleStrategy {
       prompt,
       imageUrls: [ctx.petPhotoUrl],
       aspectRatio,
+      imageSize: resolveImageSize(ctx),
       params: falParameters,
     });
 

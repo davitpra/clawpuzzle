@@ -21,7 +21,6 @@ const mockFormat = {
   aspectRatio: '4:5',
   width: 1024,
   height: 1280,
-  shopifyVariantOption: '8x10',
   isActive: true,
 };
 

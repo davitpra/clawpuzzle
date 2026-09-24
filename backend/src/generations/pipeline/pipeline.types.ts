@@ -10,6 +10,17 @@ import {
 /** Fallback when neither constraints nor the linked Format provide an aspect ratio. */
 export const DEFAULT_ASPECT_RATIO = '3:4';
 
+/**
+ * Tamaño en píxeles a pedir al modelo, sacado del Format. Si los constraints
+ * fuerzan otra proporción, no se envía: un tamaño del Format la contradiría.
+ */
+export function resolveImageSize(
+  ctx: Pick<PipelineContext, 'format' | 'constraints'>,
+): { width: number; height: number } | undefined {
+  if (ctx.constraints.aspectRatio || !ctx.format) return undefined;
+  return { width: ctx.format.width, height: ctx.format.height };
+}
+
 export type StyleWithConfigs = Style & {
   visionConfig: VisionConfig | null;
   imageGenConfig: ImageGenConfig | null;

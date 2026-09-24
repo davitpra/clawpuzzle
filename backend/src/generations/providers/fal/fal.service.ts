@@ -7,6 +7,9 @@ export interface FalGenerateInput {
   prompt: string;
   imageUrls?: string[];
   aspectRatio?: string;
+  // Tamaño exacto en píxeles. Los modelos flux (p. ej. fal-ai/flux/dev) no
+  // aceptan `aspect_ratio`: la forma de la imagen solo llega por aquí.
+  imageSize?: { width: number; height: number };
   numImages?: number;
   outputFormat?: 'jpeg' | 'png';
   params?: Record<string, any>;
@@ -40,13 +43,16 @@ export class FalService {
 
   async generate(input: FalGenerateInput): Promise<FalGenerateResult> {
     this.logger.log(
-      `Generating with ${input.model} | aspectRatio=${input.aspectRatio ?? '-'} | images=${input.imageUrls?.length ?? 0}`,
+      `Generating with ${input.model} | aspectRatio=${input.aspectRatio ?? '-'} | imageSize=${input.imageSize ? `${input.imageSize.width}x${input.imageSize.height}` : '-'} | images=${input.imageUrls?.length ?? 0}`,
     );
 
+    // `params` va al final: el `parameters` de un ImageGenConfig puede
+    // sobrescribir cualquiera de estos, incluido image_size.
     const falInput: Record<string, any> = {
       prompt: input.prompt,
       ...(input.imageUrls?.length ? { image_urls: input.imageUrls } : {}),
       ...(input.aspectRatio ? { aspect_ratio: input.aspectRatio } : {}),
+      ...(input.imageSize ? { image_size: input.imageSize } : {}),
       ...(input.numImages ? { num_images: input.numImages } : {}),
       ...(input.outputFormat ? { output_format: input.outputFormat } : {}),
       ...input.params,

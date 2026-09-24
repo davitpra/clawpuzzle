@@ -745,7 +745,6 @@ export interface AdminFormat {
   aspectRatio: string;
   width: number;
   height: number;
-  shopifyVariantOption: string | null;
   isActive: boolean;
 }
 
@@ -758,6 +757,8 @@ export interface AdminProduct {
   description: string | null;
   isActive: boolean;
   styleId: string | null;
+  /** Formato (proporción) que heredan todas las variantes del producto. */
+  formatId: string | null;
   style: {
     id: string;
     name: string;
@@ -806,7 +807,6 @@ export interface AdminProductVariantLink {
 export interface AdminProductUnlinkedVariant {
   shopifyVariantId: string;
   shopifyVariantTitle: string;
-  shopifyVariantOption: string | null;
   reason: string;
 }
 
@@ -1176,7 +1176,6 @@ export const adminApi = {
       aspectRatio: string;
       width: number;
       height: number;
-      shopifyVariantOption?: string;
     }) =>
       adminFetch<AdminFormat>("/admin/formats", {
         method: "POST",
@@ -1228,7 +1227,6 @@ export const adminApi = {
         shopifyVariantId: string;
         shopifyVariantTitle: string;
         formatId: string;
-        shopifyVariantOption?: string | null;
       },
     ) =>
       adminFetch(`/admin/products/${productId}/variants/link`, {

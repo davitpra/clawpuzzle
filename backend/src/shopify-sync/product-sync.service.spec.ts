@@ -123,109 +123,113 @@ describe('ProductSyncService', () => {
   });
 
   describe('syncVariants', () => {
-    it('upserts variant when matching format exists', async () => {
-      mockPrisma.format.findMany.mockResolvedValue([
-        { id: 'fmt-1', shopifyVariantOption: '8x10' },
-      ]);
+    const variant = (id: number, title: string) => ({
+      id,
+      title,
+      option1: title,
+      option2: null,
+      option3: null,
+    });
+
+    beforeEach(() => {
       mockPrisma.productFormatVariant.upsert.mockResolvedValue({});
       mockPrisma.productFormatVariant.updateMany.mockResolvedValue({});
+    });
+
+    it('gives every variant the product format, whatever its option', async () => {
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        formatId: 'fmt-4-3',
+      });
 
       const result = await service.syncVariants(
         'ref-1',
-        [
-          {
-            id: 999,
-            title: '8x10',
-            option1: '8x10',
-            option2: null,
-            option3: null,
-          },
-        ],
-        'my-poster',
+        [variant(1, '300 pieces'), variant(2, '1000 pieces')],
+        'custom-pet-puzzle',
+      );
+
+      expect(result).toEqual({ synced: 2, skipped: 0 });
+      expect(mockPrisma.format.findFirst).not.toHaveBeenCalled();
+      for (const id of ['1', '2']) {
+        expect(mockPrisma.productFormatVariant.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              productRefId_shopifyVariantId: {
+                productRefId: 'ref-1',
+                shopifyVariantId: id,
+              },
+            },
+            create: expect.objectContaining({
+              formatId: 'fmt-4-3',
+              isActive: true,
+            }) as unknown,
+          }),
+        );
+      }
+    });
+
+    it('does not overwrite the format of an existing variant', async () => {
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        formatId: 'fmt-4-3',
+      });
+
+      await service.syncVariants('ref-1', [variant(1, 'Default Title')], 'p');
+
+      const calls = mockPrisma.productFormatVariant.upsert.mock.calls as Array<
+        [{ update: Record<string, unknown> }]
+      >;
+      expect(calls[0][0].update).not.toHaveProperty('formatId');
+    });
+
+    it('assigns the oldest active format to a product without one', async () => {
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        formatId: null,
+      });
+      mockPrisma.format.findFirst.mockResolvedValue({ id: 'fmt-4-3' });
+      mockPrisma.productReference.update.mockResolvedValue({});
+
+      const result = await service.syncVariants(
+        'ref-1',
+        [variant(1, 'Default Title')],
+        'p',
       );
 
       expect(result).toEqual({ synced: 1, skipped: 0 });
-      expect(mockPrisma.productFormatVariant.upsert).toHaveBeenCalledWith(
+      expect(mockPrisma.format.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
-            productRefId_shopifyVariantId: {
-              productRefId: 'ref-1',
-              shopifyVariantId: '999',
-            },
-          },
-          create: expect.objectContaining({
-            shopifyVariantId: '999',
-            shopifyVariantTitle: '8x10',
-            isActive: true,
-          }) as unknown,
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
         }),
       );
+      expect(mockPrisma.productReference.update).toHaveBeenCalledWith({
+        where: { id: 'ref-1' },
+        data: { formatId: 'fmt-4-3' },
+      });
     });
 
-    it('skips variant when no matching format exists and logs warning', async () => {
-      mockPrisma.format.findMany.mockResolvedValue([]);
-      mockPrisma.productFormatVariant.updateMany.mockResolvedValue({});
+    it('skips variants when there is no active format at all', async () => {
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        formatId: null,
+      });
+      mockPrisma.format.findFirst.mockResolvedValue(null);
 
       const result = await service.syncVariants(
         'ref-1',
-        [
-          {
-            id: 999,
-            title: '12x16',
-            option1: '12x16',
-            option2: null,
-            option3: null,
-          },
-        ],
-        'my-poster',
+        [variant(1, '300 pieces'), variant(2, '500 pieces')],
+        'p',
       );
 
-      expect(result).toEqual({ synced: 0, skipped: 1 });
+      expect(result).toEqual({ synced: 0, skipped: 2 });
       expect(mockPrisma.productFormatVariant.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.productReference.update).not.toHaveBeenCalled();
     });
 
-    it('skips variant with no size option and logs warning', async () => {
-      mockPrisma.format.findMany.mockResolvedValue([]);
-      mockPrisma.productFormatVariant.updateMany.mockResolvedValue({});
+    it('deactivates variants no longer present in Shopify, even without a format', async () => {
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        formatId: null,
+      });
+      mockPrisma.format.findFirst.mockResolvedValue(null);
 
-      const result = await service.syncVariants(
-        'ref-1',
-        [
-          {
-            id: 999,
-            title: 'Default Title',
-            option1: null,
-            option2: null,
-            option3: null,
-          },
-        ],
-        'my-poster',
-      );
-
-      expect(result).toEqual({ synced: 0, skipped: 1 });
-      expect(mockPrisma.productFormatVariant.upsert).not.toHaveBeenCalled();
-    });
-
-    it('deactivates variants no longer present in Shopify', async () => {
-      mockPrisma.format.findMany.mockResolvedValue([
-        { id: 'fmt-1', shopifyVariantOption: '8x10' },
-      ]);
-      mockPrisma.productFormatVariant.upsert.mockResolvedValue({});
-      mockPrisma.productFormatVariant.updateMany.mockResolvedValue({});
-
-      await service.syncVariants(
-        'ref-1',
-        [
-          {
-            id: 100,
-            title: '8x10',
-            option1: '8x10',
-            option2: null,
-            option3: null,
-          },
-        ],
-        'my-poster',
-      );
+      await service.syncVariants('ref-1', [variant(100, '8x10')], 'p');
 
       expect(mockPrisma.productFormatVariant.updateMany).toHaveBeenCalledWith({
         where: {
@@ -238,88 +242,14 @@ describe('ProductSyncService', () => {
     });
 
     it('handles product with no variants without failing', async () => {
-      mockPrisma.format.findMany.mockResolvedValue([]);
-      mockPrisma.productFormatVariant.updateMany.mockResolvedValue({});
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        formatId: 'fmt-4-3',
+      });
 
-      const result = await service.syncVariants('ref-1', [], 'my-poster');
+      const result = await service.syncVariants('ref-1', [], 'p');
 
       expect(result).toEqual({ synced: 0, skipped: 0 });
       expect(mockPrisma.productFormatVariant.upsert).not.toHaveBeenCalled();
-    });
-
-    it('stores every variant of the same size as its own row', async () => {
-      mockPrisma.format.findMany.mockResolvedValue([
-        { id: 'fmt-1', shopifyVariantOption: '8x10' },
-      ]);
-      mockPrisma.productFormatVariant.upsert.mockResolvedValue({});
-      mockPrisma.productFormatVariant.updateMany.mockResolvedValue({});
-
-      const result = await service.syncVariants(
-        'ref-1',
-        [
-          {
-            id: 1,
-            title: '8x10 / Black',
-            option1: '8x10',
-            option2: 'Black',
-            option3: null,
-          },
-          {
-            id: 2,
-            title: '8x10 / White',
-            option1: '8x10',
-            option2: 'White',
-            option3: null,
-          },
-          {
-            id: 3,
-            title: '8x10 / Oak',
-            option1: '8x10',
-            option2: 'Oak',
-            option3: null,
-          },
-        ],
-        'my-poster',
-      );
-
-      expect(result).toEqual({ synced: 3, skipped: 0 });
-      expect(mockPrisma.productFormatVariant.upsert).toHaveBeenCalledTimes(3);
-      expect(mockPrisma.format.findMany).toHaveBeenCalledTimes(1);
-
-      expect(mockPrisma.productFormatVariant.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            productRefId_shopifyVariantId: {
-              productRefId: 'ref-1',
-              shopifyVariantId: '1',
-            },
-          },
-          create: expect.objectContaining({
-            shopifyVariantId: '1',
-            formatId: 'fmt-1',
-          }) as unknown,
-        }),
-      );
-      expect(mockPrisma.productFormatVariant.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            productRefId_shopifyVariantId: {
-              productRefId: 'ref-1',
-              shopifyVariantId: '2',
-            },
-          },
-        }),
-      );
-      expect(mockPrisma.productFormatVariant.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            productRefId_shopifyVariantId: {
-              productRefId: 'ref-1',
-              shopifyVariantId: '3',
-            },
-          },
-        }),
-      );
     });
   });
 });

@@ -33,6 +33,16 @@ sube la foto de su mascota, genera arte con IA y lo compra impreso como puzzle.
   - `Format` gana `pieceCount`, `printWidthCm` y `printHeightCm`. Los tres
     formatos del seed son 300 / 500 / 1000 piezas, todos en 4:3 para que el
     mismo arte sirva a cualquier tamaño sin regenerar.
+  - Después: el `Format` pasa a ser **solo la proporción** (`ratio_4_3`). Las
+    piezas y el tamaño salen del formato; el tamaño vive en el `printConfig` de
+    la variante y el producto fija el formato (`ProductReference.formatId`) que
+    heredan todas sus variantes. Migración `20260924120000_format_by_aspect_ratio`.
+  - Formato `a3_portrait` (A3 vertical, 848×1200 px). Las generaciones envían
+    `width`/`height` del formato como `image_size`: `fal-ai/flux/dev` ignora
+    `aspect_ratio`, así que hasta ahora todo salía a su 1024×768 por defecto.
+    Al asignar A3 a un producto, sus variantes necesitan `printConfig`
+    `{ widthCm: 29.7, heightCm: 42 }`; a 848×1200 px el A3 queda a ~73 DPI y
+    el estudio de impresión pedirá upscale.
   - `podConfig` → `printConfig` (`{widthCm, heightCm, bleedMm, safeMarginMm, minDpi}`).
   - `productionStatus` gana `packed` entre `printed` y `shipped`: troquelar,
     contar piezas y encajar es un paso físico real. Queda **una sola** máquina
@@ -74,8 +84,8 @@ runtime**, no en compilación:
       caía a un parser que exige el símbolo `″`. Con títulos de puzzle en
       centímetros devolvía `null` **en silencio**, y el estudio de impresión perdía
       la recomendación de upscale y el bleed: se sacaría a producción un máster de
-      120 DPI creyendo que está bien. Ahora el orden es `printConfig` → `Format` →
-      título, el parser acepta cm, y hay tres tests que lo fijan.
+      120 DPI creyendo que está bien. Ahora el orden es `printConfig` → título,
+      el parser acepta cm, y hay dos tests que lo fijan.
 
 ---
 
@@ -119,9 +129,11 @@ runtime**, no en compilación:
 - [ ] **3. El producto en Shopify.** Un producto puzzle con **una sola opción** de
       variante. `product-sync.service.ts` solo lee `variant.option1`: si defines
       dos opciones, la segunda se ignora y las variantes se saltan con un `warn`,
-      dejando la ficha sin tallas y sin error visible. Los valores de esa opción
-      tienen que coincidir con `Format.shopifyVariantOption` del seed
-      (`300 pieces`, `500 pieces`, `1000 pieces`).
+      dejando la ficha sin tallas y sin error visible. Los valores de la opción
+      ya no importan para el formato: todas las variantes heredan el del
+      producto (`ProductReference.formatId`). El tamaño físico de cada variante
+      va en su `printConfig` (el seed lo pone para `300 pieces`, `500 pieces` y
+      `1000 pieces` de `custom-pet-puzzle`).
 
 ### Necesario antes de abrir al público
 
@@ -176,5 +188,5 @@ produce un admin que ofrece un botón que el backend rechaza con 400.
   `globals.css` a propósito: movido a un `<link>`, el CSS de Google sin capa fija
   los iconos en 24px.
 - `Format.width`/`height` son **píxeles de generación**, no el tamaño físico.
-  El tamaño físico está en `printWidthCm`/`printHeightCm`. En ClawAndSoul esa
-  ambigüedad era inofensiva porque nadie calculaba con esos números; aquí sí.
+  El tamaño físico está en `ProductFormatVariant.printConfig` (`widthCm`/`heightCm`).
+  Un `Format` es solo la proporción de la imagen generada.

@@ -35,6 +35,15 @@ export class CreateProductDto {
 
   @ApiProperty({
     description:
+      'Format (aspect ratio) UUID. Every variant of the product generates with it',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  formatId?: string;
+
+  @ApiProperty({
+    description:
       'Shopify collection handle shown in the product page showcase section',
     required: false,
   })

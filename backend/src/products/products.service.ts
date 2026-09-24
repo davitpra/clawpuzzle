@@ -213,11 +213,27 @@ export class ProductsService {
   async update(id: string, dto: UpdateProductDto) {
     await this.findOne(id);
 
+    if (dto.formatId) {
+      const format = await this.prisma.format.findUnique({
+        where: { id: dto.formatId },
+      });
+      if (!format) throw new NotFoundException('Format not found');
+    }
+
     try {
-      const row = await this.prisma.productReference.update({
-        where: { id },
-        data: dto,
-        include: PRODUCT_INCLUDE,
+      const row = await this.prisma.$transaction(async (tx) => {
+        // El formato es del producto: cambiarlo re-apunta todas sus variantes.
+        if (dto.formatId) {
+          await tx.productFormatVariant.updateMany({
+            where: { productRefId: id },
+            data: { formatId: dto.formatId },
+          });
+        }
+        return tx.productReference.update({
+          where: { id },
+          data: dto,
+          include: PRODUCT_INCLUDE,
+        });
       });
       return addStylePreview(row);
     } catch (error) {
@@ -384,13 +400,6 @@ export class ProductsService {
       },
       include: { format: { select: { id: true, displayName: true } } },
     });
-
-    if (dto.shopifyVariantOption?.trim()) {
-      await this.prisma.format.update({
-        where: { id: dto.formatId },
-        data: { shopifyVariantOption: dto.shopifyVariantOption.trim() },
-      });
-    }
 
     return linked;
   }

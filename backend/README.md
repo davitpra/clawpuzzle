@@ -397,9 +397,9 @@ Los productos de Shopify se sincronizan con la base de datos local como `Product
 | `PetPhoto` | Fotos de mascotas | `photoUrl`, `photoStorageKey`, `isPrimary`, `orderIndex` |
 | `Style` | Estilos de arte IA | `name`, `category`, `difficulty`, `promptTemplate`, `strategyKey` |
 | `StyleImage` | Imágenes de ejemplo de estilos | `imageUrl`, `isPrimary`, `orderIndex` |
-| `Format` | Tamaño de puzzle | `pieceCount`, `printWidthCm`/`printHeightCm` (físico), `width`/`height` (px de generación), `aspectRatio` |
-| `ProductReference` | Productos de Shopify | `shopifyProductId`, `template` (`Puzzle` \| `Credits`), `isCreditPack` |
-| `ProductFormatVariant` | ProductReference × Format × variante | `constraints`, `printConfig` |
+| `Format` | Proporción de la imagen a generar | `aspectRatio`, `width`/`height` (px de generación) |
+| `ProductReference` | Productos de Shopify | `shopifyProductId`, `formatId` (proporción de todas sus variantes), `template` (`Puzzle` \| `Credits`), `isCreditPack` |
+| `ProductFormatVariant` | ProductReference × Format × variante | `constraints`, `printConfig` (tamaño físico en cm) |
 | `Generation` | Trabajos de generación IA | `status`, `resultUrl`, `provider`, `processingTimeSeconds` |
 | `Order` / `OrderItem` | Órdenes ingeridas de Shopify | `productionStatus`, `printSourceUrl` → `printUpscaledUrl` → `printImageUrl` |
 | `CreditTransaction` | Ledger de créditos | `amount`, `reason`, `referenceId` (único por par) |

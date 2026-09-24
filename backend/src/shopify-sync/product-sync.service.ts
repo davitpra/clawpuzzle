@@ -5,16 +5,6 @@ import {
   ShopifyVariant,
 } from './dto/shopify-product.dto';
 
-function normalizeVariantOption(s: string | null | undefined): string {
-  return (s ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/×/g, 'x') // multiplication sign -> x
-    .replace(/[″”“"]/g, '"') // double prime / curly quotes -> straight quote
-    .replace(/[′’‘']/g, "'") // single prime / curly quotes -> straight apostrophe
-    .replace(/\s+/g, '');
-}
-
 @Injectable()
 export class ProductSyncService {
   private readonly logger = new Logger(ProductSyncService.name);
@@ -65,62 +55,40 @@ export class ProductSyncService {
     productName: string,
   ): Promise<{ synced: number; skipped: number }> {
     let synced = 0;
-    let skipped = 0;
 
     const incomingVariantIds = variants.map((v) => String(v.id));
 
-    // Load all active formats with a shopifyVariantOption and index by normalized value
-    const allFormats = await this.prisma.format.findMany({
-      where: { isActive: true, shopifyVariantOption: { not: null } },
-      select: { id: true, shopifyVariantOption: true },
-    });
-    const formatByNormalized = new Map(
-      allFormats.map((f) => [
-        normalizeVariantOption(f.shopifyVariantOption),
-        f,
-      ]),
-    );
+    // Todas las variantes heredan el formato (proporción) del producto: el
+    // tamaño o el número de piezas de la variante no cambian la imagen a generar.
+    const formatId = await this.resolveProductFormatId(productRefId);
+    if (!formatId) {
+      this.logger.warn(
+        `Product '${productName}' has no format configured — skipping ${variants.length} variant(s)`,
+      );
+    } else {
+      for (const variant of variants) {
+        const shopifyVariantId = String(variant.id);
+        await this.prisma.productFormatVariant.upsert({
+          where: {
+            productRefId_shopifyVariantId: { productRefId, shopifyVariantId },
+          },
+          create: {
+            productRefId,
+            formatId,
+            shopifyVariantId,
+            shopifyVariantTitle: variant.title,
+            isActive: true,
+          },
+          // formatId no se toca: un override manual de la variante sobrevive al
+          // sync, y cambiar el formato del producto ya lo propaga ProductsService.
+          update: {
+            shopifyVariantTitle: variant.title,
+            isActive: true,
+          },
+        });
 
-    for (const variant of variants) {
-      const sizeValue = variant.option1?.trim();
-
-      if (!sizeValue) {
-        this.logger.warn(
-          `Variant ${variant.id} of product '${productName}' has no size option — skipping`,
-        );
-        skipped++;
-        continue;
+        synced++;
       }
-
-      const format = formatByNormalized.get(normalizeVariantOption(sizeValue));
-      if (!format) {
-        this.logger.warn(
-          `Variant '${sizeValue}' of product '${productName}' has no configured format — skipping`,
-        );
-        skipped++;
-        continue;
-      }
-
-      const shopifyVariantId = String(variant.id);
-      await this.prisma.productFormatVariant.upsert({
-        where: {
-          productRefId_shopifyVariantId: { productRefId, shopifyVariantId },
-        },
-        create: {
-          productRefId,
-          formatId: format.id,
-          shopifyVariantId,
-          shopifyVariantTitle: variant.title,
-          isActive: true,
-        },
-        update: {
-          formatId: format.id,
-          shopifyVariantTitle: variant.title,
-          isActive: true,
-        },
-      });
-
-      synced++;
     }
 
     // Deactivate variants that are no longer present in Shopify
@@ -133,7 +101,7 @@ export class ProductSyncService {
       data: { isActive: false },
     });
 
-    return { synced, skipped };
+    return { synced, skipped: variants.length - synced };
   }
 
   async softDeleteProduct(
@@ -163,6 +131,35 @@ export class ProductSyncService {
       `Deactivated product ${shopifyProductId} (id: ${existing.id})`,
     );
     return { action: 'deactivated', id: existing.id };
+  }
+
+  /**
+   * Formato del producto. Si aún no tiene (un producto recién llegado de
+   * Shopify), se le asigna el formato activo más antiguo, que hace de formato
+   * por defecto (`ratio_4_3` en el seed). Otro formato, como A3, lo elige el
+   * admin en el producto.
+   */
+  private async resolveProductFormatId(
+    productRefId: string,
+  ): Promise<string | null> {
+    const product = await this.prisma.productReference.findUnique({
+      where: { id: productRefId },
+      select: { formatId: true },
+    });
+    if (product?.formatId) return product.formatId;
+
+    const fallback = await this.prisma.format.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    if (!fallback) return null;
+
+    await this.prisma.productReference.update({
+      where: { id: productRefId },
+      data: { formatId: fallback.id },
+    });
+    return fallback.id;
   }
 
   private stripHtml(html: string): string {

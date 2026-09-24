@@ -36,7 +36,6 @@ export function FormatsModal({
     aspectRatio: "",
     width: "",
     height: "",
-    shopifyVariantOption: "",
   });
   const [creatingFormat, setCreatingFormat] = useState(false);
   const [createFormatError, setCreateFormatError] = useState<string | null>(
@@ -48,14 +47,12 @@ export function FormatsModal({
   const [editFormatForm, setEditFormatForm] = useState({
     displayName: "",
     aspectRatio: "",
-    shopifyVariantOption: "",
   });
   const [savingFormatEdit, setSavingFormatEdit] = useState(false);
   const [formatEditError, setFormatEditError] = useState<string | null>(null);
 
   const handleFormatCreate = async () => {
-    const { name, displayName, aspectRatio, width, height, shopifyVariantOption } =
-      newFormatForm;
+    const { name, displayName, aspectRatio, width, height } = newFormatForm;
     if (!name.trim() || !displayName.trim() || !aspectRatio.trim()) {
       setCreateFormatError("Nombre, nombre visible y proporción son obligatorios.");
       return;
@@ -75,7 +72,6 @@ export function FormatsModal({
         aspectRatio: aspectRatio.trim(),
         width: w,
         height: h,
-        shopifyVariantOption: shopifyVariantOption.trim() || undefined,
       });
       setNewFormatForm({
         name: "",
@@ -83,7 +79,6 @@ export function FormatsModal({
         aspectRatio: "",
         width: "",
         height: "",
-        shopifyVariantOption: "",
       });
       onChanged();
     } catch (e: unknown) {
@@ -97,7 +92,6 @@ export function FormatsModal({
     setEditFormatForm({
       displayName: f.displayName,
       aspectRatio: f.aspectRatio,
-      shopifyVariantOption: f.shopifyVariantOption ?? "",
     });
     setEditingFormat(f);
     setFormatEditError(null);
@@ -111,7 +105,6 @@ export function FormatsModal({
       await adminApi.formats.update(editingFormat.id, {
         displayName: editFormatForm.displayName,
         aspectRatio: editFormatForm.aspectRatio,
-        shopifyVariantOption: editFormatForm.shopifyVariantOption.trim() || null,
       });
       setEditingFormat(null);
       onChanged();
@@ -125,7 +118,7 @@ export function FormatsModal({
   const handleFormatDelete = async (f: AdminFormat) => {
     if (
       !confirm(
-        `¿Eliminar el formato "${f.displayName}"? Quedará inactivo y no se podrá vincular a nuevas variantes.`,
+        `¿Eliminar el formato "${f.displayName}"? Quedará inactivo y no se podrá asignar a nuevos productos.`,
       )
     )
       return;
@@ -224,15 +217,6 @@ export function FormatsModal({
                   placeholder="1024"
                 />
               </FormLayout.Group>
-              <TextField
-                label="Opción Shopify (opcional)"
-                value={newFormatForm.shopifyVariantOption}
-                onChange={(v) =>
-                  setNewFormatForm((p) => ({ ...p, shopifyVariantOption: v }))
-                }
-                autoComplete="off"
-                helpText='Valor del option1 de la variante en Shopify. Ej: "8x10".'
-              />
               <InlineStack align="end">
                 <Button
                   variant="primary"
@@ -253,7 +237,6 @@ export function FormatsModal({
               { title: "Nombre" },
               { title: "Proporción" },
               { title: "Dimensiones" },
-              { title: "Opción Shopify" },
               { title: "Estado" },
               { title: "Acciones" },
             ]}
@@ -283,11 +266,6 @@ export function FormatsModal({
                 <IndexTable.Cell>
                   <Text as="span" tone="subdued">
                     {f.width} × {f.height}
-                  </Text>
-                </IndexTable.Cell>
-                <IndexTable.Cell>
-                  <Text as="span" tone="subdued">
-                    {f.shopifyVariantOption ?? "—"}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
@@ -384,15 +362,6 @@ export function FormatsModal({
               }
               autoComplete="off"
               helpText='Ej: "4:3", "1:1", "16:9"'
-            />
-            <TextField
-              label="Opción Shopify (shopifyVariantOption)"
-              value={editFormatForm.shopifyVariantOption}
-              onChange={(v) =>
-                setEditFormatForm((p) => ({ ...p, shopifyVariantOption: v }))
-              }
-              autoComplete="off"
-              helpText='Valor exacto del option1 de la variante en Shopify. Ej: "8x10". Dejar vacío para desvincularlo.'
             />
           </FormLayout>
         </Modal.Section>

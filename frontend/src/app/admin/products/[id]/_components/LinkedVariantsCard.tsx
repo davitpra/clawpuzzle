@@ -65,7 +65,6 @@ export function LinkedVariantsCard({
         shopifyVariantId: u.shopifyVariantId,
         shopifyVariantTitle: u.shopifyVariantTitle,
         formatId,
-        shopifyVariantOption: u.shopifyVariantOption ?? undefined,
       });
       onChanged();
     } catch (e: unknown) {

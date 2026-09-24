@@ -74,23 +74,21 @@ All endpoints require `admin` role.
 | :---------------------- | :--------------------- | :----------------------------------------------------------- |
 | `variant.id`            | `shopifyVariantId`     | Stored as string                                             |
 | `variant.title`         | `shopifyVariantTitle`  | Full variant title (e.g. `"8x10"`)                           |
-| `variant.option1`       | — (lookup key)         | Matched against `formats.shopify_variant_option` to find the Format |
-| *(derived)*             | `formatId`             | ID of the matched `Format` record                            |
+| *(derived)*             | `formatId`             | The product's `formatId` (aspect ratio), same for every variant |
 | *(derived)*             | `productRefId`         | ID of the parent `ProductReference`                          |
 
-**Variant matching logic** (`syncVariants()`):
-1. For each variant, extract `option1` (Size, e.g. `"8x10"`)
-2. Look up `Format` where `shopifyVariantOption === option1`
-3. If found → upsert into `product_format_variants` (unique key: `productRefId + formatId`)
-4. If not found → log warning and continue (sync is non-blocking)
-5. After processing all variants, deactivate (`isActive = false`) any `product_format_variants` rows whose `shopifyVariantId` is no longer present in the incoming payload
+**Variant linking logic** (`syncVariants()`):
+1. Resolve the product's format (`product_references.format_id`). A Format is only an aspect ratio, so every variant of the product shares it — size or piece count don't change the generated image. If the product has none, the oldest active Format (the default, `ratio_4_3`) is assigned to it; other formats such as A3 are picked by the admin.
+2. If there is still no format → log a warning and skip the variants (sync is non-blocking)
+3. Otherwise upsert every variant into `product_format_variants` (unique key: `productRefId + shopifyVariantId`). Existing rows keep their `formatId`; changing the product's format in the admin re-points all its variants.
+4. After processing all variants, deactivate (`isActive = false`) any `product_format_variants` rows whose `shopifyVariantId` is no longer present in the incoming payload
 
 ## Features
 
 - **HMAC Verification**: Every webhook is verified with `HMAC-SHA256(rawBody, SHOPIFY_WEBHOOK_SECRET)` before processing. Invalid requests are rejected with `401` and logged. Uses `crypto.timingSafeEqual` to prevent timing attacks. The raw body is captured via a route-scoped `express.raw()` middleware in `main.ts`.
 - **Async Processing**: Webhook handlers respond `200` immediately and enqueue a BullMQ job (`shopify-sync` queue). The worker processes the upsert/delete asynchronously with 3 retries and exponential backoff.
 - **Idempotent Upsert**: Uses `findUnique` by `shopifyProductId` then `update` or `create`. Safe to call multiple times with the same payload.
-- **Idempotent Variant Sync**: Uses Prisma `upsert` with unique key `(productRefId, formatId)`. Running the same webhook twice produces the same result.
+- **Idempotent Variant Sync**: Uses Prisma `upsert` with unique key `(productRefId, shopifyVariantId)`. Running the same webhook twice produces the same result.
 - **Soft Delete + Cascade**: Deactivating a product sets `isActive = false` on `product_references` and also deactivates all related rows in `style_format_product_compat` and `product_format_variants` within a single `$transaction`.
 - **Variant Deactivation**: After each sync, variants that existed in the DB but are absent from the current Shopify payload are automatically soft-deleted (`isActive = false`) in `product_format_variants`.
 - **Cron Reconciliation**: `@Cron('0 */6 * * *')` fetches all Shopify products, upserts each one + syncs its variants, then soft-deletes any `product_references` no longer present in Shopify.
@@ -113,4 +111,4 @@ All endpoints require `admin` role.
 - **New product synced**: inserted into `product_references` with no compat rules. An admin must manually configure which style+format combinations are valid for the new product.
 - **Product deactivated**: soft-deleted in `product_references`; all related `style_format_product_compat` and `product_format_variants` rows set to `isActive = false`. Existing `generations` referencing the product are not affected.
 - **Product reactivated**: a Shopify `products/update` webhook sets `isActive = true` in `product_references`, but compat rules must be reactivated manually by an admin.
-- **Variant without configured format**: logged as a warning (`Variant 'XxY' of product 'Name' has no configured format`). The sync continues without blocking. To fix, add the missing `shopifyVariantOption` value to the corresponding `Format` record.
+- **Product without format**: logged as a warning (`Product 'Name' has no format configured`). The sync continues without blocking. To fix, assign a format to the product in the admin and re-sync its variants.

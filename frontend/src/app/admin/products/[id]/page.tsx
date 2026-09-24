@@ -47,11 +47,13 @@ export default function AdminProductDetailPage() {
     deleteOpen,
     deleting,
     styleId,
+    formatId,
     setError,
     setSaveError,
     setSyncResult,
     setDeleteOpen,
     setStyleId,
+    setFormatId,
     loadFormats,
     loadVariants,
     handleSave,
@@ -168,6 +170,9 @@ export default function AdminProductDetailPage() {
             styles={styles}
             styleId={styleId}
             onStyleChange={setStyleId}
+            formats={formats}
+            formatId={formatId}
+            onFormatChange={setFormatId}
             saving={saving}
             onSave={handleSave}
           />

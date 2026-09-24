@@ -125,7 +125,7 @@ Each strategy receives a `PipelineContext` (`pipeline/pipeline.types.ts`):
 | Key           | Default | Description |
 | :------------ | :------ | :---------- |
 | `maxPets`     | `1`     | Max number of pets to describe in the vision prompt. Passed as a template var. |
-| `aspectRatio` | —       | When present, overrides `format.aspectRatio` in the fal payload. Final fallback: `DEFAULT_ASPECT_RATIO = "3:4"`. |
+| `aspectRatio` | —       | When present, overrides `format.aspectRatio` in the fal payload and suppresses `image_size` (see `resolveImageSize`). Final fallback: `DEFAULT_ASPECT_RATIO = "3:4"`. Otherwise the Format's `width`/`height` go as `image_size`, which is what flux models read — they ignore `aspect_ratio`. |
 
 #### Strategies
 

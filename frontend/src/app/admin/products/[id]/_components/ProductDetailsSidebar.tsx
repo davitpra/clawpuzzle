@@ -11,13 +11,16 @@ import {
   Divider,
   Thumbnail,
 } from "@shopify/polaris";
-import { AdminProduct, AdminStyle } from "@/entities/admin/api";
+import { AdminFormat, AdminProduct, AdminStyle } from "@/entities/admin/api";
 
 type ProductDetailsSidebarProps = {
   product: AdminProduct;
   styles: AdminStyle[];
   styleId: string;
   onStyleChange: (value: string) => void;
+  formats: AdminFormat[];
+  formatId: string;
+  onFormatChange: (value: string) => void;
   saving: boolean;
   onSave: () => void;
 };
@@ -27,6 +30,9 @@ export function ProductDetailsSidebar({
   styles,
   styleId,
   onStyleChange,
+  formats,
+  formatId,
+  onFormatChange,
   saving,
   onSave,
 }: ProductDetailsSidebarProps) {
@@ -62,6 +68,19 @@ export function ProductDetailsSidebar({
             </Text>
           </InlineStack>
         )}
+        <Select
+          label="Formato (proporción)"
+          options={[
+            { label: "Sin asignar", value: "", disabled: true },
+            ...formats.map((f) => ({
+              label: `${f.displayName} (${f.aspectRatio})`,
+              value: f.id,
+            })),
+          ]}
+          value={formatId}
+          onChange={onFormatChange}
+          helpText="Proporción de la imagen a generar. La heredan todas las variantes."
+        />
         <InlineStack align="end">
           <Button variant="primary" loading={saving} onClick={onSave}>
             Guardar cambios
