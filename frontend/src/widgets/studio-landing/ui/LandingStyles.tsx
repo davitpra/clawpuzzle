@@ -3,6 +3,7 @@ import { Carousel } from "@/shared/ui/Carousel";
 import LightRays from "@/shared/ui/LightRays";
 import { fetchPublicStyles } from "@/entities/art-style/api/fetchPublicStyles";
 import { LandingStyleCard } from "./LandingStyleCard";
+import { LandingStylesEmpty } from "./LandingStylesEmpty";
 
 function SectionHeading() {
   return (
@@ -46,16 +47,29 @@ export function LandingStylesSkeleton({
   );
 }
 
+/**
+ * La sección se renderiza **siempre**, tenga o no tarjetas que mostrar.
+ *
+ * Antes hacía `return null` tanto si fallaba la petición como si ningún estilo
+ * traía imagen, y las dos cosas salían muy caras y en silencio: desaparecía el
+ * ancla `#styles`, y con ella el destino del CTA principal del hero, del CTA
+ * del footer y del link "Create your art" —el embudo entero se quedaba sin
+ * puerta de entrada—. Además `SectionFlow` ya le había asignado su turno en la
+ * alternancia de color, así que el hueco de altura 0 dejaba dos divisores de
+ * ola pegados. Su docstring lo avisa: una sección no debe ocultarse sola.
+ */
 export default async function LandingStyles({
   background = "bg-white",
 }: {
   background?: string;
 }) {
-  let publicStyles: Awaited<ReturnType<typeof fetchPublicStyles>>;
+  let publicStyles: Awaited<ReturnType<typeof fetchPublicStyles>> = [];
   try {
     publicStyles = await fetchPublicStyles();
-  } catch {
-    return null;
+  } catch (error) {
+    // Que quede en el log del servidor: un fallo silencioso aquí se veía solo
+    // como una sección que no está.
+    console.error("LandingStyles: no se pudieron cargar los estilos", error);
   }
 
   const styles = publicStyles.flatMap((style) => {
@@ -65,8 +79,6 @@ export default async function LandingStyles({
     return [{ style, art }];
   });
 
-  if (styles.length === 0) return null;
-
   return (
     <section
       id="styles"
@@ -74,20 +86,24 @@ export default async function LandingStyles({
     >
       <Container>
         <SectionHeading />
-        <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
-          {styles.map(({ style, art }) => (
-            <LandingStyleCard
-              key={style.id}
-              id={style.id}
-              displayName={style.displayName}
-              difficulty={style.difficulty}
-              artUrl={art.imageUrl}
-              artAlt={
-                art.altImage ?? `${style.displayName} pet portrait art example`
-              }
-            />
-          ))}
-        </Carousel>
+        {styles.length === 0 ? (
+          <LandingStylesEmpty />
+        ) : (
+          <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
+            {styles.map(({ style, art }) => (
+              <LandingStyleCard
+                key={style.id}
+                id={style.id}
+                displayName={style.displayName}
+                difficulty={style.difficulty}
+                artUrl={art.imageUrl}
+                artAlt={
+                  art.altImage ?? `${style.displayName} pet portrait art example`
+                }
+              />
+            ))}
+          </Carousel>
+        )}
       </Container>
       <LightRays />
     </section>
