@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcrypt';
 import {
   DEFAULT_PROMPT_TEMPLATE,
   DEFAULT_VISION_MAX_TOKENS,
@@ -17,6 +18,34 @@ async function main() {
   // ProductFormatVariants and ProductReferences are still managed by the Shopify
   // sync service. Product types are a string column on ProductReference, synced
   // from Shopify on upsert.
+
+  // ============================================
+  // ADMIN
+  // ============================================
+  // El registro público es solo por Google, así que el único camino a una cuenta
+  // con password es este. Las credenciales salen del entorno para no dejarlas en
+  // el repo; el `update` reescribe el hash para que cambiar ADMIN_PASSWORD y
+  // resembrar baste para rotarla.
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (adminEmail && adminPassword) {
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: { role: 'admin', passwordHash },
+      create: {
+        email: adminEmail,
+        passwordHash,
+        fullName: 'Admin',
+        role: 'admin',
+        emailVerified: true,
+      },
+    });
+    console.log(`  ✓ Admin user upserted (${adminEmail})`);
+  } else {
+    console.warn('  ⚠ ADMIN_EMAIL/ADMIN_PASSWORD not set, skipping admin user');
+  }
 
   // ============================================
   // STYLES
@@ -50,21 +79,41 @@ async function main() {
 
   console.log('  ✓ Default VisionConfig and ImageGenConfig created');
 
+  // `image` alimenta la sección `#styles` de la landing, que empareja cada
+  // estilo con su imagen de `orderIndex: 0`. Sin ella la sección se queda sin
+  // tarjetas y el embudo pierde su puerta de entrada.
+  //
+  // Son rutas relativas a propósito: resuelven contra el origen del frontend,
+  // donde esos assets ya viven en `public/landing/`, así que `next/image` las
+  // optimiza en local sin tocar `remotePatterns`. En producción las imágenes
+  // reales llegan por el admin como URLs absolutas de Cloudinary.
   const stylesData = [
     {
       name: 'watercolor_portrait',
       displayName: 'Acuarela',
       category: 'classic',
+      image: {
+        url: '/landing/style-signature.webp',
+        alt: 'Retrato de mascota en acuarela',
+      },
     },
     {
       name: 'neon_glow',
       displayName: 'Neón Brillante',
       category: 'modern',
+      image: {
+        url: '/landing/style-pop-art.webp',
+        alt: 'Retrato de mascota en estilo neón brillante',
+      },
     },
     {
       name: 'flat_modern_illustration',
       displayName: 'Flat Modern Illustration',
       category: 'elegant',
+      image: {
+        url: '/landing/style-fauvist.webp',
+        alt: 'Retrato de mascota en ilustración plana moderna',
+      },
     },
   ];
 
@@ -86,6 +135,31 @@ async function main() {
       },
     });
     createdStyles[styleData.name] = style;
+
+    // `StyleImage` no tiene más clave única que su `id`, así que un `create` a
+    // secas duplicaría en cada resiembra. Contar primero también protege las
+    // imágenes que un admin haya subido de verdad sobre esta misma base.
+    const existingImages = await prisma.styleImage.count({
+      where: { styleId: style.id },
+    });
+
+    if (existingImages === 0) {
+      await prisma.styleImage.create({
+        data: {
+          styleId: style.id,
+          imageUrl: styleData.image.url,
+          // Centinela: estos ficheros no están en Cloudinary. Borrar la imagen
+          // desde el admin llama a `destroy` con este key, que resuelve con
+          // `{ result: 'not found' }` en vez de fallar.
+          storageKey: `seed/${styleData.name}`,
+          altImage: styleData.image.alt,
+          // La landing busca exactamente `orderIndex: 0`; `isPrimary` es lo que
+          // `derivePreviewUrl` necesita para rellenar `previewUrl`.
+          orderIndex: 0,
+          isPrimary: true,
+        },
+      });
+    }
   }
 
   console.log(`  ✓ ${Object.keys(createdStyles).length} styles upserted`);
