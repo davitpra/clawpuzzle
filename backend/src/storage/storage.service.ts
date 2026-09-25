@@ -19,10 +19,16 @@ export class StorageService {
     buffer: Buffer,
     contentType: string,
   ): Promise<string> {
+    // En dynamic folder mode las barras del public_id no crean carpetas en
+    // la Media Library; la carpeta visible va aparte en asset_folder.
+    const slash = key.lastIndexOf('/');
+    const assetFolder = slash > 0 ? key.slice(0, slash) : undefined;
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           public_id: key,
+          asset_folder: assetFolder,
           resource_type: contentType.startsWith('video/') ? 'video' : 'image',
           overwrite: true,
         },
