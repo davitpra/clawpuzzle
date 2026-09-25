@@ -767,6 +767,8 @@ export interface AdminProduct {
   } | null;
   template: string | null;
   isCreditPack: boolean;
+  /** Producto único del lanzamiento: admite cualquier estilo activo. */
+  isLaunchProduct: boolean;
   showcaseCollectionHandle: string | null;
 }
 
@@ -1202,6 +1204,12 @@ export const adminApi = {
     /** Fija EL producto dedicado al pack de créditos (o ninguno si es null). */
     setCreditPack: (productId: string | null) =>
       adminFetch<void>("/admin/products/credit-pack", {
+        method: "PATCH",
+        body: JSON.stringify({ productId }),
+      }),
+    /** Fija EL producto de lanzamiento (o ninguno si es null). */
+    setLaunchProduct: (productId: string | null) =>
+      adminFetch<void>("/admin/products/launch-product", {
         method: "PATCH",
         body: JSON.stringify({ productId }),
       }),

@@ -346,6 +346,8 @@ model ProductReference {
   showcaseCollectionHandle String?  @map("showcase_collection_handle")
   isActive                 Boolean  @default(true) @map("is_active")
   isCreditPack             Boolean  @default(false) @map("is_credit_pack")
+  // Producto único del lanzamiento: admite cualquier estilo activo, sin styleId.
+  isLaunchProduct          Boolean  @default(false) @map("is_launch_product")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -360,6 +362,7 @@ model ProductReference {
   @@index([styleId])
   @@index([formatId])
   @@index([isCreditPack])
+  @@index([isLaunchProduct])
   @@map("product_references")
 }
 

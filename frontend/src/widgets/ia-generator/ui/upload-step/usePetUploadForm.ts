@@ -117,6 +117,7 @@ export function usePetUploadForm({
           activePet,
           productRefId,
           formatId,
+          styleId,
           userSelections,
           productInfo,
           styleName,

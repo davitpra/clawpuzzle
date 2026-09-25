@@ -166,6 +166,26 @@ describe('CompatService', () => {
       expect(mockPrisma.productFormatVariant.findFirst).not.toHaveBeenCalled();
     });
 
+    it('accepts the launch product for any style', async () => {
+      mockPrisma.productReference.findUnique.mockResolvedValue({
+        id: 'ref-1',
+        isActive: true,
+        isLaunchProduct: true,
+        styleId: null,
+        style: null,
+      });
+      mockPrisma.productFormatVariant.findFirst.mockResolvedValue({
+        format: mockFormat,
+        shopifyVariantId: 'gid://shopify/ProductVariant/12345',
+        constraints: null,
+        isActive: true,
+      });
+
+      const result = await service.checkCompat('style-1', 'fmt-1', 'ref-1');
+
+      expect(result.compatible).toBe(true);
+    });
+
     it('returns compatible false when product is inactive', async () => {
       mockPrisma.productReference.findUnique.mockResolvedValue({
         id: 'ref-1',

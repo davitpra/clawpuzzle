@@ -8,6 +8,7 @@ import {
   InlineStack,
   BlockStack,
 } from "@shopify/polaris";
+import type { ReactNode } from "react";
 import { AdminProduct } from "@/entities/admin/api";
 import { SelectedProductTable } from "./SelectedProductTable";
 
@@ -24,13 +25,15 @@ interface SpecialRoleCardProps {
   saving: boolean;
   onChange: (productId: string) => void;
   onRowClick: (id: string) => void;
+  /** Contenido extra bajo el producto asignado (p. ej. los estilos que admite). */
+  children?: ReactNode;
 }
 
 /**
- * Card para asignar un producto a un rol especial y excluyente (Paint by Numbers
- * o Credit Pack): un Select con los productos activos y, debajo, el producto que
- * tiene el rol. Ambos roles comparten este componente porque solo cambian los
- * textos y el handler.
+ * Card para asignar un producto a un rol especial y excluyente (Producto de
+ * lanzamiento o Credit Pack): un Select con los productos activos y, debajo, el
+ * producto que tiene el rol. Ambos roles comparten este componente porque solo
+ * cambian los textos, el handler y el contenido extra de `children`.
  */
 export function SpecialRoleCard({
   title,
@@ -42,6 +45,7 @@ export function SpecialRoleCard({
   saving,
   onChange,
   onRowClick,
+  children,
 }: SpecialRoleCardProps) {
   return (
     <Card>
@@ -74,6 +78,7 @@ export function SpecialRoleCard({
             onRowClick={onRowClick}
           />
         )}
+        {children}
       </BlockStack>
     </Card>
   );

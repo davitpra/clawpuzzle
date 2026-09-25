@@ -310,7 +310,7 @@ function IAGeneratorContent() {
   // ---- Envío del flujo de lanzamiento -----------------------------------
 
   const runSubmit = useCallback(async () => {
-    if (!productRefId || !formatId) return;
+    if (!productRefId || !formatId || !styleId) return;
     try {
       const result = await submit({
         photos,
@@ -325,6 +325,7 @@ function IAGeneratorContent() {
         activePet,
         productRefId,
         formatId,
+        styleId,
         userSelections,
         productInfo,
         styleName: style?.name ?? null,
@@ -347,6 +348,7 @@ function IAGeneratorContent() {
     activePet,
     productRefId,
     formatId,
+    styleId,
     userSelections,
     productInfo,
     style,

@@ -80,7 +80,8 @@ export class ProductsService {
 
   async findPendingStyleAssignment() {
     const rows = await this.prisma.productReference.findMany({
-      where: { isActive: true, styleId: null },
+      // El producto de lanzamiento no lleva estilo a propósito: no está pendiente.
+      where: { isActive: true, styleId: null, isLaunchProduct: false },
       include: PRODUCT_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
@@ -267,6 +268,30 @@ export class ProductsService {
         await tx.productReference.update({
           where: { id: productId },
           data: { isCreditPack: true },
+        });
+      }
+    });
+  }
+
+  /**
+   * Fija EL producto de lanzamiento (o ninguno si productId es null),
+   * garantizando unicidad. Ese producto admite cualquier estilo activo: el
+   * estilo lo elige el visitante y viaja en la generación, no en el producto.
+   */
+  async setLaunchProduct(productId: string | null) {
+    if (productId) await this.findOne(productId);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.productReference.updateMany({
+        where: {
+          isLaunchProduct: true,
+          ...(productId ? { id: { not: productId } } : {}),
+        },
+        data: { isLaunchProduct: false },
+      });
+      if (productId) {
+        await tx.productReference.update({
+          where: { id: productId },
+          data: { isLaunchProduct: true },
         });
       }
     });

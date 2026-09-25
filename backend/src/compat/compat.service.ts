@@ -57,11 +57,14 @@ export class CompatService {
   // --- Flujo 2: estilo → formatos disponibles ---
 
   async getFormatsByStyle(styleId: string) {
-    // All formats reachable through products that carry this style
+    // Formatos alcanzables por los productos con este estilo o el de lanzamiento
     const variants = await this.prisma.productFormatVariant.findMany({
       where: {
         isActive: true,
-        productRef: { styleId, isActive: true },
+        productRef: {
+          isActive: true,
+          OR: [{ styleId }, { isLaunchProduct: true }],
+        },
       },
       include: { format: true },
       distinct: ['formatId'],
@@ -74,8 +77,8 @@ export class CompatService {
   async getProductsByStyleAndFormat(styleId: string, formatId: string) {
     const products = await this.prisma.productReference.findMany({
       where: {
-        styleId,
         isActive: true,
+        OR: [{ styleId }, { isLaunchProduct: true }],
         productVariants: {
           some: { formatId, isActive: true },
         },
@@ -93,7 +96,10 @@ export class CompatService {
       include: { style: true },
     });
 
-    if (!product || !product.isActive || product.styleId !== styleId) {
+    // El producto de lanzamiento es compatible con cualquier estilo.
+    const matchesStyle =
+      product?.isLaunchProduct || product?.styleId === styleId;
+    if (!product || !product.isActive || !matchesStyle) {
       return { compatible: false };
     }
 

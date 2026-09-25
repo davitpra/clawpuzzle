@@ -66,31 +66,29 @@ export class GenerationsService {
       throw new BadRequestException('Pet photo has no URL');
     }
 
-    // Resolve product and derive styleId from it
+    // Resolve product and the style to generate with
     const product = await this.prisma.productReference.findUnique({
       where: { id: createDto.productRefId },
     });
     if (!product || !product.isActive) {
       throw new NotFoundException('Product not found or inactive');
     }
-    if (!product.styleId) {
-      throw new BadRequestException(
-        'This product has no style assigned yet. An admin must link it to a style before it can be used for generation.',
-      );
-    }
-    // Capturado tras el guard: el narrowing de product.styleId no sobrevive
-    // dentro del closure de $transaction, así que lo fijamos como string aquí.
-    const styleId = product.styleId;
+    const styleId = this.resolveStyleId(product, createDto.styleId);
 
-    // Load style to validate userSelections against templateVarOptions
+    // Load style to validate userSelections against templateVarOptions. Con el
+    // producto de lanzamiento el estilo lo elige el cliente, así que además
+    // tiene que estar activo.
     const style = await this.prisma.style.findUnique({
-      where: { id: product.styleId },
-      select: { templateVarOptions: true },
+      where: { id: styleId },
+      select: { templateVarOptions: true, isActive: true },
     });
+    if (!style || (product.isLaunchProduct && !style.isActive)) {
+      throw new BadRequestException('Style not found or inactive');
+    }
 
     const validatedSelections = this.validateUserSelections(
       createDto.userSelections ?? {},
-      (style?.templateVarOptions ?? null) as Record<string, any> | null,
+      (style.templateVarOptions ?? null) as Record<string, any> | null,
     );
 
     // Validate the requested format is available for this product
@@ -155,6 +153,36 @@ export class GenerationsService {
     });
 
     return generation;
+  }
+
+  /**
+   * El producto de lanzamiento admite cualquier estilo activo: el estilo viaja
+   * en la petición. El resto de productos fija su propio estilo, y si la
+   * petición trae otro distinto es un error del cliente, no algo a ignorar.
+   */
+  private resolveStyleId(
+    product: { isLaunchProduct: boolean; styleId: string | null },
+    requestedStyleId?: string,
+  ): string {
+    if (product.isLaunchProduct) {
+      if (!requestedStyleId) {
+        throw new BadRequestException(
+          'Choose a style to generate with this product.',
+        );
+      }
+      return requestedStyleId;
+    }
+    if (!product.styleId) {
+      throw new BadRequestException(
+        'This product has no style assigned yet. An admin must link it to a style before it can be used for generation.',
+      );
+    }
+    if (requestedStyleId && requestedStyleId !== product.styleId) {
+      throw new BadRequestException(
+        'The requested style is not available for this product.',
+      );
+    }
+    return product.styleId;
   }
 
   async findUserGenerations(

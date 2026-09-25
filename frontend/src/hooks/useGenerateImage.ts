@@ -10,6 +10,11 @@ export interface GeneratePayload {
   petPhotoId: string;
   formatId: string;
   productRefId: string;
+  /**
+   * Estilo elegido. El producto de lanzamiento admite cualquier estilo activo y
+   * lo exige; para el resto debe coincidir con el estilo del producto.
+   */
+  styleId?: string;
   width?: number;
   height?: number;
   prompt?: string;

@@ -12,6 +12,7 @@ import {
 } from "@shopify/polaris";
 import { RefreshIcon } from "@shopify/polaris-icons";
 import { DeleteProductModal } from "@/app/admin/_components/DeleteProductModal";
+import { LaunchProductCard } from "./_components/LaunchProductCard";
 import { ProductsTableCard } from "./_components/ProductsTableCard";
 import { SpecialRoleCard } from "./_components/SpecialRoleCard";
 import { SyncStatusCard } from "./_components/SyncStatusCard";
@@ -26,6 +27,7 @@ export default function AdminProductsPage() {
     styles,
     syncStatus,
     creditPackProduct,
+    launchProduct,
     puzzleProducts,
     unclassifiedProducts,
     loading,
@@ -35,6 +37,7 @@ export default function AdminProductsPage() {
     savingStyle,
     savingTemplate,
     savingCreditPack,
+    savingLaunchProduct,
     deletingTarget,
     deleting,
     setError,
@@ -45,6 +48,7 @@ export default function AdminProductsPage() {
     handleTemplateChange,
     handleStyleChange,
     handleCreditPackChange,
+    handleLaunchProductChange,
   } = useProductsList(productTypeMap);
 
   const goToProduct = (id: string) => router.push(`/admin/products/${id}`);
@@ -94,6 +98,16 @@ export default function AdminProductsPage() {
           </Card>
         ) : (
           <>
+            <LaunchProductCard
+              products={products}
+              selected={launchProduct}
+              styles={styles}
+              imageMap={imageMap}
+              saving={savingLaunchProduct}
+              onChange={handleLaunchProductChange}
+              onRowClick={goToProduct}
+            />
+
             <ProductsTableCard
               {...tableProps}
               title="Rompecabezas"

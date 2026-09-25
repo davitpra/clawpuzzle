@@ -76,6 +76,40 @@ describe('StyleCompatService', () => {
     expect(result.defaultCreateContext).toBeNull();
   });
 
+  it('prefers the launch product over a style-specific puzzle', async () => {
+    prisma.style.findFirst.mockResolvedValue({ id: 'style-1' });
+    prisma.productReference.findMany.mockResolvedValue([
+      puzzleProduct,
+      {
+        ...puzzleProduct,
+        id: 'launch-product',
+        isLaunchProduct: true,
+        productVariants: [
+          {
+            id: 'variant-2',
+            formatId: 'format-a3',
+            format: { id: 'format-a3', displayName: 'A3' },
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.findCompatibleOptions('style-1');
+
+    expect(result.defaultCreateContext).toEqual({
+      productRefId: 'launch-product',
+      formatId: 'format-a3',
+    });
+    expect(prisma.productReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isActive: true,
+          OR: [{ styleId: 'style-1' }, { isLaunchProduct: true }],
+        },
+      }),
+    );
+  });
+
   it('rejects inactive or missing styles', async () => {
     prisma.style.findFirst.mockResolvedValue(null);
 

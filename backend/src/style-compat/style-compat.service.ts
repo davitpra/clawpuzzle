@@ -14,9 +14,13 @@ export class StyleCompatService {
       throw new NotFoundException(`Style ${styleId} not found`);
     }
 
-    // Products that carry this style, with their available format variants
+    // Productos con este estilo más el producto de lanzamiento, que admite
+    // cualquier estilo activo; cada uno con sus variantes de formato.
     const products = await this.prisma.productReference.findMany({
-      where: { styleId, isActive: true },
+      where: {
+        isActive: true,
+        OR: [{ styleId }, { isLaunchProduct: true }],
+      },
       include: {
         productVariants: {
           where: { isActive: true, format: { isActive: true } },
@@ -35,10 +39,17 @@ export class StyleCompatService {
       }
     }
 
-    const defaultProduct = products.find(
-      (product) =>
-        product.template === 'Puzzle' && product.productVariants.length > 0,
-    );
+    // El producto de lanzamiento manda: es el que vende la landing. Sin él, el
+    // primer Puzzle propio del estilo, como antes.
+    const defaultProduct =
+      products.find(
+        (product) =>
+          product.isLaunchProduct && product.productVariants.length > 0,
+      ) ??
+      products.find(
+        (product) =>
+          product.template === 'Puzzle' && product.productVariants.length > 0,
+      );
     const defaultVariant = defaultProduct?.productVariants[0];
 
     return {

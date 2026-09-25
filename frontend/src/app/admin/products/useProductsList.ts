@@ -35,6 +35,7 @@ export function useProductsList(productTypeMap: Record<string, string>) {
   const [savingStyle, setSavingStyle] = useState<string | null>(null);
   const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
   const [savingCreditPack, setSavingCreditPack] = useState(false);
+  const [savingLaunchProduct, setSavingLaunchProduct] = useState(false);
   const [deletingTarget, setDeletingTarget] = useState<AdminProduct | null>(
     null,
   );
@@ -92,11 +93,12 @@ export function useProductsList(productTypeMap: Record<string, string>) {
   };
 
   /**
-   * El rol Credit Pack es excluyente: asignar uno desasigna al anterior.
-   * El backend garantiza la unicidad; aquí solo la reflejamos.
+   * Los roles Credit Pack y Producto de lanzamiento son excluyentes: asignar
+   * uno desasigna al anterior. El backend garantiza la unicidad; aquí solo la
+   * reflejamos.
    */
   const setExclusiveRole = async (
-    field: "isCreditPack",
+    field: "isCreditPack" | "isLaunchProduct",
     productId: string,
     save: (target: string | null) => Promise<void>,
     setSaving: (value: boolean) => void,
@@ -193,14 +195,25 @@ export function useProductsList(productTypeMap: Record<string, string>) {
       setSavingCreditPack,
     );
 
-  const creditPackProduct = products.find((p) => p.isCreditPack) ?? null;
+  const handleLaunchProductChange = (productId: string) =>
+    setExclusiveRole(
+      "isLaunchProduct",
+      productId,
+      (target) => adminApi.products.setLaunchProduct(target),
+      setSavingLaunchProduct,
+    );
 
-  // El producto de créditos tiene su propia card, así que se excluye de la
-  // tabla para no duplicarlo. El resto se reparte por `template`: lo que no se
+  const creditPackProduct = products.find((p) => p.isCreditPack) ?? null;
+  const launchProduct = products.find((p) => p.isLaunchProduct) ?? null;
+
+  // El producto de créditos y el de lanzamiento tienen su propia card, así que
+  // se excluyen de la tabla para no duplicarlos. El resto se reparte por `template`: lo que no se
   // puede clasificar va a su propia lista en vez de desaparecer, para que un
   // producto sin template en el admin se note.
   const { puzzleProducts, unclassifiedProducts } = useMemo(() => {
-    const specialIds = new Set([creditPackProduct?.id].filter(Boolean));
+    const specialIds = new Set(
+      [creditPackProduct?.id, launchProduct?.id].filter(Boolean),
+    );
     const buckets = {
       puzzleProducts: [] as AdminProduct[],
       unclassifiedProducts: [] as AdminProduct[],
@@ -216,7 +229,7 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     }
 
     return buckets;
-  }, [products, productTypeMap, creditPackProduct?.id]);
+  }, [products, productTypeMap, creditPackProduct?.id, launchProduct?.id]);
 
   return {
     // data
@@ -224,6 +237,7 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     styles,
     syncStatus,
     creditPackProduct,
+    launchProduct,
     puzzleProducts,
     unclassifiedProducts,
     // status
@@ -234,6 +248,7 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     savingStyle,
     savingTemplate,
     savingCreditPack,
+    savingLaunchProduct,
     deletingTarget,
     deleting,
     // setters
@@ -246,5 +261,6 @@ export function useProductsList(productTypeMap: Record<string, string>) {
     handleTemplateChange,
     handleStyleChange,
     handleCreditPackChange,
+    handleLaunchProductChange,
   };
 }

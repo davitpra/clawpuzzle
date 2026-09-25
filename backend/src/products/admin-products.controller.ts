@@ -21,6 +21,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SetCreditPackProductDto } from './dto/set-credit-pack-product.dto';
 import { SetCreditPackVariantsDto } from './dto/set-credit-pack-variants.dto';
+import { SetLaunchProductDto } from './dto/set-launch-product.dto';
 import { LinkVariantDto } from './dto/link-variant.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -228,6 +229,17 @@ export class AdminProductsController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   setCreditPackProduct(@Body() dto: SetCreditPackProductDto) {
     return this.productsService.setCreditPackProduct(dto.productId);
+  }
+
+  @Patch('launch-product')
+  @ApiOperation({
+    summary:
+      'Set the single launch product, usable with every active style',
+  })
+  @ApiResponse({ status: 200, description: 'Launch product set' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  setLaunchProduct(@Body() dto: SetLaunchProductDto) {
+    return this.productsService.setLaunchProduct(dto.productId);
   }
 
   @Get(':productId/credit-pack-variants')

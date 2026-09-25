@@ -53,6 +53,15 @@ export class CreateImageGenerationDto {
   @IsUUID()
   formatId!: string;
 
+  @ApiProperty({
+    description:
+      'Style ID. Required for the launch product (it accepts any active style); optional otherwise, and must match the product style.',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  styleId?: string;
+
   @ApiProperty({ description: 'Product reference ID' })
   @IsUUID()
   productRefId!: string;

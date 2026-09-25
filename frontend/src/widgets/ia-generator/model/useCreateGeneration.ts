@@ -28,6 +28,8 @@ export interface CreateGenerationInput {
   activePet: Pet | null;
   productRefId: string;
   formatId: string;
+  /** Estilo elegido; imprescindible con el producto de lanzamiento. */
+  styleId: string;
   userSelections?: Record<string, string | number>;
   productInfo: SelectedProductInfo | null;
   styleName: string | null;
@@ -139,6 +141,7 @@ export function useCreateGeneration() {
         activePet,
         productRefId,
         formatId,
+        styleId,
         userSelections,
         productInfo,
         styleName,
@@ -165,6 +168,7 @@ export function useCreateGeneration() {
           petPhotoId,
           formatId,
           productRefId,
+          styleId,
           userSelections:
             userSelections && Object.keys(userSelections).length > 0
               ? userSelections

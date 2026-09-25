@@ -19,7 +19,7 @@ interface SelectedProductTableProps {
 
 /**
  * Tabla compacta que muestra el producto asignado a un rol especial
- * (Paint by Numbers o Credit Pack) dentro de su card. El producto que se
+ * (Producto de lanzamiento o Credit Pack) dentro de su card. El producto que se
  * muestra aquí se excluye de la tabla principal de productos.
  */
 export function SelectedProductTable({
