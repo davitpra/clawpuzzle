@@ -144,7 +144,15 @@ runtime**, no en compilación:
         de las dos marcas sale en la misma factura de fal.ai; `expenses/` de
         cada backend solo ve sus propias generaciones. `MOCK_AI=true` sigue
         sirviendo para desarrollar sin gastar.
-  - [ ] Tienda Shopify + tokens Storefront y Admin + webhook secret.
+  - [x] Tienda Shopify + tokens Storefront y Admin + webhook secret. Tienda
+        `puzzlesalvaje.myshopify.com` (su handle antiguo,
+        `en-vinculo-arquitectos`, es la misma tienda) con la app "ClawArt",
+        cuya config vive en `backend/shopify-app/shopify.app.toml` (scopes y webhooks
+        `fulfillment_orders/*`; se publica con
+        `shopify app deploy --path backend/shopify-app`). Los webhooks `products/*` y
+        `orders/*` están registrados por REST en la tienda. **En el deploy:**
+        los 14 webhooks apuntan a ngrok; hay que cambiarlos a
+        `api.clawpuzzle.com` (toml + re-registrar los REST).
   - [ ] Railway (backend, **una sola réplica**: BullMQ y cuatro `@Cron` viven en
         el proceso de la API) + Vercel (frontend).
 

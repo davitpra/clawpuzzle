@@ -1,0 +1,41 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b9d390fe2cf5930a35062fdd9493b0cf"
+application_url = "https://localhost:3000"
+embedded = false
+name = "ClawArt"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_assigned_fulfillment_orders,read_merchant_managed_fulfillment_orders,read_orders,write_orders,read_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ "https://localhost:3000/shopify/callback" ]
+
+[webhooks]
+api_version = "2026-07"
+
+# fulfillment_orders/*: refrescan el estado de envío de la orden
+# (backend/src/orders/shopify-fulfillment-webhook.controller.ts). Los
+# products/* y orders/* siguen registrados por REST en la tienda.
+[[webhooks.subscriptions]]
+topics = [ "fulfillment_orders/placed_on_hold" ]
+uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/placed_on_hold"
+
+[[webhooks.subscriptions]]
+topics = [ "fulfillment_orders/hold_released" ]
+uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/hold_released"
+
+[[webhooks.subscriptions]]
+topics = [ "fulfillment_orders/fulfillment_request_submitted" ]
+uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/fulfillment_request_submitted"
+
+[[webhooks.subscriptions]]
+topics = [ "fulfillment_orders/order_routing_complete" ]
+uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/order_routing_complete"
+
+[[webhooks.subscriptions]]
+topics = [ "fulfillment_orders/scheduled_fulfillment_order_ready" ]
+uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/scheduled_fulfillment_order_ready"
