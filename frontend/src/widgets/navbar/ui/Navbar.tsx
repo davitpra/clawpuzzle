@@ -168,7 +168,7 @@ export default function Navbar() {
                 className="size-9 lg:size-11 transition-transform group-hover:scale-105"
               />
               <h2 className="font-display text-text-main text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] hidden sm:block">
-                ClawPuzzle
+                Claw Puzzle
               </h2>
             </Link>
 
