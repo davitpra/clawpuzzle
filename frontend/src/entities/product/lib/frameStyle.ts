@@ -29,15 +29,12 @@ export function frameForHandle(
   };
 }
 
-// Presentación por tipo. "art" mantiene el float plano original; "puzzle" añade
-// un float direccional; "credits" tiene su propio layout de moneda flotante en
-// ProductCard, así que su entrada aquí es un fallback inerte que replica "art".
+// Presentación por tipo. "art" mantiene el float plano original; "puzzle" va
+// sin sombra porque su foto ya trae escena propia; "credits" tiene su propio
+// layout de moneda flotante en ProductCard, así que su entrada aquí es un
+// fallback inerte que replica "art".
 export const FRAME_SHADOWS: Record<FrameStyle, string> = {
   art: "shadow-[0_14px_32px_-12px_rgba(16,54,66,0.40)]",
-  puzzle: "shadow-[6px_10px_24px_-10px_rgba(16,54,66,0.45)]",
+  puzzle: "",
   credits: "shadow-[0_14px_32px_-12px_rgba(16,54,66,0.40)]",
 };
-
-// Sombra del puzzle armado sobre la mesa, para contextos recortados como la
-// galería del mismo estilo.
-export const PUZZLE_THUMB_FRAME = "shadow-[0_6px_16px_-8px_rgba(16,54,66,0.35)]";
