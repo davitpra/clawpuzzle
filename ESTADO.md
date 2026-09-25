@@ -114,11 +114,30 @@ runtime**, no en compilación:
         `api.clawpuzzle.com`). Con `*.vercel.app` + `*.railway.app` el CORS pasa
         pero la sesión no persiste, y el síntoma es confuso: el login "funciona"
         y luego todo da 401.
-  - [ ] Google Cloud: proyecto + OAuth client ID con los orígenes autorizados.
-  - [ ] Postgres + Redis.
-  - [ ] Cloudinary: cloud nuevo. `storage.service.ts` sube a la raíz sin prefijo
-        de cuenta, así que compartir cloud mezclaría los dos negocios en el
-        mismo árbol.
+  - [x] Google Cloud: proyecto + OAuth client ID con los orígenes autorizados.
+  - [ ] Postgres + Redis. El código ya está listo (`config/redis.config.ts`
+        acepta `REDIS_URL` con TLS automático para `rediss://`, y `railway.json`
+        corre `migrate:deploy` antes de cada deploy); falta aprovisionar:
+    - [ ] Decidir si se re-squashean las migraciones en una sola `init`
+          (ahora hay 4). Solo es posible mientras la Postgres de producción
+          no exista.
+    - [ ] Crear la Postgres (plugin de Railway, en el mismo proyecto que el
+          backend).
+    - [ ] Crear Redis (plugin de Railway o Upstash; de Upstash, la URL
+          `rediss://`, no la REST).
+    - [ ] Poner `DATABASE_URL` y `REDIS_URL` en el servicio del backend. Con
+          `REDIS_URL` definida, las variables sueltas `REDIS_*` sobran.
+    - [ ] Aplicar migraciones (`npx prisma migrate deploy` con la URL de
+          producción, o dejar que lo haga el primer deploy).
+    - [ ] Sembrar producción: `npm run seed` con `DATABASE_URL`,
+          `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
+    - [ ] Verificar: arranque sin errores de conexión en los logs (el
+          healthcheck no toca DB ni Redis, así que no los detecta), login en
+          el admin y un job de BullMQ procesado (p. ej. un sync de productos).
+  - [x] Cloudinary: cloud nuevo. `storage.service.ts` organiza por carpetas
+        (`asset_folder`) según la clave (`pets/`, `users/`, `styles/`,
+        `generations/`, `orders/`), pero sin prefijo de cuenta, así que
+        compartir cloud mezclaría los dos negocios en el mismo árbol.
   - [ ] fal.ai / OpenRouter: keys nuevas si quieres que `expenses/` separe los
         costes de las dos marcas. Mientras tanto `MOCK_AI=true` permite
         desarrollar sin gastar.
