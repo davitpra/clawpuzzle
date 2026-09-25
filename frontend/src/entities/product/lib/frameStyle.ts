@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { StyleData } from "@/entities/product/model/styleData";
 
 /** Presentation applied to the product image based on the product type. */
@@ -31,29 +30,12 @@ export function frameForHandle(
 }
 
 // Presentación por tipo. "art" mantiene el float plano original; "puzzle" añade
-// un float direccional (la retícula de piezas es un overlay aparte, ver
-// `PuzzlePieceOverlay`); "credits" tiene su propio layout de moneda flotante en
+// un float direccional; "credits" tiene su propio layout de moneda flotante en
 // ProductCard, así que su entrada aquí es un fallback inerte que replica "art".
 export const FRAME_SHADOWS: Record<FrameStyle, string> = {
   art: "shadow-[0_14px_32px_-12px_rgba(16,54,66,0.40)]",
   puzzle: "shadow-[6px_10px_24px_-10px_rgba(16,54,66,0.45)]",
   credits: "shadow-[0_14px_32px_-12px_rgba(16,54,66,0.40)]",
-};
-
-// Los surcos entre piezas. Un box-shadow inset no pinta sobre un <img> (el
-// contenido de la imagen se pinta encima), así que la retícula se superpone
-// como gradientes multiplicados sobre el arte.
-//
-// Son dos capas y no una por la misma razón que en un canvas enmarcado:
-// `multiply` solo puede oscurecer, así que la luz que corre por el borde
-// superior de cada pieza necesita una capa `screen` aparte, que solo aclara.
-// Ver `puzzleHighlightStyle`.
-export const puzzleGrooveStyle: CSSProperties = {
-  mixBlendMode: "multiply",
-};
-
-export const puzzleHighlightStyle: CSSProperties = {
-  mixBlendMode: "screen",
 };
 
 // Sombra del puzzle armado sobre la mesa, para contextos recortados como la

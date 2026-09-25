@@ -9,7 +9,6 @@ import {
   FRAME_SHADOWS,
   type FrameStyle,
 } from "@/entities/product/lib/frameStyle";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 import LightRays from "@/shared/ui/LightRays";
 
 // Aspecto de "poster flotando": ligera elevación y sombra teñida en teal al hover.
@@ -37,7 +36,6 @@ function StyleCard({
         naturalAspect
         className={`${posterClasses} ${FRAME_SHADOWS[frameStyle]}`}
       >
-        {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
         {badgeLabel && (
           <span className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold uppercase px-2 py-1 rounded-full tracking-wider">
             {badgeLabel}

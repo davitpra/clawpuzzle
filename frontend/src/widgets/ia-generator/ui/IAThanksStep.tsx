@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Container } from "@/shared/ui/Container";
 import { useRouter } from "next/navigation";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 import { SetLighting } from "@/entities/product/ui/SetLighting";
 import { toFrameStyle } from "@/entities/product/lib/frameStyle";
 import { setArtworkFilter } from "@/entities/product/lib/setLighting";
@@ -159,7 +158,6 @@ export function IAThanksStep({
                       }`}
                       style={setArtworkFilter}
                     />
-                    {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
                     {isGenerating && (
                       <div
                         aria-hidden

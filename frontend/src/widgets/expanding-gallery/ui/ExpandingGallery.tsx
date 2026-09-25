@@ -6,7 +6,6 @@ import { Container } from "@/shared/ui/Container";
 import {
   type FrameStyle,
 } from "@/entities/product/lib/frameStyle";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 
 export interface ExpandingGalleryItem {
   /** Titular de la card; también es el alt por defecto de la imagen. */
@@ -133,7 +132,6 @@ export default function ExpandingGallery({
                         decoding="async"
                         className="h-full w-full object-cover object-top-left"
                       />
-                      {item.frameStyle === "puzzle" && <PuzzlePieceOverlay />}
                     </div>
                   </div>
                   {item.logoUrl && (

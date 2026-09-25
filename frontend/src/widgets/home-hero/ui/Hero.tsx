@@ -6,7 +6,6 @@ import {
   FRAME_SHADOWS,
   type FrameStyle,
 } from "@/entities/product/lib/frameStyle";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 
 type HeroCta = {
   href: string;
@@ -160,7 +159,6 @@ export default function Hero({
                     className="h-full w-full object-cover"
                   />
                 )}
-                {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
               </div>
               <div className="absolute -bottom-6 -left-6 hidden lg:block">
                 <div className="rounded-xl bg-white p-4 shadow-xl">

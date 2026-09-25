@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Product } from "@/entities/pet-product/model/types";
 import { toFrameStyle, FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 
 interface SimilarSoulsCardProps {
   /** Producto similar ya resuelto (name, desc, price, img, shopifyHandle). */
@@ -34,7 +33,6 @@ export function SimilarSoulsCard({ product }: SimilarSoulsCardProps) {
         decoding="async"
         className={`block w-full h-auto bg-white ${FRAME_SHADOWS[frameStyle]} `}
       />
-      {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
     </div>
   );
 

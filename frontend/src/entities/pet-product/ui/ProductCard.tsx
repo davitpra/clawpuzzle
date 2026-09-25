@@ -8,15 +8,13 @@ import {
   StyleDifficulty,
 } from "@/entities/art-style/model/difficulty";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
 
 // Aspecto de "poster flotando": ligera elevación y sombra teñida en teal al hover.
 export const posterClasses =
   "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.50)]";
 
 // Efecto por tipo de producto en la card (mismo lenguaje visual que la galería
-// del producto): "puzzle" con sombra de canto, sobre la que se superpone la
-// retícula de piezas; "art" queda plano.
+// del producto): "puzzle" con sombra de canto; "art" queda plano.
 const FRAME_CLASS: Record<FrameStyle, string> = {
   art: "",
   puzzle: "shadow-[6px_8px_16px_-8px_rgba(16,54,66,0.42)]",
@@ -89,9 +87,6 @@ export function ProductCard({
       naturalAspect={naturalAspect}
       className={`${hoverClasses} ${FRAME_CLASS[frameStyle]}`}
     >
-      {/* Oscurecido interior de bordes del canvas (va primero para no teñir el
-          badge, que se pinta encima). */}
-      {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
       <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
         {artKindBadge && (
           <span className="bg-white text-slate-dark text-[10px] font-bold uppercase px-4 py-1 rounded-full tracking-wider">

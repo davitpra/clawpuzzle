@@ -6,12 +6,6 @@ import { Carousel } from "@/shared/ui/Carousel";
 import { ImageZoom } from "@/shared/ui/ImageZoom";
 import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
-import { PuzzlePieceOverlay } from "@/entities/product/ui/PuzzlePieceOverlay";
-import { SetLighting } from "@/entities/product/ui/SetLighting";
-import {
-  setArtworkFilter,
-  SET_ARTWORK_SHADOW_HOVER,
-} from "@/entities/product/lib/setLighting";
 
 interface ProductGalleryProps {
   product: ShopifyProduct;
@@ -35,44 +29,25 @@ export default function ProductGallery({
   ].filter((src): src is string => Boolean(src));
   const uniqueImages = Array.from(new Set(images));
 
-  const baseImageClassName =
-    "w-full h-auto bg-white transition-all duration-300 ease-out";
-  // La sombra de la principal no va aquí: la pone SetLighting (cálida). El
-  // efecto de puzzle es un overlay aparte, así que la imagen queda limpia.
-  const primaryImageClassName = baseImageClassName;
-  const secondaryImageClassName = `${baseImageClassName} ${FRAME_SHADOWS.art}`;
-  // Only "art" deepens its shadow on hover; "puzzle" keeps its base shadow so
-  // the piece grid survives the hover state. The lift is on the wrapper so the
-  // overlay travels together with the image.
-  const hoverShadowClass = frameStyle === "art" ? SET_ARTWORK_SHADOW_HOVER : "";
+  const imageClassName = `w-full h-auto bg-white transition-all duration-300 ease-out ${FRAME_SHADOWS[frameStyle]}`;
   const sizes = "(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px";
 
   const isCarousel = uniqueImages.length > 1;
 
-  // The primary image: width-scaled wrapper that lifts on hover and carries the
-  // optional puzzle piece overlay on top of the image. La luz del set
-  // (sombra cálida + sol + penumbra) envuelve todo eso, así que se levanta junto
-  // con la imagen en el hover.
-  const renderPrimary = (src: string) => (
-    <SetLighting
-      className={`transition-all duration-300 ease-out hover:-translate-y-1.5 ${hoverShadowClass}`}
-    >
-      <ImageZoom zoomSrc={src} alt={product.title} frameStyle={frameStyle}>
-        <Image
-          src={src}
-          alt={product.title}
-          width={0}
-          height={0}
-          sizes={sizes}
-          className={primaryImageClassName}
-          // Temperatura de la escena: solo en la principal, igual que el marco.
-          // El zoom abre la imagen a resolución completa y sin filtro ni luz.
-          style={setArtworkFilter}
-          priority
-        />
-      </ImageZoom>
-      {frameStyle === "puzzle" && <PuzzlePieceOverlay />}
-    </SetLighting>
+  // Las fotos de producto ya traen su propio fondo y escena: se muestran tal
+  // cual, sin luz de set ni filtro de temperatura encima.
+  const renderImage = (src: string, priority = false) => (
+    <ImageZoom zoomSrc={src} alt={product.title}>
+      <Image
+        src={src}
+        alt={product.title}
+        width={0}
+        height={0}
+        sizes={sizes}
+        className={imageClassName}
+        priority={priority}
+      />
+    </ImageZoom>
   );
 
   return (
@@ -116,26 +91,13 @@ export default function ProductGallery({
                 key={src}
                 className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-6 md:px-10 pt-6 pb-12"
               >
-                {i === 0 ? (
-                  renderPrimary(src)
-                ) : (
-                  <ImageZoom zoomSrc={src} alt={product.title}>
-                    <Image
-                      src={src}
-                      alt={product.title}
-                      width={0}
-                      height={0}
-                      sizes={sizes}
-                      className={secondaryImageClassName}
-                    />
-                  </ImageZoom>
-                )}
+                {renderImage(src, i === 0)}
               </div>
             ))}
           </Carousel>
         ) : (
           <div className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-6 md:px-10 pt-6 pb-12">
-            {renderPrimary(primaryImage)}
+            {renderImage(primaryImage, true)}
           </div>
         )}
       </div>
