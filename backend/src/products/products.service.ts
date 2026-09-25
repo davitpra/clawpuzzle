@@ -297,6 +297,31 @@ export class ProductsService {
     });
   }
 
+  /**
+   * EL producto de lanzamiento activo. No trae estilo: el visitante lo elige y
+   * viaja en la generación, así que aquí basta con lo que necesita la ficha.
+   */
+  async findLaunchProduct() {
+    const product = await this.prisma.productReference.findFirst({
+      where: { isLaunchProduct: true, isActive: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (!product) {
+      throw new NotFoundException('No launch product configured');
+    }
+
+    return {
+      productRefId: product.id,
+      shopifyProductId: product.shopifyProductId,
+      shopifyHandle: product.shopifyHandle,
+      name: product.name,
+      displayName: product.displayName,
+      description: product.description,
+      template: product.template,
+    };
+  }
+
   /** El único producto activo marcado como pack de créditos, con sus variantes. */
   async findCreditPackProduct() {
     const product = await this.prisma.productReference.findFirst({

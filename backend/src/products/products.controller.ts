@@ -38,6 +38,15 @@ export class ProductsController {
   }
 
   @Public()
+  @Get('launch')
+  @ApiOperation({ summary: 'Get the configured launch product' })
+  @ApiResponse({ status: 200, description: 'Launch product retrieved' })
+  @ApiResponse({ status: 404, description: 'No launch product configured' })
+  findLaunchProduct() {
+    return this.productsService.findLaunchProduct();
+  }
+
+  @Public()
   @Get(':handle/variants')
   @ApiOperation({
     summary: 'Get product variants with pre-resolved formatId mapping',

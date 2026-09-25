@@ -8,6 +8,9 @@ import ProductSizeSelector from "@/entities/product/ui/ProductSizeSelector";
 import ProductTypeSelector from "@/entities/product/ui/ProductTypeSelector";
 import ProductBreadcrumb from "@/entities/product/ui/ProductBreadcrumb";
 import ProductPerks from "@/entities/product/ui/ProductPerks";
+import ProductStyleSelector, {
+  type StyleChoice,
+} from "@/entities/product/ui/ProductStyleSelector";
 import PersonalizeButton from "@/features/personalize/ui/PersonalizeButton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatOptions } from "@/hooks/useFormatOptions";
@@ -35,6 +38,13 @@ interface ProductDetailsProps {
   /** Formato de entrega normalizado (Digital | Canvas | Poster…), para el label del tipo de producto. */
   template?: string;
   /** Contenido de la obra: "pbn" | "print"; undefined si no está asignado. */
+  /**
+   * Estilos entre los que elige el visitante (el producto de lanzamiento
+   * admite cualquier estilo activo, tenga o no uno propio asignado).
+   */
+  styleChoices?: StyleChoice[];
+  /** El rastro lleva a `/catalog`; la landing de lanzamiento lo oculta. */
+  showBreadcrumb?: boolean;
 }
 
 export default function ProductDetails({
@@ -45,6 +55,8 @@ export default function ProductDetails({
   setMainImage,
   frameStyle = "art",
   template,
+  styleChoices,
+  showBreadcrumb = true,
 }: ProductDetailsProps) {
   const selectedVariant = product.variants.edges.find(
     (v) => v.node.id === selectedVariantId,
@@ -117,7 +129,17 @@ export default function ProductDetails({
     selectedVariant?.selectedOptions.find((o) => o.name === typeOptionName)
       ?.value ?? "";
 
-  const { style: detailedStyle } = useStyle(styleId ?? null);
+  // Con `styleChoices` el estilo lo elige el visitante; por defecto, el del
+  // producto si está entre las opciones, si no el primero.
+  const [chosenStyleId, setChosenStyleId] = useState<string | null>(null);
+  const canChooseStyle = !isLoadingFormats && !!styleChoices?.length;
+  const effectiveStyleId = canChooseStyle
+    ? (chosenStyleId ??
+      styleChoices!.find((s) => s.id === styleId)?.id ??
+      styleChoices![0].id)
+    : (styleId ?? null);
+
+  const { style: detailedStyle } = useStyle(effectiveStyleId);
   const [selectionsState, setSelectionsState] = useState<{
     styleId: string | null;
     values: Record<string, string | number>;
@@ -146,7 +168,9 @@ export default function ProductDetails({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
       {/* En mobile el rastro va arriba de la imagen; en lg+ lo toma el de la
           columna derecha, para que quede pegado al título. */}
-      <ProductBreadcrumb product={product} className="lg:hidden" />
+      {showBreadcrumb && (
+        <ProductBreadcrumb product={product} className="lg:hidden" />
+      )}
       <ProductGallery
         product={product}
         mainImage={mainImage}
@@ -156,7 +180,12 @@ export default function ProductDetails({
 
       <div className="lg:col-span-5 flex flex-col h-full">
         <div className="sticky top-24 flex flex-col gap-6">
-          <ProductBreadcrumb product={product} className="hidden lg:block" />
+          {showBreadcrumb && (
+            <ProductBreadcrumb
+              product={product}
+              className="hidden lg:block"
+            />
+          )}
 
           <ProductInfo
             product={product}
@@ -165,6 +194,14 @@ export default function ProductDetails({
           />
 
           <div className="h-px w-full bg-text-main/10"></div>
+
+          {canChooseStyle && effectiveStyleId && (
+            <ProductStyleSelector
+              styles={styleChoices!}
+              value={effectiveStyleId}
+              onChange={setChosenStyleId}
+            />
+          )}
 
           {sizeOptionName && (
             <ProductSizeSelector
@@ -210,7 +247,7 @@ export default function ProductDetails({
             product={product}
             selectedVariant={selectedVariant}
             productRefId={productRefId ?? undefined}
-            styleId={styleId ?? undefined}
+            styleId={effectiveStyleId ?? undefined}
             formatId={selectedFormatOption?.formatId}
             isCompatLoading={isLoadingFormats}
             hasBackendMapping={hasBackendMapping}

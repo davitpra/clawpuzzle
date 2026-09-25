@@ -9,6 +9,9 @@ import LandingStyles, { LandingStylesSkeleton } from "./LandingStyles";
 import BrandBanner from "./BrandBanner";
 import WhyItMatters from "./WhyItMatters";
 import LandingProducts from "./LandingProducts";
+import LandingProductDetails, {
+  LandingProductDetailsSkeleton,
+} from "./LandingProductDetails";
 import { AIProcess, type ProcessStep } from "@/widgets/ai-process";
 import SectionFlow from "@/shared/ui/SectionFlow";
 import { LAUNCH_MODE } from "@/shared/config/launch";
@@ -133,10 +136,18 @@ export default function StudioLandingPage() {
 
       <main className="flex-1">
         <SectionFlow
-          start="cream"
+          start="white"
           sections={[
-            { id: "hero", node: <LandingHero background="" /> },
-
+            {
+              id: "product",
+              node: (
+                <Suspense
+                  fallback={<LandingProductDetailsSkeleton background="" />}
+                >
+                  <LandingProductDetails background="" />
+                </Suspense>
+              ),
+            },
             {
               id: "styles",
               node: (
@@ -165,7 +176,7 @@ export default function StudioLandingPage() {
                 </div>
               ),
             },
-            { id: "showcase", node: <LandingShowcase background="" /> },
+
             {
               id: "products",
               pin: "white",
@@ -183,6 +194,7 @@ export default function StudioLandingPage() {
                 </div>
               ),
             },
+            { id: "showcase", node: <LandingShowcase background="" /> },
           ]}
         />
       </main>
