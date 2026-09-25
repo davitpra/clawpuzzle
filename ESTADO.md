@@ -49,6 +49,9 @@ sube la foto de su mascota, genera arte con IA y lo compra impreso como puzzle.
     de estados (la de accesorios desapareció).
   - `PuzzlePieceOverlay` sustituye a `CanvasEdgeOverlay` en los siete puntos del
     storefront que consumían el eje `FrameStyle`.
+    Más tarde (`adbe220`) se eliminó del todo: las fotos de producto ya traen su
+    propia escena y la retícula se pintaba encima. Hoy `FrameStyle` solo
+    decide la sombra (`FRAME_SHADOWS`).
 
 - [x] **Fase 3 — repositorio único.** Los dos repos independientes se fusionaron en
       uno solo en la raíz del proyecto: ~550 commits, rama `main`. Cada historia

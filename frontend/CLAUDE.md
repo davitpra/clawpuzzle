@@ -30,10 +30,9 @@ Derived from ClawAndSoul. What changed in the fork:
 - **The whole paint-by-numbers side is gone**: `lib/pbn`, `widgets/studio`,
   `features/pbn-studio`, `/studio`, `/user/pbn`, `/admin/pbn`.
 - **`FrameStyle` is the leverage point**. `entities/product/lib/frameStyle.ts`
-  maps a template to a presentation, and `PuzzlePieceOverlay` renders the piece
-  grid over the art. Seven storefront surfaces consume it through the same
-  `{frameStyle === "puzzle" && <PuzzlePieceOverlay />}` line — home, catalog,
-  product gallery, collections, expanding gallery, thank-you, similar styles.
+  maps a template to a presentation (`puzzle` | `art` | `credits`), today
+  expressed through `FRAME_SHADOWS`. There is no piece-grid overlay: product
+  photos already carry their own scene and are shown as-is.
   Change that component and the whole storefront changes with it.
 
 ### Tech Stack

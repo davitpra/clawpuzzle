@@ -37,7 +37,7 @@ npm run typecheck   # tsc --noEmit
 | Tokens de diseño (Tailwind v4, sin config file) | `src/app/globals.css` |
 | Sistema de diseño | `docs/DESIGN.md` |
 | Tipo de producto (`Puzzle` \| `Credits`) | `src/entities/product/lib/template.ts` |
-| Presentación del producto y retícula de piezas | `src/entities/product/lib/frameStyle.ts`, `src/entities/product/ui/PuzzlePieceOverlay.tsx` |
+| Presentación del producto (sombras por tipo) | `src/entities/product/lib/frameStyle.ts` |
 | Llamadas autenticadas al backend | `src/lib/auth/fetch-with-refresh.ts` |
 | Cliente de Shopify (dual-mode) | `src/lib/shopify/` |
 
