@@ -138,9 +138,12 @@ runtime**, no en compilación:
         (`asset_folder`) según la clave (`pets/`, `users/`, `styles/`,
         `generations/`, `orders/`), pero sin prefijo de cuenta, así que
         compartir cloud mezclaría los dos negocios en el mismo árbol.
-  - [ ] fal.ai / OpenRouter: keys nuevas si quieres que `expenses/` separe los
-        costes de las dos marcas. Mientras tanto `MOCK_AI=true` permite
-        desarrollar sin gastar.
+  - [x] fal.ai: se reutiliza la misma cuenta y key (`FAL_KEY`) que
+        ClawAndSoul. OpenRouter no tiene key propia: se llama a través de fal
+        (`openrouter/router/vision`), así que va en la misma cuenta. El coste
+        de las dos marcas sale en la misma factura de fal.ai; `expenses/` de
+        cada backend solo ve sus propias generaciones. `MOCK_AI=true` sigue
+        sirviendo para desarrollar sin gastar.
   - [ ] Tienda Shopify + tokens Storefront y Admin + webhook secret.
   - [ ] Railway (backend, **una sola réplica**: BullMQ y cuatro `@Cron` viven en
         el proceso de la API) + Vercel (frontend).
