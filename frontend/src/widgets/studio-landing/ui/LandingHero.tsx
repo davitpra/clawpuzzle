@@ -14,14 +14,12 @@ export default function LandingHero({ background }: { background?: string }) {
       }}
       secondaryCta={{ href: "#how-it-works", label: "Cómo funciona" }}
       note="Vista previa gratis · MDF de 3 mm · Envíos a todo Ecuador"
-      // TODO(assets): la foto es de ClawAndSoul (alguien pintando un PBN).
-      // Reemplazar por una del rompecabezas armado; el alt describe la actual.
       media={{
         kind: "image",
-        src: "/landing/hero-main-v2.webp",
-        alt: "Una persona pintando un retrato de su golden retriever mientras el perro la mira",
-        width: 1125,
-        height: 1398,
+        src: "/puzzle/Otto.webp",
+        alt: "Rompecabezas de madera con el retrato IA de Otto, un perro con pañuelo de flores",
+        width: 1075,
+        height: 1463,
       }}
       mediaClassName="shadow-2xl"
       badge={{
