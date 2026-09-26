@@ -112,31 +112,7 @@ runtime**, no en compilación:
   justo antes del primer deploy.
 
 - [ ] **2. Infraestructura** (todo nuevo, en este orden):
-  - [ ] Dominio + DNS. **Ojo:** la cookie de sesión es `sameSite=lax`, así que el
-        front y la API tienen que compartir dominio raíz (`clawpuzzle.com` +
-        `api.clawpuzzle.com`). Con `*.vercel.app` + `*.railway.app` el CORS pasa
-        pero la sesión no persiste, y el síntoma es confuso: el login "funciona"
-        y luego todo da 401.
   - [x] Google Cloud: proyecto + OAuth client ID con los orígenes autorizados.
-  - [ ] Postgres + Redis. El código ya está listo (`config/redis.config.ts`
-        acepta `REDIS_URL` con TLS automático para `rediss://`, y `railway.json`
-        corre `migrate:deploy` antes de cada deploy); falta aprovisionar:
-    - [ ] Decidir si se re-squashean las migraciones en una sola `init`
-          (ahora hay 4). Solo es posible mientras la Postgres de producción
-          no exista.
-    - [ ] Crear la Postgres (plugin de Railway, en el mismo proyecto que el
-          backend).
-    - [ ] Crear Redis (plugin de Railway o Upstash; de Upstash, la URL
-          `rediss://`, no la REST).
-    - [ ] Poner `DATABASE_URL` y `REDIS_URL` en el servicio del backend. Con
-          `REDIS_URL` definida, las variables sueltas `REDIS_*` sobran.
-    - [ ] Aplicar migraciones (`npx prisma migrate deploy` con la URL de
-          producción, o dejar que lo haga el primer deploy).
-    - [ ] Sembrar producción: `npm run seed` con `DATABASE_URL`,
-          `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
-    - [ ] Verificar: arranque sin errores de conexión en los logs (el
-          healthcheck no toca DB ni Redis, así que no los detecta), login en
-          el admin y un job de BullMQ procesado (p. ej. un sync de productos).
   - [x] Cloudinary: cloud nuevo. `storage.service.ts` organiza por carpetas
         (`asset_folder`) según la clave (`pets/`, `users/`, `styles/`,
         `generations/`, `orders/`), pero sin prefijo de cuenta, así que
@@ -156,17 +132,42 @@ runtime**, no en compilación:
         `orders/*` están registrados por REST en la tienda. **En el deploy:**
         los 14 webhooks apuntan a ngrok; hay que cambiarlos a
         `api.clawpuzzle.com` (toml + re-registrar los REST).
+  - [ ] Dominio + DNS. **Ojo:** la cookie de sesión es `sameSite=lax`, así que el
+        front y la API tienen que compartir dominio raíz (`clawpuzzle.com` +
+        `api.clawpuzzle.com`). Con `*.vercel.app` + `*.railway.app` el CORS pasa
+        pero la sesión no persiste, y el síntoma es confuso: el login "funciona"
+        y luego todo da 401.
   - [ ] Railway (backend, **una sola réplica**: BullMQ y cuatro `@Cron` viven en
         el proceso de la API) + Vercel (frontend).
 
-- [ ] **3. El producto en Shopify.** Un producto puzzle con **una sola opción** de
-      variante. `product-sync.service.ts` solo lee `variant.option1`: si defines
-      dos opciones, la segunda se ignora y las variantes se saltan con un `warn`,
-      dejando la ficha sin tallas y sin error visible. Los valores de la opción
-      ya no importan para el formato: todas las variantes heredan el del
-      producto (`ProductReference.formatId`). El tamaño físico de cada variante
-      va en su `printConfig` (el seed lo pone para `300 pieces`, `500 pieces` y
-      `1000 pieces` de `custom-pet-puzzle`).
+  - [ ] Postgres + Redis. El código ya está listo (`config/redis.config.ts`
+        acepta `REDIS_URL` con TLS automático para `rediss://`, y `railway.json`
+        corre `migrate:deploy` antes de cada deploy); falta aprovisionar:
+    - [ ] Decidir si se re-squashean las migraciones en una sola `init`
+          (ahora hay 4). Solo es posible mientras la Postgres de producción
+          no exista.
+    - [ ] Crear la Postgres (plugin de Railway, en el mismo proyecto que el
+          backend).
+    - [ ] Crear Redis (plugin de Railway o Upstash; de Upstash, la URL
+          `rediss://`, no la REST).
+    - [ ] Poner `DATABASE_URL` y `REDIS_URL` en el servicio del backend. Con
+          `REDIS_URL` definida, las variables sueltas `REDIS_*` sobran.
+    - [ ] Aplicar migraciones (`npx prisma migrate deploy` con la URL de
+          producción, o dejar que lo haga el primer deploy).
+    - [ ] Sembrar producción: `npm run seed` con `DATABASE_URL`,
+          `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
+    - [ ] Verificar: arranque sin errores de conexión en los logs (el
+          healthcheck no toca DB ni Redis, así que no los detecta), login en
+          el admin y un job de BullMQ procesado (p. ej. un sync de productos).
+
+- [x] **3. El producto en Shopify.** `claw-puzzle` tiene una opción,
+      `Puzzle theme` (`Perro` | `Gato`), con formato A3 vertical
+      (`a3_portrait`). El sync (`product-sync.service.ts`) no mira las
+      opciones: guarda cada variante por id y título, y todas heredan el
+      formato del producto (`ProductReference.formatId`). El `printConfig` de
+      las dos variantes (29,7 × 42 cm, 300 DPI, 3 mm de sangre) está puesto
+      desde el admin; el seed no lo cubre (sigue apuntando a
+      `custom-pet-puzzle`), así que en una BD nueva hay que ponerlo a mano.
 
 ### Necesario antes de abrir al público
 
