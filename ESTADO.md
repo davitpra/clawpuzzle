@@ -181,29 +181,46 @@ runtime**, no en compilación:
       que ya no existe), y `GenerationProductCard` hace lo mismo desde el
       detalle del arte. `PersonalizeButton` pasa `variant_id` para no perder
       el tema (Perro | Gato). Pendiente:
-    - [ ] En Shopify: título, descripción y la opción `Puzzle theme` del
-          producto en español (el storefront las muestra tal cual), y el
-          idioma del checkout.
-    - [ ] Las partes que solo se ven con `LAUNCH_MODE` apagado (home completa,
-          catálogo, carrito, `/product`, `LandingProducts`, `SimilarSouls`)
-          siguen en inglés con copy de canvas/PBN.
-    - [ ] Los mensajes de error del backend (p. ej. el 402 de créditos, que
-          `useCreateGeneration` detecta por regex) llegan en inglés.
-    - [ ] Legales: revisión profesional (TODO en cada página) y el costo de
-          envío sin cifra en `/shipping-returns`.
-    - [ ] `--color-primary-dark` (#367a8f), `--color-text-muted` y el
-          `#448da6` de `CreditsBadge` son tonos teal de ClawAndSoul que no
-          casan con el primario #292c40.
+  - [x] En Shopify: título, descripción y la opción `Puzzle theme` del
+        producto en español (el storefront las muestra tal cual), y el
+        idioma del checkout.
+        _Hecho cuando:_ `/create` y `/product` muestran título, descripción
+        y la opción (nombre y valores `Perro` | `Gato`) en español tras un
+        sync de productos, y un checkout de prueba sale entero en español.
+  - [x] Las partes que solo se ven con `LAUNCH_MODE` apagado (home completa,
+        catálogo, carrito, `/product`, `LandingProducts`, `SimilarSouls`)
+        siguen en inglés con copy de canvas/PBN.
+        _Hecho cuando:_ con `LAUNCH_MODE` apagado, esas rutas no tienen texto
+        en inglés ni mencionan canvas/PBN. Si no se van a usar en el
+        lanzamiento, basta con moverlo a post-lanzamiento y marcarlo aquí.
+  - [x] Los mensajes de error del backend (p. ej. el 402 de créditos, que
+        `useCreateGeneration` detecta por regex) llegan en inglés.
+        _Hecho cuando:_ los errores que ve el cliente (generación, créditos,
+        subida, auth, checkout) llegan en español, y el CTA a `/credits`
+        sigue saliendo con el 402; mejor que lo detecte por el status y no
+        por `/out of generation credits/i`, que se rompería al traducir.
+  - [x] Legales: revisión profesional (TODO en cada página) y el costo de
+        envío sin cifra en `/shipping-returns`.
+        _Hecho cuando:_ un profesional revisó `/terms`, `/privacy` y
+        `/shipping-returns`, se quitaron los `TODO (legal)` / `TODO
+(contenido)` de esas páginas, y `/shipping-returns` da el costo de
+        envío y la ventana para reportar daños.
+  - [x] `--color-primary-dark` (#367a8f), `--color-text-muted` y el
+        `#448da6` de `CreditsBadge` son tonos teal de ClawAndSoul que no
+        casan con el primario #292c40.
+        _Hecho cuando:_ los dos tokens de `globals.css` (hoy ambos #5c747c)
+        salen de la paleta del #292c40, y fuera de `src/app/admin/` no queda
+        ningún `#448da6` ni `#367a8f` (hoy: `CreditsBadge` e `IAUploadStep`).
+        El admin (Polaris) puede quedarse teal.
 
-- [ ] **5. Assets.** `public/studio/`, `public/landing/` y `public/process/` son
-      imágenes de PBN y canvas. Marcados con `TODO(assets)`: la foto del hero,
-      el antes/después de `LandingShowcase` (oculto en lanzamiento hasta tener
-      imágenes del rompecabezas) y un paso de "entrega" para "Cómo funciona".
-
-- [ ] **6. El selector de piezas y la referencia de escala.** `ProductSizeSelector`
-      funciona, pero muestra el formato genérico. Conviene que enseñe
-      "500 pieces · 48 × 36 cm" y, junto al mockup, algo que dé idea del tamaño
-      real del puzzle montado.
+- [ ] **5. Assets.** `LandingShowcase` ya muestra el rompecabezas impreso
+      (`/puzzle/Otto.webp`). Quedan dos, marcados con `TODO(assets)`:
+  - [x] La foto del hero (`LandingHero.tsx`): sigue siendo la de ClawAndSoul,
+        alguien pintando un PBN. Reemplazarla por una del rompecabezas armado
+        y actualizar el `alt`.
+  - [x] Un paso de "entrega" en "Cómo funciona" (`StudioLandingPage.tsx`),
+        con una imagen del rompecabezas impreso; hoy la entrega va en el texto
+        del paso 3.
 
 ---
 
