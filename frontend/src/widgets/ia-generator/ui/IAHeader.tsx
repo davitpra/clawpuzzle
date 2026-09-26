@@ -40,7 +40,7 @@ export function IAHeader({
             />
           </div>
           <h2 className="font-display text-slate-dark text-xl font-black tracking-tight">
-            ClawPuzzle
+            Puzzle Salvaje
           </h2>
         </Link>
 

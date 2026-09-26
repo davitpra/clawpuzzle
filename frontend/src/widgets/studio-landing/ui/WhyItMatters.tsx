@@ -1,12 +1,12 @@
-import Image from "next/image";
+// import Image from "next/image";
 import { Container } from "@/shared/ui/Container";
 
-const COMPARISON = [
-  "Hecho con la foto de tu mascota",
-  "Vista previa gratis antes de pagar",
-  "MDF resistente de 3 mm",
-  "Envíos a todo Ecuador",
-];
+// const COMPARISON = [
+//   "Hecho con la foto de tu mascota",
+//   "Vista previa gratis antes de pagar",
+//   "MDF resistente de 3 mm",
+//   "Envíos a todo Ecuador",
+// ];
 
 const BENEFITS = [
   {
@@ -36,15 +36,15 @@ const BENEFITS = [
   },
 ];
 
-const CARD_BORDER = "border-[#E0DED9]";
+// const CARD_BORDER = "border-[#E0DED9]";
 
 export default function WhyItMatters() {
-  const last = COMPARISON.length - 1;
+  // const last = COMPARISON.length - 1;
 
   return (
     <section className="w-full pb-20">
       <Container>
-        <div className="grid grid-cols-1 items-center gap-10 py-14 md:grid-cols-2 md:gap-8 md:py-20">
+        {/* <div className="grid grid-cols-1 items-center gap-10 py-14 md:grid-cols-2 md:gap-8 md:py-20">
           <h2 className="text-center font-display text-3xl font-black tracking-tight text-slate-dark md:text-4xl">
             ¿Por qué elegirnos?
           </h2>
@@ -123,7 +123,7 @@ export default function WhyItMatters() {
               </tfoot>
             </table>
           </div>
-        </div>
+        </div> */}
 
         <ul className="grid grid-cols-1 gap-x-16 gap-y-9 md:grid-cols-2">
           {BENEFITS.map((benefit) => (

@@ -108,18 +108,6 @@ const LANDING_FAQS = [
     q: "¿Qué pasa con la foto de mi mascota?",
     a: "Tu foto se sube para que podamos crear y guardar tu arte. Puedes borrar tus fotos y tus diseños desde tu cuenta cuando quieras. Nunca vendemos tus fotos.",
   },
-  {
-    q: "¿Cómo funciona el estilo con IA?",
-    a: "Nuestra IA estudia tu foto y vuelve a dibujar a tu mascota en el estilo que elegiste. Ves la vista previa antes de imprimir nada, así que no hay sorpresas.",
-  },
-  {
-    q: "¿Y si quiero otro estilo?",
-    a: "Crea otra vista previa en otro estilo con una de tus vistas previas gratis. Puedes reutilizar una foto guardada o subir una nueva.",
-  },
-  {
-    q: "¿Sirve como regalo en memoria de una mascota?",
-    a: "Sí. Muchas familias lo piden para recordar a una mascota que ya no está. Armarlo juntos se vuelve una forma tranquila de recordarla, pieza por pieza.",
-  },
 ];
 
 export default function StudioLandingPage() {
@@ -177,7 +165,7 @@ export default function StudioLandingPage() {
               node: <LandingProducts background="" />,
             },
             { id: "brand", node: <BrandBanner /> },
-            { id: "why", node: <WhyItMatters /> },
+            // { id: "why", node: <WhyItMatters /> },
             {
               id: "faq",
               node: (

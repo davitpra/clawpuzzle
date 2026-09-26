@@ -51,15 +51,15 @@
 
 @theme {
   --color-primary: #292c40;
-  --color-primary-dark: #367a8f;
+  --color-primary-dark: #5c747c;
   --color-primary-accent: #292c40;
-  --color-background-light: #f0eee9;
+  --color-background-light: #fcfaf5;
   --color-background-dark: #292c40;
   --color-text-main: #292c40;
   --color-text-muted: #5c747c;
   --color-slate-dark: #292c40;
-  --color-cream: #f0eee9;
-  --color-faq-bg: #eae7e1;
+  --color-cream: #fcfaf5;
+  --color-faq-bg: #fcfaf5;
 
   --container-max-w: 90rem;
   --container-padding-x: 1.5rem;
@@ -273,7 +273,7 @@
 }
 
 :root {
-  --background: #f0eee9;
+  --background: #fcfaf5;
   --foreground: #292c40;
 }
 
@@ -292,11 +292,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #5c747c;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #5c747c;
 }
 
 /* Details Marker Removal */
