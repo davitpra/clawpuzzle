@@ -147,7 +147,7 @@ export class CreditsService {
 
     if (res.count === 0) {
       throw new HttpException(
-        "You're out of generation credits. Purchase a product to get more.",
+        "Te quedaste sin créditos de generación. Compra un producto para conseguir más.",
         HttpStatus.PAYMENT_REQUIRED,
       );
     }
