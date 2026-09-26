@@ -10,23 +10,14 @@ import type { CartItem } from "@/context/CartContext";
 import { formatPrice } from "@/entities/product/lib/variantPresentation";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
 
-/** Una variante comprable del formato elegido (p. ej. tema Perro | Gato). */
-export interface PuzzleOption {
-  variantId: string;
-  label: string;
-  price: string;
-  currencyCode: string;
-  available: boolean;
-}
-
-/** Lo que se vende al terminar la vista previa. */
+/** Lo que se vende al terminar la vista previa: una variante ya resuelta. */
 export interface PuzzleOffer {
   productTitle: string;
   productImage: string;
   formatLabel: string;
-  options: PuzzleOption[];
-  /** Variante que el cliente eligió en la ficha, si llegó desde ella. */
-  defaultVariantId: string | null;
+  variantId: string;
+  price: string;
+  currencyCode: string;
 }
 
 interface IAGeneratingStepProps {
@@ -60,7 +51,6 @@ export function IAGeneratingStep({
 }: IAGeneratingStepProps) {
   const { status, imageUrl } = useGenerationStatus(generationId);
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
-  const [pickedVariantId, setPickedVariantId] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const isFailed = status === "failed";
@@ -71,27 +61,20 @@ export function IAGeneratingStep({
     active: isGenerating,
   });
 
-  const availableOptions = offer?.options.filter((o) => o.available) ?? [];
-  const selectedOption =
-    availableOptions.find((o) => o.variantId === pickedVariantId) ??
-    availableOptions.find((o) => o.variantId === offer?.defaultVariantId) ??
-    availableOptions[0] ??
-    null;
-
   const savedArtHref = generationId
     ? `/user/generations/${generationId}`
     : "/user/generations";
 
   const order = async () => {
-    if (!offer || !selectedOption || !generationId || !imageUrl) return;
+    if (!offer || !generationId || !imageUrl) return;
     setCheckoutError(null);
     const item: CartItem = {
       id: generationId,
-      variantId: selectedOption.variantId,
+      variantId: offer.variantId,
       name: offer.productTitle,
       size: offer.formatLabel,
       style: styleName ?? undefined,
-      price: Number.parseFloat(selectedOption.price) || 0,
+      price: Number.parseFloat(offer.price) || 0,
       quantity: 1,
       img: offer.productImage,
       // generation_id + image_url viajan como attributes de la línea: el
@@ -157,36 +140,7 @@ export function IAGeneratingStep({
 
           {isRevealing && (
             <div className="flex w-full max-w-sm flex-col items-center gap-4">
-              {offer && availableOptions.length > 1 && (
-                <fieldset className="w-full">
-                  <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-dark/60">
-                    Tema del rompecabezas
-                  </legend>
-                  <div className="flex justify-center gap-2">
-                    {availableOptions.map((option) => {
-                      const active =
-                        option.variantId === selectedOption?.variantId;
-                      return (
-                        <button
-                          key={option.variantId}
-                          type="button"
-                          onClick={() => setPickedVariantId(option.variantId)}
-                          aria-pressed={active}
-                          className={`rounded-full border px-5 py-2 text-sm font-bold transition-all ${
-                            active
-                              ? "border-primary bg-primary text-white"
-                              : "border-[#E5E0D8] bg-white text-slate-dark hover:bg-gray-50"
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              )}
-
-              {offer && selectedOption ? (
+              {offer ? (
                 <button
                   type="button"
                   onClick={() => void order()}
@@ -204,8 +158,8 @@ export function IAGeneratingStep({
                   {isCheckingOut
                     ? "Abriendo el pago…"
                     : `Pedir mi rompecabezas · ${formatPrice(
-                        Number.parseFloat(selectedOption.price) || 0,
-                        selectedOption.currencyCode,
+                        Number.parseFloat(offer.price) || 0,
+                        offer.currencyCode,
                       )}`}
                 </button>
               ) : (

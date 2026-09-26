@@ -276,29 +276,27 @@ function IAGeneratorContent() {
     };
   }, [formats, shopifyProduct, formatId, variantId, template]);
 
-  // Oferta del paso final de lanzamiento: todas las variantes del formato
-  // elegido, para que el tema se pueda confirmar o cambiar al ver el arte.
+  // Oferta del paso final de lanzamiento: una sola variante, sin volver a
+  // preguntar. La que llegó desde la ficha si sigue disponible; si no, la
+  // primera disponible del formato.
   const puzzleOffer: PuzzleOffer | null = useMemo(() => {
-    if (!productInfo || !shopifyProduct) return null;
-    const titles = new Map(
-      shopifyProduct.variants.edges.map(({ node }) => [node.id, node.title]),
+    if (!productInfo) return null;
+    const available = formats.filter(
+      (f) => f.formatId === formatId && f.availableForSale,
     );
+    const chosen =
+      available.find((f) => f.shopifyVariantId === variantId) ??
+      available[0];
+    if (!chosen) return null;
     return {
       productTitle: productInfo.productTitle,
       productImage: productInfo.productImage,
       formatLabel: productInfo.formatLabel,
-      defaultVariantId: variantId,
-      options: formats
-        .filter((f) => f.formatId === formatId)
-        .map((f) => ({
-          variantId: f.shopifyVariantId,
-          label: titles.get(f.shopifyVariantId) ?? f.displayName,
-          price: f.price,
-          currencyCode: f.currencyCode,
-          available: f.availableForSale,
-        })),
+      variantId: chosen.shopifyVariantId,
+      price: chosen.price,
+      currencyCode: chosen.currencyCode,
     };
-  }, [productInfo, shopifyProduct, formats, formatId, variantId]);
+  }, [productInfo, formats, formatId, variantId]);
 
   // El paso de upload clásico solo se muestra con `productInfo` ya resuelto: si
   // se enviara antes, no habría variante y el producto físico nunca entraría al
