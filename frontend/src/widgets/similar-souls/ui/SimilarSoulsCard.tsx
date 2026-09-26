@@ -24,7 +24,7 @@ export function SimilarSoulsCard({ product }: SimilarSoulsCardProps) {
   // póster. `overflow-hidden` recortaría la sombra del frame, por eso no se usa.
   const frameStyle = toFrameStyle(product.template);
   const framedImage = (
-    <div className="relative hover:-translate-y-1 shadow-sm ease-out  hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.35)]">
+    <div className="relative hover:-translate-y-1 shadow-sm ease-out  hover:shadow-[0_22px_40px_-14px_rgba(41,44,64,0.35)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={product.img}

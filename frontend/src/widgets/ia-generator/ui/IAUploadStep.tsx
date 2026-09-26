@@ -80,7 +80,7 @@ export function IAUploadStep({
       <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
         {!isAdmin && creditBalance !== null && (
           <div className="mb-4 flex justify-end">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#448da6]/10 px-3 py-1 text-sm font-medium text-[#448da6]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
               <span className="material-symbols-outlined text-base leading-none">
                 auto_awesome
               </span>

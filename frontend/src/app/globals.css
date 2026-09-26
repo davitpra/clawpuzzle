@@ -51,12 +51,12 @@
 
 @theme {
   --color-primary: #292c40;
-  --color-primary-dark: #5c747c;
+  --color-primary-dark: #1c1e2c;
   --color-primary-accent: #292c40;
   --color-background-light: #fcfaf5;
   --color-background-dark: #292c40;
   --color-text-main: #292c40;
-  --color-text-muted: #5c747c;
+  --color-text-muted: #5f6275;
   --color-slate-dark: #292c40;
   --color-cream: #fcfaf5;
   --color-faq-bg: #fcfaf5;
@@ -292,11 +292,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #5c747c;
+  background: var(--color-text-muted);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #5c747c;
+  background: var(--color-primary);
 }
 
 /* Details Marker Removal */

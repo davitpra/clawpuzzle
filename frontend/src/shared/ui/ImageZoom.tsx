@@ -17,8 +17,8 @@ const dialogClassName = [
   "[&_[data-rmiz-modal-overlay]]:bg-[#f0eee9]/95",
   "[&_[data-rmiz-modal-overlay]]:backdrop-blur-sm",
   "[&_[data-rmiz-btn-unzoom]]:bg-white",
-  "[&_[data-rmiz-btn-unzoom]]:text-[#448da6]",
-  "[&_[data-rmiz-btn-unzoom]]:shadow-[0_8px_20px_-8px_rgba(16,54,66,0.45)]",
+  "[&_[data-rmiz-btn-unzoom]]:text-primary",
+  "[&_[data-rmiz-btn-unzoom]]:shadow-[0_8px_20px_-8px_rgba(41,44,64,0.45)]",
 ].join(" ");
 
 export function ImageZoom({

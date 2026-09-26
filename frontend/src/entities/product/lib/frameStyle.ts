@@ -34,7 +34,7 @@ export function frameForHandle(
 // layout de moneda flotante en ProductCard, así que su entrada aquí es un
 // fallback inerte que replica "art".
 export const FRAME_SHADOWS: Record<FrameStyle, string> = {
-  art: "shadow-[0_14px_32px_-12px_rgba(16,54,66,0.40)]",
+  art: "shadow-[0_14px_32px_-12px_rgba(41,44,64,0.40)]",
   puzzle: "",
-  credits: "shadow-[0_14px_32px_-12px_rgba(16,54,66,0.40)]",
+  credits: "shadow-[0_14px_32px_-12px_rgba(41,44,64,0.40)]",
 };

@@ -11,13 +11,13 @@ import type { FrameStyle } from "@/entities/product/lib/frameStyle";
 
 // Aspecto de "poster flotando": ligera elevación y sombra teñida en teal al hover.
 export const posterClasses =
-  "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.50)]";
+  "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(41,44,64,0.50)]";
 
 // Efecto por tipo de producto en la card (mismo lenguaje visual que la galería
 // del producto): "puzzle" con sombra de canto; "art" queda plano.
 const FRAME_CLASS: Record<FrameStyle, string> = {
   art: "",
-  puzzle: "shadow-[6px_8px_16px_-8px_rgba(16,54,66,0.42)]",
+  puzzle: "shadow-[6px_8px_16px_-8px_rgba(41,44,64,0.42)]",
   // Los créditos usan un layout de "moneda flotante" propio (ver más abajo), no
   // el <Card>, así que estas clases no se aplican.
   credits: "",
@@ -124,12 +124,12 @@ export function ProductCard({
           loading="lazy"
           decoding="async"
           onError={onImageError}
-          className="h-full w-full rounded-full object-cover ring-4 ring-white outline-1 outline-primary/30 shadow-[0_14px_30px_-8px_rgba(16,54,66,0.45)]"
+          className="h-full w-full rounded-full object-cover ring-4 ring-white outline-1 outline-primary/30 shadow-[0_14px_30px_-8px_rgba(41,44,64,0.45)]"
         />
       </div>
       <div
         aria-hidden
-        className="animate-coin-shadow mx-auto mt-2 h-3 w-1/2 rounded-[50%] bg-[rgba(16,54,66,0.28)] blur-md"
+        className="animate-coin-shadow mx-auto mt-2 h-3 w-1/2 rounded-[50%] bg-[rgba(41,44,64,0.28)] blur-md"
       />
     </div>
   );

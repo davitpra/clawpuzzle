@@ -13,7 +13,7 @@ import LightRays from "@/shared/ui/LightRays";
 
 // Aspecto de "poster flotando": ligera elevación y sombra teñida en teal al hover.
 const posterClasses =
-  "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.50)]";
+  "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(41,44,64,0.50)]";
 
 interface StyleCardProps {
   image: StyleImage;
