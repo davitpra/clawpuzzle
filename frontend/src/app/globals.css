@@ -50,14 +50,14 @@
 }
 
 @theme {
-  --color-primary: #448da6;
+  --color-primary: #292c40;
   --color-primary-dark: #367a8f;
-  --color-primary-accent: #448da6;
+  --color-primary-accent: #292c40;
   --color-background-light: #f0eee9;
-  --color-background-dark: #103642;
-  --color-text-main: #103642;
+  --color-background-dark: #292c40;
+  --color-text-main: #292c40;
   --color-text-muted: #5c747c;
-  --color-slate-dark: #103642;
+  --color-slate-dark: #292c40;
   --color-cream: #f0eee9;
   --color-faq-bg: #eae7e1;
 
@@ -108,8 +108,7 @@
 
   /* Selector de tamaño: el valor gira sobre el eje X como un rodillo. El
      sentido lo elige el componente según si se sube o se baja de talla. */
-  --animate-size-spin-up: size-spin-up 0.42s cubic-bezier(0.2, 0.7, 0.3, 1)
-    both;
+  --animate-size-spin-up: size-spin-up 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
   --animate-size-spin-down: size-spin-down 0.42s cubic-bezier(0.2, 0.7, 0.3, 1)
     both;
 
@@ -275,7 +274,7 @@
 
 :root {
   --background: #f0eee9;
-  --foreground: #103642;
+  --foreground: #292c40;
 }
 
 body {
@@ -338,7 +337,7 @@ summary {
   color: var(--color-slate-dark, inherit);
 }
 .pbn-desc a {
-  color: var(--color-primary, #448da6);
+  color: var(--color-primary, #292c40);
   text-decoration: underline;
 }
 .pbn-desc h1,
