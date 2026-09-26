@@ -76,6 +76,8 @@ export interface ShopifyProduct {
   images: {
     edges: { node: ShopifyImage }[];
   };
+  /** Opciones del producto, en el mismo orden que `selectedOptions`. Solo las pide GET_PRODUCT. */
+  options?: { name: string }[];
   variants: {
     edges: {
       node: ShopifyVariant;

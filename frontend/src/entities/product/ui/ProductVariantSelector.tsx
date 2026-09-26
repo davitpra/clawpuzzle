@@ -68,6 +68,8 @@ export default function ProductVariantSelector({
     (n) => !hiddenOptionNames.includes(n.toLowerCase()),
   );
 
+  // El título sale de `product.options`: al renombrar una opción en Shopify,
+  // `selectedOptions` de las variantes tarda en reflejar el nombre nuevo.
   if (variants.length <= 1 || visibleOptionNames.length === 0) return null;
 
   const handleOptionChange = (optionName: string, value: string) => {
@@ -89,7 +91,10 @@ export default function ProductVariantSelector({
         <OptionChips
           key={optionName}
           name={`variant-${optionName}`}
-          label={optionName}
+          label={
+            product.options?.[optionNames.indexOf(optionName)]?.name ??
+            optionName
+          }
           value={selectedOptions[optionName] || ""}
           options={optionValues[optionName].map((value) => ({
             value,

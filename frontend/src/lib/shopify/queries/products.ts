@@ -165,6 +165,9 @@ export const GET_PRODUCT = `
         }
       }
     }
+    options {
+      name
+    }
     variants(first: 250) {
       edges {
         node {
