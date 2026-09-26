@@ -24,8 +24,6 @@ export interface CreateDraft {
   /** Estilo para el que se subió la foto. Un borrador de otro estilo se descarta. */
   styleId: string;
   petName: string;
-  /** Especie de la mascota: alimenta el prompt, no es un dato decorativo. */
-  species: string;
   files: File[];
   savedAt: number;
 }
@@ -96,7 +94,6 @@ export async function loadDraft(): Promise<CreateDraft | null> {
       ...raw,
       files,
       petName: raw.petName ?? "",
-      species: raw.species || "dog",
     };
   } catch {
     return null;

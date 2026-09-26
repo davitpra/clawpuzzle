@@ -96,7 +96,6 @@ export function useCreateGeneration() {
       photos: File[],
     ): Promise<{ pet: Pet; petPhotoId: string | null }> => {
       const payload = {
-        species: form.species,
         breed: form.breed.trim() || undefined,
         age: form.age ? parseInt(form.age) : undefined,
       };

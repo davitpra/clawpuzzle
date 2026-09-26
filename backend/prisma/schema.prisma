@@ -166,7 +166,7 @@ model Pet {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   name        String
-  species     String // Enum: dog, cat, bird, rabbit, other
+  species     String? // Enum: dog, cat, bird, rabbit, other. El funnel ya no la pide
   breed       String?
   age         Int?
   description String?

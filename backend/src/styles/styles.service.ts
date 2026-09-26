@@ -15,6 +15,7 @@ import { CreateStyleDto } from './dto/create-style.dto';
 import { UpdateStyleDto } from './dto/update-style.dto';
 import { UpdateStyleImageDto } from './dto/update-style-image.dto';
 import { derivePreviewUrl } from './style-preview.util';
+import { UNKNOWN_SPECIES } from '../generations/pipeline/pipeline.types';
 import { PUBLIC_STYLE_IMAGE_SELECT, PUBLIC_STYLE_SELECT } from './style-select';
 
 // Los estilos servidos al storefront van proyectados; sus imágenes también.
@@ -398,7 +399,10 @@ export class StylesService {
       resolvedPetPhotoId = petPhoto.id;
       petContext = {
         petName: petContextOverride.petName ?? petPhoto.pet.name,
-        petSpecies: petContextOverride.petSpecies ?? petPhoto.pet.species,
+        petSpecies:
+          petContextOverride.petSpecies ??
+          petPhoto.pet.species ??
+          UNKNOWN_SPECIES,
         petBreed: petContextOverride.petBreed ?? petPhoto.pet.breed ?? '',
       };
     } else if (input.file) {

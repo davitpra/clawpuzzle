@@ -23,7 +23,7 @@ export interface UserPhoto {
   photoUrl: string;
   isPrimary: boolean;
   petName: string;
-  petSpecies: string;
+  petSpecies: string | null;
 }
 
 interface UserDetail {

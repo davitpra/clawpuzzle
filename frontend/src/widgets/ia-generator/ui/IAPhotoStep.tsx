@@ -8,7 +8,7 @@ import { PhotoUploadPanel } from "./upload-step/PhotoUploadPanel";
 import { IAStyleBanner } from "./IAStyleBanner";
 import { usePetsList } from "../model/usePetsList";
 import { useExistingPetPhotos } from "../model/useExistingPetPhotos";
-import { SPECIES_OPTIONS, SPECIES_LABELS, type Pet } from "./upload-step/types";
+import type { Pet } from "./upload-step/types";
 
 interface IAPhotoStepProps {
   styleName: string | null;
@@ -17,8 +17,6 @@ interface IAPhotoStepProps {
   onPhotosChange: (files: File[]) => void;
   petName: string;
   onPetNameChange: (name: string) => void;
-  species: string;
-  onSpeciesChange: (species: string) => void;
   activePet: Pet | null;
   onSelectPet: (pet: Pet | null) => void;
   onContinue: () => void;
@@ -37,11 +35,9 @@ interface IAPhotoStepProps {
  *    `useCredits` se gatean solos por `isAuthenticated`; un 401 aquí acabaría en
  *    el `window.location.href = "/login"` de `fetchWithRefresh` y el visitante
  *    perdería la foto recién subida.
- * 2. Solo se piden foto, nombre y especie. Raza y edad se editan luego desde
- *    `/user`: cada campo extra antes del registro es fricción en la puerta
- *    principal. La especie no es opcional aunque lo parezca — viaja al VLM en
- *    `petContext` (`openrouter-prompt.service.ts`), así que dar por hecho "dog"
- *    le describiría mal el gato de la foto.
+ * 2. Solo se piden foto y nombre. Raza y edad se editan luego desde `/user`:
+ *    cada campo extra antes del registro es fricción en la puerta principal. La
+ *    especie no se pregunta: el VLM ve la foto y deduce el animal por sí solo.
  */
 export function IAPhotoStep({
   styleName,
@@ -50,8 +46,6 @@ export function IAPhotoStep({
   onPhotosChange,
   petName,
   onPetNameChange,
-  species,
-  onSpeciesChange,
   activePet,
   onSelectPet,
   onContinue,
@@ -93,13 +87,11 @@ export function IAPhotoStep({
   const selectPet = (pet: Pet) => {
     onSelectPet(pet);
     onPetNameChange(pet.name);
-    onSpeciesChange(pet.species);
   };
 
   const clearPet = () => {
     onSelectPet(null);
     onPetNameChange("");
-    onSpeciesChange("dog");
   };
 
   return (
@@ -201,27 +193,6 @@ export function IAPhotoStep({
               autoComplete="off"
               className="w-full rounded-lg border border-primary bg-white px-5 py-3.5 text-base text-slate-dark placeholder-gray-400 transition-shadow focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-
-            <p className="mt-4 mb-1.5 block text-sm font-bold text-slate-dark">
-              Tipo de mascota
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {SPECIES_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={species === option}
-                  onClick={() => onSpeciesChange(option)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-semibold capitalize transition-colors ${
-                    species === option
-                      ? "border-primary bg-primary text-white"
-                      : "border-[#E5E0D8] bg-white text-slate-dark hover:bg-gray-50"
-                  }`}
-                >
-                  {SPECIES_LABELS[option] ?? option}
-                </button>
-              ))}
-            </div>
 
             {error && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">

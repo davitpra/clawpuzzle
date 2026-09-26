@@ -6,6 +6,7 @@ import {
   PipelineContext,
   PipelineResult,
   resolveImageSize,
+  UNKNOWN_SPECIES,
 } from '../pipeline.types';
 import { FalService } from '../../providers/fal/fal.service';
 import { StorageService } from '../../../storage/storage.service';
@@ -86,7 +87,7 @@ export class StyleTransferRolesMultiStrategy extends BaseStyleStrategy {
       ...(ctx.userSelections ?? {}),
       maxPets: ctx.constraints.maxPets,
       petName: ctx.pet.name,
-      petSpecies: ctx.pet.species,
+      petSpecies: ctx.pet.species ?? UNKNOWN_SPECIES,
       petBreed: ctx.pet.breed ?? '',
     };
 

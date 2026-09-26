@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ContinueButton } from "./ContinueButton";
-import { SPECIES_OPTIONS, SPECIES_LABELS, type Pet, type PetForm } from "./types";
+import { SPECIES_LABELS, type Pet, type PetForm } from "./types";
 
 interface PetDetailsFormProps {
   formId: string;
@@ -23,9 +23,20 @@ interface PetDetailsFormProps {
   onResetPet: () => void;
 }
 
+// "Luna (Gato · Siamés)"; las mascotas nuevas ya no guardan especie.
+function petOptionLabel(pet: Pet): string {
+  const details = [
+    pet.species ? (SPECIES_LABELS[pet.species] ?? pet.species) : null,
+    pet.breed,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return details ? `${pet.name} (${details})` : pet.name;
+}
+
 /**
  * Columna derecha del paso de subida: selección de mascota existente y campos
- * editables (nombre, especie, raza, edad).
+ * editables (nombre, raza, edad).
  */
 export function PetDetailsForm({
   formId,
@@ -93,7 +104,7 @@ export function PetDetailsForm({
                 <option value="">+ Agregar una mascota</option>
                 {pets.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {`${p.name}${p.species ? ` (${SPECIES_LABELS[p.species] ?? p.species}${p.breed ? ` · ${p.breed}` : ""})` : ""}`}
+                    {petOptionLabel(p)}
                   </option>
                 ))}
               </select>
@@ -120,29 +131,6 @@ export function PetDetailsForm({
             />
           </div>
         )}
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Especie
-          </label>
-          <div className="relative">
-            <select
-              name="species"
-              value={form.species}
-              onChange={onFieldChange}
-              className="w-full appearance-none border border-slate-300 rounded-lg pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white transition-shadow"
-            >
-              {SPECIES_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {SPECIES_LABELS[s] ?? s}
-                </option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">
-              expand_more
-            </span>
-          </div>
-        </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">

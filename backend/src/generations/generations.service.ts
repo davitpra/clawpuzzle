@@ -126,7 +126,10 @@ export class GenerationsService {
           productRefId: createDto.productRefId,
           type: 'image',
           status: 'pending',
-          prompt: createDto.prompt || `${pet.species} ${pet.breed || ''}`,
+          prompt:
+            createDto.prompt ||
+            [pet.species, pet.breed].filter(Boolean).join(' ') ||
+            pet.name,
           negativePrompt: createDto.negativePrompt,
           provider: createDto.provider || 'openai',
           metadata: {

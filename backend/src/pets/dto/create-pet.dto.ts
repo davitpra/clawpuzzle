@@ -10,10 +10,12 @@ export class CreatePetDto {
   @ApiProperty({
     example: 'dog',
     enum: ['dog', 'cat', 'bird', 'rabbit', 'other'],
+    required: false,
   })
+  @IsOptional()
   @IsString()
   @IsIn(['dog', 'cat', 'bird', 'rabbit', 'other'])
-  species: string;
+  species?: string;
 
   @ApiProperty({ example: 'Golden Retriever', required: false })
   @IsOptional()

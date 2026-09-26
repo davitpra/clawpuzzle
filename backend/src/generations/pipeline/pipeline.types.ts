@@ -11,6 +11,12 @@ import {
 export const DEFAULT_ASPECT_RATIO = '3:4';
 
 /**
+ * Valor de {{petSpecies}} cuando la mascota no tiene especie guardada (el
+ * funnel ya no la pregunta). El VLM ve la foto y deduce el animal por sí solo.
+ */
+export const UNKNOWN_SPECIES = 'pet';
+
+/**
  * Tamaño en píxeles a pedir al modelo, sacado del Format. Si los constraints
  * fuerzan otra proporción, no se envía: un tamaño del Format la contradiría.
  */

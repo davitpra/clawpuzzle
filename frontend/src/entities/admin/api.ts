@@ -88,7 +88,7 @@ export interface AdminUserPhoto {
 export interface AdminUserPet {
   id: string;
   name: string;
-  species: string;
+  species: string | null;
   breed: string | null;
   age: number | null;
   /** Texto libre que escribió el propio usuario sobre la mascota. */
@@ -648,7 +648,7 @@ export interface AdminPet {
   id: string;
   userId: string;
   name: string;
-  species: string;
+  species: string | null;
   breed: string | null;
   age: number | null;
   description: string | null;

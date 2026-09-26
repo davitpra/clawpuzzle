@@ -166,9 +166,6 @@ function IAGeneratorContent() {
 
   // Estado propio del flujo de lanzamiento.
   const [petName, setPetName] = useState("");
-  // La especie viaja al VLM dentro de `petContext`, así que no es un default
-  // inocuo: se pregunta en el paso de foto.
-  const [species, setSpecies] = useState("dog");
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
@@ -328,7 +325,6 @@ function IAGeneratorContent() {
       if (draft && draft.styleId === styleId) {
         setPhotos(draft.files);
         setPetName(draft.petName);
-        setSpecies(draft.species);
       }
       setDraftLoaded(true);
     });
@@ -341,10 +337,10 @@ function IAGeneratorContent() {
     if (!LAUNCH_MODE || !draftLoaded || !styleId) return;
     if (photos.length === 0 && !petName.trim()) return;
     const timeout = setTimeout(() => {
-      void saveDraft({ styleId, petName, species, files: photos });
+      void saveDraft({ styleId, petName, files: photos });
     }, DRAFT_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
-  }, [draftLoaded, styleId, photos, petName, species]);
+  }, [draftLoaded, styleId, photos, petName]);
 
   // ---- Envío del flujo de lanzamiento -----------------------------------
 
@@ -355,7 +351,6 @@ function IAGeneratorContent() {
         photos,
         form: {
           name: petName,
-          species,
           // Raza y edad se editan luego desde /user: en la puerta principal cada
           // campo extra antes del registro es fricción.
           breed: "",
@@ -383,7 +378,6 @@ function IAGeneratorContent() {
     submit,
     photos,
     petName,
-    species,
     activePet,
     productRefId,
     formatId,
@@ -512,8 +506,6 @@ function IAGeneratorContent() {
               onPhotosChange={setPhotos}
               petName={petName}
               onPetNameChange={setPetName}
-              species={species}
-              onSpeciesChange={setSpecies}
               activePet={activePet}
               onSelectPet={setActivePet}
               onContinue={handlePhotoContinue}

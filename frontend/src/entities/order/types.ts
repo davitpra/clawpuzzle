@@ -140,7 +140,7 @@ export interface UserPetPhoto {
 export interface UserPet {
   id: string;
   name: string;
-  species: string;
+  species: string | null;
   breed?: string | null;
   age?: number | null;
   description?: string | null;

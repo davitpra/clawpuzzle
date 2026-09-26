@@ -10,7 +10,7 @@ export interface PetPhoto {
 export interface Pet {
   id: string;
   name: string;
-  species: string;
+  species?: string | null;
   breed?: string;
   age?: number;
   photos?: PetPhoto[];
@@ -18,7 +18,6 @@ export interface Pet {
 
 export interface PetForm {
   name: string;
-  species: string;
   breed: string;
   age: string;
 }
@@ -35,12 +34,10 @@ export interface IAUploadStepProps {
   userSelections?: Record<string, string | number>;
 }
 
-export const SPECIES_OPTIONS = ["dog", "cat", "bird", "rabbit", "other"];
 export { SPECIES_LABELS } from "@/shared/config/species";
 export const MAX_PHOTOS = 4;
 export const EMPTY_FORM: PetForm = {
   name: "",
-  species: "dog",
   breed: "",
   age: "",
 };
@@ -48,7 +45,6 @@ export const EMPTY_FORM: PetForm = {
 export function petToForm(pet: Pet): PetForm {
   return {
     name: pet.name,
-    species: pet.species,
     breed: pet.breed ?? "",
     age: pet.age != null ? String(pet.age) : "",
   };

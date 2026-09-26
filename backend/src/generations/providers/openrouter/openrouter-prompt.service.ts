@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { fal } from '@fal-ai/client';
+import { UNKNOWN_SPECIES } from '../../pipeline/pipeline.types';
 
 interface OpenRouterVisionOutput {
   output?: string;
@@ -27,7 +28,7 @@ export interface OpenRouterPromptInput {
   promptTemplate: string;
   /** Runtime + admin-defined variables merged by the caller. */
   templateVars?: Record<string, unknown> | null;
-  petContext: { name: string; species: string; breed?: string | null };
+  petContext: { name: string; species: string | null; breed?: string | null };
   visionModel?: string | null;
   temperature?: number;
   systemPrompt?: string | null;
@@ -104,7 +105,7 @@ export class OpenRouterPromptService {
       ...(input.templateVars ?? {}),
       // Runtime context always wins over templateVars on key collision
       petName: input.petContext.name,
-      petSpecies: input.petContext.species,
+      petSpecies: input.petContext.species ?? UNKNOWN_SPECIES,
       petBreed: input.petContext.breed ?? '',
     };
     return this.applyTemplateVars(input.promptTemplate, vars);
