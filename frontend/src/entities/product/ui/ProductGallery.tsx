@@ -6,6 +6,7 @@ import { Carousel } from "@/shared/ui/Carousel";
 import { ImageZoom } from "@/shared/ui/ImageZoom";
 import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
+import { getVariantImages } from "@/entities/product/lib/variantImages";
 
 interface ProductGalleryProps {
   product: ShopifyProduct;
@@ -21,11 +22,11 @@ export default function ProductGallery({
   frameStyle = "art",
 }: ProductGalleryProps) {
   const primaryImage = variantImage || mainImage;
-  // La imagen de la variante va primero; el resto del catálogo de fotos del
-  // producto va detrás para que la tira de miniaturas tenga contenido.
+  // Solo las fotos de la variante elegida (ej. tema Perro → solo perros), con
+  // su imagen primero; sin imagen de variante, la galería completa.
   const images = [
     primaryImage,
-    ...product.images.edges.map((edge) => edge.node.url),
+    ...getVariantImages(product, variantImage),
   ].filter((src): src is string => Boolean(src));
   const uniqueImages = Array.from(new Set(images));
 
@@ -55,6 +56,8 @@ export default function ProductGallery({
       <div className={`w-full group ${isCarousel ? "" : "p-6 md:p-10"}`}>
         {isCarousel ? (
           <Carousel
+            // Remonta al cambiar de variante para arrancar en su foto.
+            key={primaryImage}
             showArrows={false}
             showDots={false}
             autoplayMs={5000}
