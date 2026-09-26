@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/shared/ui/Container";
 import CompareSlider from "./CompareSlider";
@@ -20,6 +21,14 @@ export interface ShowcaseImage {
   alt: string;
 }
 
+/** Single still image, shown instead of the before/after slider. */
+export interface ShowcasePhoto {
+  src: string;
+  width: number;
+  height: number;
+  alt: string;
+}
+
 export interface ShowcaseCta {
   href: string;
   label: string;
@@ -31,6 +40,8 @@ interface StudioShowcaseProps {
   description?: ReactNode;
   features?: ShowcaseFeature[];
   image?: ShowcaseImage;
+  /** When set, replaces the compare slider (and its hint) with a still image. */
+  photo?: ShowcasePhoto;
   /** `null` hides the button. */
   primaryCta?: ShowcaseCta | null;
   secondaryCta?: ShowcaseCta | null;
@@ -62,6 +73,7 @@ export default function StudioShowcase({
   description = "Sube una foto y mira cómo tu mejor amigo se convierte en arte en segundos. Sin compromiso: pruébalo y decide después.",
   features = DEFAULT_FEATURES,
   image = DEFAULT_IMAGE,
+  photo,
   primaryCta = {
     href: "/create",
     label: "Pruébalo gratis",
@@ -153,13 +165,26 @@ export default function StudioShowcase({
               {/* Glow */}
               <div className="absolute -inset-4 -z-10 rounded-4xl bg-primary/20 blur-2xl" />
               <div className="overflow-hidden border border-white/10 bg-white/5 shadow-2xl">
-                <CompareSlider {...image} />
+                {photo ? (
+                  <Image
+                    src={photo.src}
+                    width={photo.width}
+                    height={photo.height}
+                    alt={photo.alt}
+                    sizes="(min-width: 1024px) 32rem, 28rem"
+                    className="h-auto w-full"
+                  />
+                ) : (
+                  <CompareSlider {...image} />
+                )}
               </div>
               {/* Hint */}
-              <div className="absolute -bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-dark shadow-lg">
-                <span className="size-2 rounded-full bg-primary" />
-                Desliza para comparar
-              </div>
+              {!photo && (
+                <div className="absolute -bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-dark shadow-lg">
+                  <span className="size-2 rounded-full bg-primary" />
+                  Desliza para comparar
+                </div>
+              )}
             </div>
           </div>
         </div>

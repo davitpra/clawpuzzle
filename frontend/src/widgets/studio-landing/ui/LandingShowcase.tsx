@@ -8,9 +8,6 @@ const PROOF_POINTS: ShowcaseFeature[] = [
   { icon: "local_shipping", text: "Listo para armar, con envío a todo Ecuador" },
 ];
 
-// TODO(assets): las imágenes siguen siendo las de ClawAndSoul (arte → PBN).
-// Hacen falta un "antes" (arte IA) y un "después" (el rompecabezas impreso);
-// hasta entonces `StudioLandingPage` no pinta esta sección en lanzamiento.
 export default function LandingShowcase({
   background,
 }: {
@@ -19,18 +16,15 @@ export default function LandingShowcase({
   return (
     <StudioShowcase
       background={background}
-      eyebrow="Antes y después"
+      eyebrow="Así se ve impreso"
       title="Mira la magia con tus propios ojos"
-      description="Desliza para ver cómo el arte de tu mascota se convierte en un rompecabezas de verdad."
+      description="Así queda el arte de tu mascota convertido en un rompecabezas de madera, listo para armar."
       features={PROOF_POINTS}
-      image={{
-        beforeSrc: "/studio/bengal-art.webp",
-        afterSrc: "/studio/bengal-pbn.webp",
-        beforeLabel: "Arte IA",
-        afterLabel: "Rompecabezas",
-        width: 928,
-        height: 1152,
-        alt: "Retrato IA de un gato bengalí convertido en rompecabezas",
+      photo={{
+        src: "/puzzle/Otto.webp",
+        width: 1075,
+        height: 1463,
+        alt: "Rompecabezas de madera con el retrato IA de Otto, un perro con pañuelo de flores",
       }}
       primaryCta={null}
       secondaryCta={null}

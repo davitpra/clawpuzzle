@@ -188,9 +188,7 @@ export default function StudioLandingPage() {
               ),
             },
             {
-              // Sin imágenes del rompecabezas todavía (ver LandingShowcase).
               id: "showcase",
-              when: !LAUNCH_MODE,
               node: <LandingShowcase background="" />,
             },
           ]}
