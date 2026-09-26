@@ -8,9 +8,6 @@ import ProductSizeSelector from "@/entities/product/ui/ProductSizeSelector";
 import ProductTypeSelector from "@/entities/product/ui/ProductTypeSelector";
 import ProductBreadcrumb from "@/entities/product/ui/ProductBreadcrumb";
 import ProductPerks from "@/entities/product/ui/ProductPerks";
-import ProductStyleSelector, {
-  type StyleChoice,
-} from "@/entities/product/ui/ProductStyleSelector";
 import PersonalizeButton from "@/features/personalize/ui/PersonalizeButton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatOptions } from "@/hooks/useFormatOptions";
@@ -37,12 +34,11 @@ interface ProductDetailsProps {
   frameStyle?: FrameStyle;
   /** Formato de entrega normalizado (Digital | Canvas | Poster…), para el label del tipo de producto. */
   template?: string;
-  /** Contenido de la obra: "pbn" | "print"; undefined si no está asignado. */
   /**
-   * Estilos entre los que elige el visitante (el producto de lanzamiento
-   * admite cualquier estilo activo, tenga o no uno propio asignado).
+   * El producto de lanzamiento admite cualquier estilo activo: la ficha no lo
+   * fija y el visitante lo elige con las cards del paso de estilo de `/create`.
    */
-  styleChoices?: StyleChoice[];
+  styleSelectable?: boolean;
   /** El rastro lleva a `/catalog`; la landing de lanzamiento lo oculta. */
   showBreadcrumb?: boolean;
 }
@@ -55,7 +51,7 @@ export default function ProductDetails({
   setMainImage,
   frameStyle = "art",
   template,
-  styleChoices,
+  styleSelectable = false,
   showBreadcrumb = true,
 }: ProductDetailsProps) {
   const selectedVariant = product.variants.edges.find(
@@ -129,15 +125,9 @@ export default function ProductDetails({
     selectedVariant?.selectedOptions.find((o) => o.name === typeOptionName)
       ?.value ?? "";
 
-  // Con `styleChoices` el estilo lo elige el visitante; por defecto, el del
-  // producto si está entre las opciones, si no el primero.
-  const [chosenStyleId, setChosenStyleId] = useState<string | null>(null);
-  const canChooseStyle = !isLoadingFormats && !!styleChoices?.length;
-  const effectiveStyleId = canChooseStyle
-    ? (chosenStyleId ??
-      styleChoices!.find((s) => s.id === styleId)?.id ??
-      styleChoices![0].id)
-    : (styleId ?? null);
+  // Con estilo elegible no se fija aquí: sus opciones (`templateVarOptions`)
+  // toman en `/create` los valores por defecto del estilo elegido.
+  const effectiveStyleId = styleSelectable ? null : (styleId ?? null);
 
   const { style: detailedStyle } = useStyle(effectiveStyleId);
   const [selectionsState, setSelectionsState] = useState<{
@@ -195,14 +185,6 @@ export default function ProductDetails({
 
           <div className="h-px w-full bg-text-main/10"></div>
 
-          {canChooseStyle && effectiveStyleId && (
-            <ProductStyleSelector
-              styles={styleChoices!}
-              value={effectiveStyleId}
-              onChange={setChosenStyleId}
-            />
-          )}
-
           {sizeOptionName && (
             <ProductSizeSelector
               label={sizeOptionName}
@@ -248,6 +230,7 @@ export default function ProductDetails({
             selectedVariant={selectedVariant}
             productRefId={productRefId ?? undefined}
             styleId={effectiveStyleId ?? undefined}
+            styleOptional={styleSelectable}
             formatId={selectedFormatOption?.formatId}
             isCompatLoading={isLoadingFormats}
             hasBackendMapping={hasBackendMapping}

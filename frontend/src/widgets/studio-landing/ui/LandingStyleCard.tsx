@@ -15,7 +15,15 @@ interface LandingStyleCardProps {
   difficulty: StyleDifficulty;
   artUrl: string;
   artAlt: string;
+  /**
+   * Con `onSelect` la card es un botón (paso de estilo de `/create`); sin él,
+   * un link a `/create?style_id=…` (landing).
+   */
+  onSelect?: (id: string) => void;
 }
+
+const overlayClasses =
+  "absolute inset-0 z-10 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary";
 
 const posterClasses =
   "transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_22px_40px_-14px_rgba(16,54,66,0.50)]";
@@ -26,6 +34,7 @@ export function LandingStyleCard({
   difficulty,
   artUrl,
   artAlt,
+  onSelect,
 }: LandingStyleCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
 
@@ -56,11 +65,20 @@ export function LandingStyleCard({
       </div>
 
       <p className="text-center font-bold text-slate-dark">{displayName}</p>
-      <Link
-        href={`/create?style_id=${encodeURIComponent(id)}`}
-        className="absolute inset-0 z-10 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-        aria-label={`Create your pet portrait in the ${displayName} style`}
-      />
+      {onSelect ? (
+        <button
+          type="button"
+          onClick={() => onSelect(id)}
+          className={`${overlayClasses} cursor-pointer`}
+          aria-label={`Choose the ${displayName} style`}
+        />
+      ) : (
+        <Link
+          href={`/create?style_id=${encodeURIComponent(id)}`}
+          className={overlayClasses}
+          aria-label={`Create your pet portrait in the ${displayName} style`}
+        />
+      )}
     </article>
   );
 }

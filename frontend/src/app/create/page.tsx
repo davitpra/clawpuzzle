@@ -11,6 +11,7 @@ import {
   IAPhotoStep,
   IAGeneratingStep,
   IAStartFromProduct,
+  IAStyleStep,
   type SelectedProductInfo,
 } from "@/widgets/ia-generator";
 import { useCreateGeneration } from "@/widgets/ia-generator/model/useCreateGeneration";
@@ -45,6 +46,10 @@ const STEP_THANKS = 3;
 const STEP_PHOTO = 1;
 const STEP_ACCOUNT = 2;
 const STEP_GENERATING = 3;
+// Desde la ficha del producto el estilo se elige en `/create` (paso de estilo,
+// derivado de la URL: no es un valor de `step`). En la barra de progreso
+// cuenta siempre como el primer paso del flujo de lanzamiento.
+const STYLE_STEP_COUNT = 1;
 
 // Espera antes de persistir el borrador, para no escribir en cada pulsación.
 const DRAFT_DEBOUNCE_MS = 500;
@@ -123,6 +128,7 @@ function StyleFirstResolver({
 }
 
 function IAGeneratorContent() {
+  const router = useRouter();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const searchParams = useSearchParams();
 
@@ -135,6 +141,8 @@ function IAGeneratorContent() {
   // producto no hay nada que generar y no se dispara ningún fetch.
   const hasProductContext = !!(productRefId && formatId && styleId);
   const hasStyleOnly = !!styleId && !productRefId && !formatId;
+  // Llegada desde la ficha del producto: hay producto y formato, falta estilo.
+  const needsStyle = !!(productRefId && formatId && !styleId);
 
   const {
     style,
@@ -420,18 +428,37 @@ function IAGeneratorContent() {
     ? [STEP_PHOTO, STEP_GENERATING]
     : [STEP_PHOTO, STEP_ACCOUNT, STEP_GENERATING];
   const headerStep = LAUNCH_MODE
-    ? Math.max(launchSteps.indexOf(step) + 1, 1)
+    ? needsStyle
+      ? 1
+      : Math.max(launchSteps.indexOf(step) + 1, 1) + STYLE_STEP_COUNT
     : step;
-  const headerTotal = LAUNCH_MODE ? launchSteps.length : 3;
+  const headerTotal = LAUNCH_MODE
+    ? launchSteps.length + STYLE_STEP_COUNT
+    : 3;
+
+  // El producto y el formato se conservan: elegir o cambiar de estilo solo
+  // toca `style_id` (las `selections` son de un estilo concreto y se sueltan).
+  const productParams = new URLSearchParams();
+  if (productRefId) productParams.set("product_ref_id", productRefId);
+  if (formatId) productParams.set("format_id", formatId);
+  const styleStepHref = `/create?${productParams.toString()}`;
+
+  const handleStyleSelect = (id: string) => {
+    const params = new URLSearchParams(productParams);
+    params.set("style_id", id);
+    router.push(`/create?${params.toString()}`);
+  };
 
   return (
     <div className="bg-white text-slate-dark font-body min-h-screen flex flex-col transition-all duration-500">
       <IAHeader
-        step={hasProductContext ? headerStep : 0}
+        step={hasProductContext || (needsStyle && LAUNCH_MODE) ? headerStep : 0}
         totalSteps={headerTotal}
       />
 
-      {hasStyleOnly ? (
+      {needsStyle ? (
+        <IAStyleStep onSelect={handleStyleSelect} />
+      ) : hasStyleOnly ? (
         <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
       ) : !hasProductContext ? (
         <IAStartFromProduct />
@@ -459,6 +486,7 @@ function IAGeneratorContent() {
               onSelectPet={setActivePet}
               onContinue={handlePhotoContinue}
               onChangeStyle={() => void clearDraft()}
+              changeStyleHref={styleStepHref}
               submitting={submitting}
               error={submitError}
               outOfCredits={outOfCredits}

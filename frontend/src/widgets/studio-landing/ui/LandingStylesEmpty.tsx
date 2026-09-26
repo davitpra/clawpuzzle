@@ -13,7 +13,12 @@ import { useRouter } from "next/navigation";
  * Es cliente solo por el botón: `refresh()` vuelve a pedir el render del
  * servidor sin recargar la página entera ni perder el scroll.
  */
-export function LandingStylesEmpty() {
+export function LandingStylesEmpty({
+  onRetry,
+}: {
+  /** Por defecto re-renderiza el servidor; en cliente, quien pide los estilos. */
+  onRetry?: () => void;
+}) {
   const router = useRouter();
 
   return (
@@ -30,7 +35,7 @@ export function LandingStylesEmpty() {
       </p>
       <button
         type="button"
-        onClick={() => router.refresh()}
+        onClick={onRetry ?? (() => router.refresh())}
         className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md"
       >
         <span className="material-symbols-outlined text-[18px]">refresh</span>

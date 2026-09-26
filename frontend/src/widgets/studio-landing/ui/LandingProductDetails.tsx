@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getProduct } from "@/lib/shopify/actions/products";
 import type { ShopifyProduct } from "@/lib/shopify";
 import { fetchLaunchProduct } from "@/entities/product/api/fetchLaunchProduct";
-import { fetchPublicStyles } from "@/entities/art-style/api/fetchPublicStyles";
 import LandingProductDetailsClient from "./LandingProductDetailsClient";
 
 function SectionShell({
@@ -70,13 +69,6 @@ export default async function LandingProductDetails({
     );
   }
 
-  let styles: Awaited<ReturnType<typeof fetchPublicStyles>> = [];
-  try {
-    styles = await fetchPublicStyles();
-  } catch (error) {
-    console.error("LandingProductDetails: no se pudieron cargar los estilos", error);
-  }
-
   if (!product) {
     return (
       <SectionShell background={background}>
@@ -101,11 +93,6 @@ export default async function LandingProductDetails({
       <LandingProductDetailsClient
         product={product}
         template={template}
-        styles={styles.map(({ id, displayName, difficulty }) => ({
-          id,
-          displayName,
-          difficulty,
-        }))}
       />
     </SectionShell>
   );

@@ -23,6 +23,7 @@ interface IAPhotoStepProps {
   onSelectPet: (pet: Pet | null) => void;
   onContinue: () => void;
   onChangeStyle: () => void;
+  changeStyleHref?: string;
   submitting: boolean;
   error: string | null;
   outOfCredits: boolean;
@@ -55,6 +56,7 @@ export function IAPhotoStep({
   onSelectPet,
   onContinue,
   onChangeStyle,
+  changeStyleHref,
   submitting,
   error,
   outOfCredits,
@@ -107,6 +109,7 @@ export function IAPhotoStep({
           styleName={styleName}
           styleImg={styleImg}
           onChangeStyle={onChangeStyle}
+          changeStyleHref={changeStyleHref}
         />
 
         {isAuthenticated && !isAdmin && creditBalance !== null && (

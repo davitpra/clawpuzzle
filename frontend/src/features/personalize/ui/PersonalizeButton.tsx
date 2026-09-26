@@ -13,6 +13,8 @@ interface PersonalizeButtonProps {
   hasBackendMapping?: boolean;
   backendError?: string | null;
   userSelections?: Record<string, string | number>;
+  /** El estilo se elige después, en el paso de estilo de `/create`. */
+  styleOptional?: boolean;
 }
 
 export default function PersonalizeButton({
@@ -25,7 +27,10 @@ export default function PersonalizeButton({
   hasBackendMapping = false,
   backendError = null,
   userSelections,
+  styleOptional = false,
 }: PersonalizeButtonProps) {
+  const missingStyle = !styleId && !styleOptional;
+
   const router = useRouter();
 
   const isDisabled =
@@ -35,7 +40,7 @@ export default function PersonalizeButton({
     !hasBackendMapping ||
     // Sin estilo asignado el generador no tiene qué producir: se bloquea aquí
     // en vez de dejar que la ruta /create reciba un contexto incompleto.
-    !styleId ||
+    missingStyle ||
     !formatId;
 
   const handlePersonalize = () => {
@@ -56,7 +61,7 @@ export default function PersonalizeButton({
     ? "Loading options…"
     : backendError
       ? "Unavailable for personalization"
-      : !hasBackendMapping || !styleId
+      : !hasBackendMapping || missingStyle
         ? "Unavailable for personalization"
         : !selectedVariant
           ? "Select a size"

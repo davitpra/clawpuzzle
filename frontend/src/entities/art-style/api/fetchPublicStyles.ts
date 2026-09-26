@@ -71,3 +71,21 @@ export async function fetchPublicStyles(): Promise<PublicStyle[]> {
     ),
   }));
 }
+
+export interface PublicStyleWithArt {
+  style: PublicStyle;
+  art: PublicStyleImage;
+}
+
+/**
+ * Empareja cada estilo con su imagen de muestra (`orderIndex === 0`) y descarta
+ * los que no tienen: una card sin imagen no le enseña nada al visitante.
+ */
+export function withPreviewArt(styles: PublicStyle[]): PublicStyleWithArt[] {
+  return styles.flatMap((style) => {
+    const art = style.images.find((image) => image.orderIndex === 0);
+    if (!art) return [];
+
+    return [{ style, art }];
+  });
+}

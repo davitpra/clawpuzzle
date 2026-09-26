@@ -1,6 +1,10 @@
 export { default as LandingHero } from "./ui/LandingHero";
 export { default as LandingShowcase } from "./ui/LandingShowcase";
 export { default as LandingStyles } from "./ui/LandingStyles";
+export {
+  LandingStylesView,
+  LandingStylesSkeleton,
+} from "./ui/LandingStylesView";
 export { default as BrandBanner } from "./ui/BrandBanner";
 export { default as WhyItMatters } from "./ui/WhyItMatters";
 export { default as LandingProducts } from "./ui/LandingProducts";

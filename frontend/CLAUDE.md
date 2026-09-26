@@ -172,7 +172,11 @@ What the flag changes:
   button.
 - **`src/app/create/page.tsx`** — the flag picks the step order. Launch:
   `STEP_PHOTO → STEP_ACCOUNT → STEP_GENERATING` (photo first, account skipped when
-  already signed in, then an automatic hop to `/studio`). Flag off: the classic
+  already signed in, then an automatic hop to `/studio`). Coming from the launch
+  product page (`product_ref_id` + `format_id`, no `style_id`) a style step comes
+  first: `IAStyleStep` shows the landing's style cards (`LandingStylesView`) and
+  picking one adds `style_id` to the URL. The product page itself no longer
+  chooses a style (`ProductDetails` `styleSelectable`). Flag off: the classic
   `STEP_LEAD → STEP_UPLOAD → STEP_THANKS` driven by a product page. Both share the
   hooks in `widgets/ia-generator/model/`.
   **Rule for the photo step: no authenticated call while `isAuthenticated` is
