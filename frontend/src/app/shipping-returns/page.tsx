@@ -1,7 +1,6 @@
-// TODO (contenido): los plazos de producción y envío, los costes y la ventana de
-// devolución están deliberadamente sin cifras — hay que rellenarlos con los
-// datos reales de la operación antes de producción. No inventar números aquí:
-// esta página es una promesa al cliente.
+// TODO (contenido): el costo de envío y la ventana para reportar daños siguen
+// sin cifras; rellenarlos con los datos reales de la operación antes de
+// producción. No inventar números aquí: esta página es una promesa al cliente.
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/widgets/legal-page";
@@ -9,83 +8,81 @@ import { BRAND } from "@/shared/config/navigation";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 
 export const metadata: Metadata = {
-  title: "Shipping & Returns · ClawPuzzle",
+  title: "Envíos y devoluciones · ClawPuzzle",
   description:
-    "How ClawPuzzle orders are made, packed and delivered — and what happens if something arrives wrong.",
+    "Cómo se fabrican, empacan y entregan los rompecabezas de ClawPuzzle en Ecuador, y qué hacer si algo llega mal.",
 };
 
 export default function ShippingReturnsPage() {
   return (
     <LegalPage
-      title="Shipping & Returns"
-      intro="Every piece is made to order from your pet's photo. Here's what to expect between checkout and the moment it reaches your door."
-      lastUpdated="July 30, 2026"
+      title="Envíos y devoluciones"
+      intro="Cada rompecabezas se fabrica bajo pedido con la foto de tu mascota. Esto es lo que puedes esperar desde que pagas hasta que llega a tu puerta."
+      lastUpdated="26 de septiembre de 2026"
     >
       <section>
-        <h2>Digital downloads</h2>
+        <h2>Hecho bajo pedido</h2>
         <p>
-          Paint-by-numbers PDFs and digital artwork are delivered in your
-          account — no shipping involved. You can download them again any time
-          from your artwork and PBN pages.
+          Tu rompecabezas se imprime sobre MDF de 3 mm después de que haces el
+          pedido: preparamos tu arte, lo imprimimos, lo cortamos y lo revisamos
+          antes de enviarlo. La producción toma 3 días.
         </p>
       </section>
 
       <section>
-        <h2>Made to order</h2>
+        <h2>Envíos</h2>
         <p>
-          Canvases, posters and paint kits are produced individually after you
-          order: your artwork is prepared, printed and checked before it ships.
-          That production step happens before the delivery estimate at checkout
-          starts counting.
+          Enviamos a todo Ecuador. Una vez producido, la entrega toma unos 3
+          días más, según tu ciudad. El costo del envío se muestra en el pago,
+          antes de confirmar tu pedido.
         </p>
       </section>
 
       <section>
-        <h2>Tracking your order</h2>
+        <h2>Seguimiento de tu pedido</h2>
         <p>
-          You can follow the status of every order from{" "}
+          Puedes seguir el estado de cada pedido desde{" "}
           <Link
             className="text-primary underline hover:text-primary-dark transition-colors"
             href="/user/orders"
           >
-            your orders page
+            tus pedidos
           </Link>
-          . We email you when it ships.
+          . Te avisamos por correo cuando sale de nuestro taller.
         </p>
       </section>
 
       <section>
-        <h2>Damaged or incorrect items</h2>
+        <h2>Productos dañados o incorrectos</h2>
         <p>
-          If your order arrives damaged, or what you received doesn&apos;t match
-          what you ordered, email us a photo of the item and packaging and
-          we&apos;ll replace it at no cost.
+          Si tu pedido llega dañado, o lo que recibiste no coincide con lo que
+          pediste, escríbenos con una foto del rompecabezas y del empaque y te
+          lo reponemos sin costo.
         </p>
       </section>
 
       <section>
-        <h2>Returns on custom work</h2>
+        <h2>Devoluciones de productos personalizados</h2>
         <p>
-          Because each piece is made from your own photo, it can&apos;t be
-          resold, so we can&apos;t accept returns simply because you changed
-          your mind. If you&apos;re unhappy with how your artwork turned out,
-          talk to us before ordering a physical version — you can preview the
-          result in the Studio first, and we&apos;ll help you get it right.
+          Como cada rompecabezas se hace con tu propia foto, no se puede volver
+          a vender, así que no aceptamos devoluciones por cambio de opinión. Por
+          eso la vista previa es gratis: mira el resultado antes de pedirlo y,
+          si algo no te convence, escríbenos y te ayudamos.
         </p>
       </section>
 
       <section>
-        <h2>Cancelling an order</h2>
+        <h2>Cancelar un pedido</h2>
         <p>
-          We can cancel an order as long as production hasn&apos;t started.
-          Contact us as soon as possible and we&apos;ll check.
+          Podemos cancelar un pedido mientras no haya empezado la producción.
+          Escríbenos lo antes posible y lo revisamos.
         </p>
       </section>
 
       <section>
-        <h2>Contact</h2>
+        <h2>Contacto</h2>
         <p>
-          Anything about a delivery or a return: email{" "}
+          Cualquier consulta sobre una entrega o una devolución: escribe a{" "}
           <a
             className="text-primary underline hover:text-primary-dark transition-colors"
             href={`mailto:${BRAND.email}`}
@@ -96,12 +93,12 @@ export default function ShippingReturnsPage() {
           {!LAUNCH_MODE && (
             <>
               {" "}
-              or use the{" "}
+              o usa el{" "}
               <Link
                 className="text-primary underline hover:text-primary-dark transition-colors"
                 href="/contact"
               >
-                contact form
+                formulario de contacto
               </Link>
             </>
           )}

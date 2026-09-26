@@ -9,7 +9,7 @@ interface DetailErrorStateProps {
 
 /**
  * Estado de error genérico de una página de detalle: link de vuelta + caja roja
- * con el mensaje + botón "Retry". Compartido por OrderDetail y GenerationDetail;
+ * con el mensaje + botón "Reintentar". Compartido por OrderDetail y GenerationDetail;
  * el link de vuelta se pasa como slot porque cada página apunta a su listado.
  */
 export function DetailErrorState({
@@ -31,7 +31,7 @@ export function DetailErrorState({
           className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-700"
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
-          Retry
+          Reintentar
         </button>
       </div>
     </section>

@@ -39,9 +39,9 @@ interface StudioShowcaseProps {
 }
 
 const DEFAULT_FEATURES: ShowcaseFeature[] = [
-  { text: "Your preview is ready in seconds" },
-  { text: "Numbered color regions you can print" },
-  { text: "100% free to try before you order" },
+  { text: "Tu vista previa, lista en segundos" },
+  { text: "Impreso en MDF de 3 mm" },
+  { text: "Gratis hasta que decides comprar" },
 ];
 
 const DEFAULT_IMAGE: ShowcaseImage = {
@@ -49,24 +49,24 @@ const DEFAULT_IMAGE: ShowcaseImage = {
   afterSrc: "/studio/bengal-pbn.webp",
   width: 928,
   height: 1152,
-  alt: "A Bengal cat portrait transformed into a paint-by-numbers template in the Studio",
+  alt: "Retrato de un gato bengalí convertido en rompecabezas",
 };
 
 export default function StudioShowcase({
   eyebrow = "ClawPuzzle Studio",
   title = (
     <>
-      See your pet as a<br /> paint-by-numbers — free
+      Mira a tu mascota<br /> como rompecabezas, gratis
     </>
   ),
-  description = "Upload one photo and watch the Studio transform your best friend into a numbered, hand-paintable canvas in seconds. No skills, no commitment — just try it and see.",
+  description = "Sube una foto y mira cómo tu mejor amigo se convierte en arte en segundos. Sin compromiso: pruébalo y decide después.",
   features = DEFAULT_FEATURES,
   image = DEFAULT_IMAGE,
   primaryCta = {
-    href: "/studio",
-    label: "Try the Studio — it's free",
+    href: "/create",
+    label: "Pruébalo gratis",
   },
-  secondaryCta = { href: "/catalog", label: "Browse finished pieces" },
+  secondaryCta = { href: "/catalog", label: "Ver rompecabezas" },
   background = "bg-cream",
 }: StudioShowcaseProps) {
   return (
@@ -158,7 +158,7 @@ export default function StudioShowcase({
               {/* Hint */}
               <div className="absolute -bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-dark shadow-lg">
                 <span className="size-2 rounded-full bg-primary" />
-                Drag to compare
+                Desliza para comparar
               </div>
             </div>
           </div>

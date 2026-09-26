@@ -35,7 +35,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         <Container>
           <div className="mx-auto max-w-2xl animate-fade-in-up text-center">
             <span className="text-sm font-bold uppercase tracking-wider text-primary">
-              Unexpected error
+              Error inesperado
             </span>
 
             <span className="mx-auto mt-6 flex size-16 items-center justify-center rounded-full bg-cream text-text-muted">
@@ -45,12 +45,12 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             </span>
 
             <h1 className="mt-6 font-display text-2xl font-black leading-tight text-text-main md:text-3xl">
-              Something went wrong
+              Algo salió mal
             </h1>
 
             <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-text-muted">
-              We could not load this page. Try again — if it keeps happening,
-              let us know and we will look into it.
+              No pudimos cargar esta página. Inténtalo de nuevo; si sigue pasando,
+              avísanos y lo revisamos.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -62,7 +62,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                 <span className="material-symbols-outlined text-[18px]">
                   refresh
                 </span>
-                Try again
+                Reintentar
               </button>
               <Link
                 href="/"
@@ -71,7 +71,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                 <span className="material-symbols-outlined text-[18px]">
                   arrow_back
                 </span>
-                Back home
+                Volver al inicio
               </Link>
             </div>
 
@@ -82,7 +82,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                 href={LAUNCH_MODE ? `mailto:${BRAND.email}` : "/contact"}
                 className="font-bold text-primary underline transition-colors hover:text-primary-dark"
               >
-                Contact us
+                Contáctanos
               </Link>
             </p>
 

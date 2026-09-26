@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { DetailErrorState } from "@/shared/ui/DetailErrorState";
@@ -21,7 +20,6 @@ import {
   GenerationProductCard,
   useGenerationProduct,
 } from "@/features/generation-purchase";
-import { LAUNCH_MODE } from "@/shared/config/launch";
 
 interface Props {
   id: string;
@@ -122,10 +120,10 @@ export function GenerationDetail({ id }: Props) {
     return (
       <DetailNotFound
         icon="image_not_supported"
-        title="Artwork not found"
-        message="We couldn't find this artwork in your account."
+        title="No encontramos este arte"
+        message="No encontramos este arte en tu cuenta."
         backHref="/user/generations"
-        backLabel="Back to my artworks"
+        backLabel="Volver a mi arte"
       />
     );
   }
@@ -134,7 +132,7 @@ export function GenerationDetail({ id }: Props) {
     return (
       <DetailErrorState
         back={<BackToGenerationsLink />}
-        message={error ?? "Couldn't load this artwork."}
+        message={error ?? "No pudimos cargar este arte."}
         onRetry={reload}
       />
     );
@@ -143,7 +141,7 @@ export function GenerationDetail({ id }: Props) {
   const status = generation.status;
   const isReady = status === "completed";
   const imageUrl = generation.resultUrl ?? generation.thumbnailUrl;
-  const petName = generation.pet?.name ?? "Your artwork";
+  const petName = generation.pet?.name ?? "Tu arte";
   const styleName = generation.style?.displayName ?? generation.style?.category;
   const downloadName = buildDownloadName(
     styleName,
@@ -157,7 +155,7 @@ export function GenerationDetail({ id }: Props) {
       templateLabel(generation.productRef?.template),
     ]
       .filter(Boolean)
-      .join(" · ") || "Personalized";
+      .join(" · ") || "Personalizado";
 
   // Card principal del carrusel: el producto de origen si es físico y se pudo
   // resolver, y si no el kit PBN (obra digital, generación legacy sin
@@ -211,19 +209,9 @@ export function GenerationDetail({ id }: Props) {
             <div className="h-px w-full bg-linear-to-r from-text-main/15 via-text-main/5 to-transparent" />
 
             <div className="flex flex-col gap-3">
-              {/* Acciones secundarias — PBN y descarga */}
+              {/* Acción secundaria: descarga */}
               {isReady && imageUrl && (
                 <div className="grid grid-cols-1 gap-3">
-                  <Link
-                    href={`/studio?generationId=${generation.id}&imageUrl=${encodeURIComponent(imageUrl)}${generation.style?.id ? `&styleId=${generation.style.id}` : ""}`}
-                    className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary text-lg font-bold text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-primary-dark hover:shadow-xl hover:shadow-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 active:scale-100"
-                  >
-                    <span className="material-symbols-outlined text-[20px] text-white transition-colors group-hover:text-primary">
-                      format_paint
-                    </span>
-                    Convert to PBN
-                  </Link>
-
                   <button
                     type="button"
                     onClick={() => handleDownload(imageUrl, downloadName)}
@@ -237,7 +225,7 @@ export function GenerationDetail({ id }: Props) {
                     >
                       download
                     </span>
-                    {downloading ? "Downloading…" : "Download image"}
+                    {downloading ? "Descargando…" : "Descargar imagen"}
                   </button>
                 </div>
               )}
@@ -253,7 +241,7 @@ export function GenerationDetail({ id }: Props) {
                 <span className="material-symbols-outlined text-[18px]">
                   delete
                 </span>
-                Delete artwork
+                Borrar arte
               </button>
             </div>
 
@@ -262,11 +250,9 @@ export function GenerationDetail({ id }: Props) {
                 flechas, que Embla dibuja fuera del viewport. Solo con la obra
                 terminada: no tiene sentido vender un puzzle de una generación
                 que falló o sigue procesando. */}
-            {/* En modo lanzamiento la venta se concentra en el diálogo de
-                Download del studio (§7 de LAUNCH_PLAN.md): estas tarjetas
-                añaden al carrito local y acaban en /cart, que está bloqueado. */}
-            {!LAUNCH_MODE &&
-              isReady &&
+            {/* En lanzamiento la card va directo al checkout de Shopify en vez
+                de al carrito local (ver GenerationProductCard). */}
+            {isReady &&
               imageUrl &&
               !sourceProduct.loading &&
               showProductCard && (
@@ -294,10 +280,10 @@ export function GenerationDetail({ id }: Props) {
 
       <ConfirmDialog
         open={confirmingDelete}
-        title="Delete this artwork?"
-        description="This action can't be undone."
-        confirmLabel="Delete"
-        loadingLabel="Deleting…"
+        title="¿Borrar este arte?"
+        description="Esta acción no se puede deshacer."
+        confirmLabel="Borrar"
+        loadingLabel="Borrando…"
         loading={deleting}
         error={deleteError}
         onConfirm={handleDelete}

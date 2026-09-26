@@ -21,34 +21,29 @@ function headerCopy(
 ): { title: string; subtitle: string } {
   if (pathname.startsWith("/user/orders"))
     return {
-      title: "Your orders",
-      subtitle: "Track and review everything you've ordered.",
+      title: "Tus pedidos",
+      subtitle: "Sigue y revisa todo lo que has pedido.",
     };
   if (pathname.startsWith("/user/generations"))
     return {
-      title: "Your artwork",
-      subtitle: "All the pieces you've created with your pets.",
-    };
-  if (pathname.startsWith("/user/pbn"))
-    return {
-      title: "Paint by Numbers",
-      subtitle: "Your saved paint-by-numbers templates, ready to order.",
+      title: "Tu arte",
+      subtitle: "Todas las vistas previas que has creado con tus mascotas.",
     };
   if (pathname.startsWith("/user/pets"))
     return {
-      title: "Your pets",
-      subtitle: "The companions behind your art.",
+      title: "Tus mascotas",
+      subtitle: "Los compañeros detrás de tu arte.",
     };
   if (pathname.startsWith("/user/profile"))
     return {
-      title: "Profile & Settings",
-      subtitle: "Update your name, email, and account details.",
+      title: "Perfil y ajustes",
+      subtitle: "Actualiza tu nombre y los datos de tu cuenta.",
     };
   // "/user" (Overview) y cualquier otra ruta caen aquí.
   return {
-    title: `Welcome back, ${firstName}!`,
+    title: `¡Hola de nuevo, ${firstName}!`,
     subtitle:
-      "Manage your orders, artworks, and account details all in one place.",
+      "Gestiona tus pedidos, tu arte y tu cuenta en un solo lugar.",
   };
 }
 

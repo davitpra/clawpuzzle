@@ -9,23 +9,23 @@ interface Feature {
 const features: Feature[] = [
   {
     icon: "favorite",
-    title: "Made with Love",
-    text: "Every piece is crafted with care to honor your beloved pet.",
+    title: "Hecho con cariño",
+    text: "Cada rompecabezas se prepara con cuidado para honrar a tu mascota.",
   },
   {
     icon: "workspace_premium",
-    title: "Premium Quality",
-    text: "Museum-grade materials and archival inks that last a lifetime.",
+    title: "MDF de 3 mm",
+    text: "Un material firme, hecho para armarlo una y otra vez.",
   },
   {
     icon: "local_shipping",
-    title: "Fast Shipping",
-    text: "Carefully packaged and delivered right to your doorstep.",
+    title: "Envíos a todo Ecuador",
+    text: "Producción en 3 días y entrega en unos 3 días más.",
   },
   {
     icon: "verified",
-    title: "Satisfaction Guaranteed",
-    text: "Love it or we'll make it right — your happiness comes first.",
+    title: "Vista previa gratis",
+    text: "Mira el resultado antes de pedir. Sin sorpresas.",
   },
 ];
 

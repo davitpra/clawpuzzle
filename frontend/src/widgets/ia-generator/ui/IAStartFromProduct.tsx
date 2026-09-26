@@ -19,7 +19,7 @@ export function IAStartFromProduct({
   // En lanzamiento no hay catálogo: `proxy.ts` rebota /catalog a `/`, así que el
   // destino natural es la galería de estilos de la landing.
   actionHref = LAUNCH_MODE ? "/#styles" : "/catalog",
-  actionLabel = LAUNCH_MODE ? "Back to styles" : "Browse products",
+  actionLabel = LAUNCH_MODE ? "Volver a los estilos" : "Ver productos",
 }: IAStartFromProductProps) {
   return (
     <Container
@@ -31,13 +31,13 @@ export function IAStartFromProduct({
           palette
         </span>
         <h1 className="font-display text-3xl md:text-4xl font-black text-slate-dark tracking-tight">
-          {LAUNCH_MODE ? "Start with a style" : "Start from a product"}
+          {LAUNCH_MODE ? "Empieza por un estilo" : "Empieza por un producto"}
         </h1>
         <p className="text-slate-dark/70 text-lg">
           {message ??
             (LAUNCH_MODE
-              ? "Pick a style first, then upload your pet's photo."
-              : "Pick a product and size first, then upload your pet's photo.")}
+              ? "Primero elige un estilo y luego sube la foto de tu mascota."
+              : "Primero elige un producto y luego sube la foto de tu mascota.")}
         </p>
         <Link
           href={actionHref}

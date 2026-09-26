@@ -70,7 +70,7 @@ export default function Modal({
             type="button"
             className="flex size-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-gray-100 hover:text-slate-dark"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Cerrar"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>

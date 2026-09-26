@@ -27,13 +27,13 @@ export function MyPets({ pets, isLoading, error }: Props) {
     <section className="relative overflow-hidden rounded-xl bg-white p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-black text-text-main">
-          My Pets
+          Mis mascotas
         </h2>
         <Link
           href="/user/pets"
           className="text-sm font-bold text-primary hover:text-primary-dark"
         >
-          View all
+          Ver todo
         </Link>
       </div>
 
@@ -59,8 +59,8 @@ export function MyPets({ pets, isLoading, error }: Props) {
           <EmptyState
             headingLevel="h3"
             icon="pets"
-            title="No pets yet"
-            description="When you add a pet it will show up here."
+            title="Aún no tienes mascotas"
+            description="Cuando agregues una mascota aparecerá aquí."
           />
         )}
 

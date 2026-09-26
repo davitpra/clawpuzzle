@@ -4,9 +4,9 @@ import { Footer } from "@/widgets/footer";
 import { CreditPackCard } from "@/features/credit-pack-purchase/CreditPackCard";
 
 export const metadata: Metadata = {
-  title: "Buy Generation Credits — ClawPuzzle",
+  title: "Comprar créditos · ClawPuzzle",
   description:
-    "Top up your generation credits to create more AI art of your pet.",
+    "Recarga tus créditos para crear más vistas previas de tu mascota.",
 };
 
 export default function CreditsPage() {
@@ -18,12 +18,12 @@ export default function CreditsPage() {
         <div className="max-w-2xl mx-auto w-full">
           <header className="mb-8 text-center">
             <h1 className="font-display font-black text-3xl md:text-4xl text-text-main">
-              Generation Credits
+              Créditos
             </h1>
             <p className="mt-3 text-text-muted">
-              Credits let you create AI art of your pet. Every account starts
-              with a few free credits, and each purchase adds more. Pick a pack
-              below to top up.
+              Cada crédito es una vista previa con IA de tu mascota. Tu cuenta empieza
+              con 5 créditos gratis y cada rompecabezas que pides suma 3 más. Elige
+              un paquete para recargar.
             </p>
           </header>
 

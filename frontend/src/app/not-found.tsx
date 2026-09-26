@@ -6,7 +6,7 @@ import { Container } from "@/shared/ui/Container";
 import { MAIN_NAV } from "@/shared/config/navigation";
 
 export const metadata: Metadata = {
-  title: "Page not found · ClawPuzzle",
+  title: "Página no encontrada · ClawPuzzle",
 };
 
 /** Destinos que ya tienen su propio botón arriba: no se repiten en la fila de
@@ -40,12 +40,12 @@ export default function NotFound() {
             </p>
 
             <h1 className="mt-6 font-display text-2xl font-black leading-tight text-text-main md:text-3xl">
-              This page ran off chasing a butterfly
+              Esta página se fue persiguiendo una mariposa
             </h1>
 
             <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-text-muted">
-              The link may be broken or the page may have moved — but there is
-              plenty of art left to find.
+              Puede que el enlace esté roto o que la página se haya movido, pero
+              todavía hay mucho arte por descubrir.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -56,7 +56,7 @@ export default function NotFound() {
                 <span className="material-symbols-outlined text-[18px]">
                   arrow_back
                 </span>
-                Back home
+                Volver al inicio
               </Link>
               <Link
                 href="/catalog"
@@ -65,13 +65,13 @@ export default function NotFound() {
                 <span className="material-symbols-outlined text-[18px]">
                   storefront
                 </span>
-                Browse the catalog
+                Ver el catálogo
               </Link>
             </div>
 
             {rescueLinks.length > 0 && (
               <p className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-text-muted">
-                <span>Or head to</span>
+                <span>O ve a</span>
                 {rescueLinks.map((link, i) => (
                   <span key={link.href} className="flex items-center gap-2">
                     {i > 0 && <span aria-hidden="true">·</span>}

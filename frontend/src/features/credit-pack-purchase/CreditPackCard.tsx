@@ -12,7 +12,7 @@ import { useCreditPackProduct, type CreditPackOption } from "./useCreditPackProd
 function formatPrice(amount: string, currency: string): string {
   const n = Number.parseFloat(amount);
   if (Number.isNaN(n)) return "";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("es-EC", {
     style: "currency",
     currency: currency || "USD",
   }).format(n);
@@ -51,7 +51,7 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
       id: `credits-${opt.variant.id}`,
       variantId: opt.variant.id,
       name: product.title,
-      size: `${opt.creditAmount} credits`,
+      size: `${opt.creditAmount} créditos`,
       price: Number.parseFloat(opt.variant.price.amount) || 0,
       quantity: 1,
       img: defaultImage ?? "",
@@ -70,7 +70,7 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
     if (result.status !== "redirect") {
       setError(
         result.message ??
-          "We couldn't start the checkout. Please try again in a moment.",
+          "No pudimos iniciar el pago. Inténtalo de nuevo en un momento.",
       );
     }
   };
@@ -78,7 +78,7 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
   if (loading) {
     return (
       <div className={`rounded-xl bg-cream px-6 py-8 text-center text-text-muted ${className}`}>
-        Loading credit packs…
+        Cargando paquetes de créditos…
       </div>
     );
   }
@@ -86,7 +86,7 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
   if (unavailable || options.length === 0) {
     return (
       <div className={`rounded-xl bg-cream px-6 py-8 text-center text-text-muted ${className}`}>
-        Credit packs are not available right now. Please check back soon.
+        Los paquetes de créditos no están disponibles ahora. Vuelve pronto.
       </div>
     );
   }
@@ -101,7 +101,7 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
           >
             <div>
               <p className="font-display font-black text-text-main">
-                {opt.creditAmount} credits
+                {opt.creditAmount} créditos
               </p>
               <p className="text-sm text-text-muted">
                 {formatPrice(
@@ -119,7 +119,7 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
               <span className="material-symbols-outlined text-[18px]">
                 shopping_bag
               </span>
-              {isCheckingOut ? "Redirecting…" : "Buy"}
+              {isCheckingOut ? "Redirigiendo…" : "Comprar"}
             </button>
           </div>
         ))}
@@ -141,12 +141,12 @@ export function CreditPackCard({ className = "" }: { className?: string }) {
           <span className="material-symbols-outlined text-[18px]">
             shopping_cart
           </span>
-          View cart
+          Ver carrito
         </Link>
       )}
 
       <p className="mt-4 text-center text-xs text-text-muted">
-        Credits are added to your account within a minute of payment.
+        Los créditos se suman a tu cuenta un minuto después del pago.
       </p>
     </div>
   );

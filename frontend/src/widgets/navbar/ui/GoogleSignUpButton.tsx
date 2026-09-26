@@ -28,7 +28,7 @@ export default function GoogleSignUpButton({
       tabIndex={tabIndex}
       className={`${className ?? ""} disabled:opacity-70 disabled:cursor-wait`}
     >
-      Sign up
+      Regístrate
     </button>
   );
 }

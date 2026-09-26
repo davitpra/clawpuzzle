@@ -58,14 +58,14 @@ export default function UserMenu() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 w-10 bg-primary hover:bg-primary-dark text-white transition-colors shadow-sm"
-        aria-label="User menu"
+        aria-label="Menú de usuario"
         aria-expanded={isOpen}
       >
         {/* {user?.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.avatarUrl}
-            alt={user.fullName ?? "User avatar"}
+            alt={user.fullName ?? "Foto de perfil"}
             className="h-full w-full object-cover"
             referrerPolicy="no-referrer"
           />
@@ -96,7 +96,7 @@ export default function UserMenu() {
               <span className="material-symbols-outlined text-[18px] text-text-muted">
                 person
               </span>
-              <span>Profile</span>
+              <span>Perfil</span>
             </Link>
 
             <Link
@@ -108,7 +108,7 @@ export default function UserMenu() {
               <span className="material-symbols-outlined text-[18px] text-text-muted">
                 palette
               </span>
-              <span>My Generations</span>
+              <span>Mi arte</span>
             </Link>
 
             <Link
@@ -120,7 +120,7 @@ export default function UserMenu() {
               <span className="material-symbols-outlined text-[18px] text-text-muted">
                 shopping_bag
               </span>
-              <span>Order History</span>
+              <span>Mis pedidos</span>
             </Link>
           </div>
 
@@ -158,7 +158,7 @@ export default function UserMenu() {
               <span className="material-symbols-outlined text-[18px]">
                 {isLoggingOut ? "hourglass_empty" : "logout"}
               </span>
-              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+              <span>{isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}</span>
             </button>
           </div>
         </div>

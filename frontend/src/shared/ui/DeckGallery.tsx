@@ -292,7 +292,7 @@ export function DeckGallery({
         ref={deckRef}
         role="region"
         aria-roledescription="carousel"
-        aria-label="Image deck gallery"
+        aria-label="Galería de imágenes"
         tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

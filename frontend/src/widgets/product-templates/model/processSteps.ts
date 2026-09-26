@@ -1,79 +1,26 @@
 import type { ProcessStep } from "@/widgets/ai-process";
 
-// Pasos del "how to use" que comparten las páginas de producto (Canvas, Digital).
-// El copy es de storefront, va en inglés. Otras páginas con AIProcess (p. ej.
-// /studio-landing) definen sus propios pasos porque el flujo es distinto.
+// Pasos del "cómo funciona" de la ficha del rompecabezas. La landing define los
+// suyos (`StudioLandingPage`) porque ahí el estilo se elige antes que el
+// producto. Las promesas (material, plazos, cobertura) deben coincidir con
+// /shipping-returns.
 export const PRODUCT_PROCESS_STEPS: ProcessStep[] = [
   {
     img: "/process/2 approve.png",
-    alt: "Choose Style Illustration",
-    title: "1. Choose Your Style",
-    text: "Pick an art style for your pet, select the size and click Create.",
+    alt: "Eligiendo un estilo de arte para el retrato de una mascota",
+    title: "1. Elige tu estilo",
+    text: "Escoge el look que mejor va con tu mascota y toca Crear.",
   },
   {
     img: "/process/1. Upload Picture.png",
-    alt: "Upload Illustration",
-    title: "Upload Pet Photo",
-    text: "Add clear photos of your pet in JPG, PNG or WEBP format.",
+    alt: "Subiendo la foto de una mascota desde el celular",
+    title: "2. Sube su foto",
+    text: "Agrega fotos claras de tu mascota en JPG, PNG o WEBP.",
   },
   {
     img: "/process/3. Final Art.png",
-    alt: "Result Illustration",
-    title: "Get Your Masterpiece",
-    text: "Preview your masterpiece in seconds. We'll ship it to your door. ",
-  },
-];
-
-export const PRODUCT_PBN_PROCESS_STEPS: ProcessStep[] = [
-  {
-    img: "/process/2 approve.png",
-    alt: "Choose Style Illustration",
-    title: "1. Choose Your Style",
-    text: "Pick an art style for your pet, select the size and click Create.",
-  },
-  {
-    img: "/process/1. Upload Picture.png",
-    alt: "Upload Illustration",
-    title: "Upload Pet Photo",
-    text: "Add clear photos of your pet in JPG, PNG or WEBP format.",
-  },
-  {
-    img: "/process/3. Final Art.png",
-    alt: "Result Illustration",
-    title: "Get Your Masterpiece",
-    text: "Preview your masterpiece in seconds.",
-  },
-  {
-    img: "/process/4. Paint your art.png",
-    alt: "Painting a numbered pet portrait with a brush and palette",
-    title: "4. Paint Your Art",
-    text: "We turn your art into a paint-by-numbers and ship it to your door",
-  },
-];
-
-export const DIGITAL_PROCESS_STEPS: ProcessStep[] = [
-  {
-    img: "/process/2 approve.png",
-    alt: "Choose Style Illustration",
-    title: "1. Choose Your Style",
-    text: "Pick an art style for your pet and click Create.",
-  },
-  {
-    img: "/process/1. Upload Picture.png",
-    alt: "Upload Illustration",
-    title: "Upload Pet Photo",
-    text: "Add clear photos of your pet in JPG, PNG or WEBP format.",
-  },
-  {
-    img: "/process/3. Final Art.png",
-    alt: "Result Illustration",
-    title: "Get Your Masterpiece",
-    text: "Preview your masterpiece in seconds.",
-  },
-  {
-    img: "/process/4. Paint your art.png",
-    alt: "Painting a numbered pet portrait with a brush and palette",
-    title: "4. Paint Your Art",
-    text: "Turn your art into a PBN and download a free printable PDF.",
+    alt: "Retrato de una mascota hecho con IA en una pantalla",
+    title: "3. Mira la vista previa gratis",
+    text: "Si te encanta, lo imprimimos en MDF de 3 mm y te lo enviamos a todo Ecuador.",
   },
 ];

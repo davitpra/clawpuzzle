@@ -86,7 +86,7 @@ export default function ColorOptionSelect({
             {selected && <ColorDot value={selected.value} />}
           </span>
           <span className="min-w-0 flex-1 truncate text-center font-body text-base font-bold text-text-main">
-            {selected?.label ?? "Select an option"}
+            {selected?.label ?? "Elige una opción"}
           </span>
           <span
             className={`material-symbols-outlined w-5 shrink-0 text-[20px] text-text-muted transition-transform ${

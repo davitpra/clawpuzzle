@@ -146,10 +146,10 @@ export function AvatarFramerModal({
           id="frame-avatar-title"
           className="text-center text-base font-semibold text-text-main"
         >
-          Frame your photo
+          Encuadra tu foto
         </h2>
         <p className="mt-1 text-center text-xs text-text-muted">
-          Drag to reposition · slide to zoom
+          Arrastra para mover · desliza para acercar
         </p>
 
         <div
@@ -164,7 +164,7 @@ export function AvatarFramerModal({
           <img
             ref={imgRef}
             src={url}
-            alt="Selected"
+            alt="Foto seleccionada"
             draggable={false}
             onLoad={handleImageLoad}
             style={{
@@ -202,7 +202,7 @@ export function AvatarFramerModal({
             disabled={uploading || !natural}
             className="h-11 rounded-full bg-primary text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
           >
-            {uploading ? "Saving…" : "Save photo"}
+            {uploading ? "Guardando…" : "Guardar foto"}
           </button>
           <button
             type="button"
@@ -210,7 +210,7 @@ export function AvatarFramerModal({
             disabled={uploading}
             className="h-11 rounded-full text-sm font-medium text-text-muted transition-colors hover:text-text-main disabled:opacity-50"
           >
-            Cancel
+            Cancelar
           </button>
         </div>
       </div>

@@ -4,29 +4,30 @@ interface Perk {
   detail: React.ReactNode;
 }
 
-// Perks para productos físicos (Canvas, Poster…): envío, hecho a pedido y
-// créditos, que se ganan solo cuando el pedido tiene un costo de producción.
+// Perks del rompecabezas: envío, vista previa, hecho a pedido y créditos, que
+// se ganan solo cuando el pedido tiene un costo de producción. Son promesas al
+// cliente: cualquier cifra aquí debe coincidir con /shipping-returns.
 const PERKS: Perk[] = [
   {
     icon: "local_shipping",
-    title: "Free Delivery",
-    detail: "Ships in 5–7 business days. Availability varies by country.",
+    title: "Envíos a todo Ecuador",
+    detail: "Producción en 3 días y entrega en unos 3 días más, según tu ciudad.",
   },
   {
     icon: "visibility",
-    title: "Free Preview",
-    detail: "See your artwork before you buy — no surprises.",
+    title: "Vista previa gratis",
+    detail: "Mira tu arte antes de comprar, sin sorpresas.",
   },
   {
-    icon: "palette",
-    title: "Made to Order",
-    detail: "Each piece is printed just for you, so all sales are final.",
+    icon: "extension",
+    title: "Hecho bajo pedido",
+    detail: "Impreso en MDF de 3 mm solo para ti; por eso no aceptamos devoluciones por cambio de opinión.",
   },
   {
     icon: "redeem",
-    title: "Earn 3 Credits",
+    title: "Gana 3 créditos",
     detail:
-      "Every piece you order adds 3 studio credits to your account for more AI art.",
+      "Cada rompecabezas que pides suma 3 créditos a tu cuenta para crear más arte.",
   },
 ];
 
@@ -36,18 +37,18 @@ const PERKS: Perk[] = [
 const DIGITAL_PERKS: Perk[] = [
   {
     icon: "download",
-    title: "Instant Download",
-    detail: "Get your printable file right after checkout — no shipping.",
+    title: "Descarga inmediata",
+    detail: "Recibe tu archivo apenas pagues, sin envío.",
   },
   {
     icon: "visibility",
-    title: "Free Preview",
-    detail: "See your artwork before you buy — no surprises.",
+    title: "Vista previa gratis",
+    detail: "Mira tu arte antes de comprar, sin sorpresas.",
   },
   {
     icon: "print",
-    title: "Ready to Print",
-    detail: "ready to print at home.",
+    title: "Listo para imprimir",
+    detail: "Listo para imprimir en casa.",
   },
 ];
 

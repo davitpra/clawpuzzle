@@ -49,6 +49,9 @@ export default function PersonalizeButton({
     const params = new URLSearchParams();
     if (productRefId) params.set("product_ref_id", productRefId);
     if (formatId) params.set("format_id", formatId);
+    // El tema (Perro | Gato) es una variante del mismo formato: sin su id,
+    // `/create` cobraría la primera variante del formato.
+    params.set("variant_id", selectedVariant.id);
     if (styleId) params.set("style_id", styleId);
     if (userSelections && Object.keys(userSelections).length > 0) {
       params.set("selections", JSON.stringify(userSelections));
@@ -58,16 +61,16 @@ export default function PersonalizeButton({
   };
 
   const label = isCompatLoading
-    ? "Loading options…"
+    ? "Cargando opciones…"
     : backendError
-      ? "Unavailable for personalization"
+      ? "No disponible para personalizar"
       : !hasBackendMapping || missingStyle
-        ? "Unavailable for personalization"
+        ? "No disponible para personalizar"
         : !selectedVariant
-          ? "Select a size"
+          ? "Elige una opción"
           : !formatId
-            ? "This size can't be personalized yet"
-            : "Create";
+            ? "Esta opción aún no se puede personalizar"
+            : "Crear mi rompecabezas";
 
   return (
     <div className="flex flex-col gap-3 mt-2">

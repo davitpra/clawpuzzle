@@ -171,15 +171,34 @@ runtime**, no en compilación:
 
 ### Necesario antes de abrir al público
 
-- [ ] **4. Copy e identidad.** El storefront sigue con los textos de ClawAndSoul:
-      `widgets/studio-landing/**` habla de paint-by-numbers y canvas, y
-      `product-templates/model/processSteps.ts` describe el flujo viejo. Es
-      contenido de marketing (promesas, precios), así que es una decisión de
-      negocio más que técnica. La paleta se cambia en `src/app/globals.css` (todos
-      los tokens de Tailwind v4 viven ahí, no hay config file).
+- [x] **4. Copy e identidad.** Storefront en español para Ecuador (2026-09-26):
+      propuesta "Una pieza de tu mejor amigo para tenerla contigo", la vista
+      previa es lo gratis (sin PDF), MDF de 3 mm, 3 días de producción + ~3 de
+      entrega, envíos a todo Ecuador. Cubre landing, SEO/OG, `/create`,
+      `/user/**`, `/credits`, legales, navbar y footer; precios en `es-EC`.
+      El último paso de `/create` (`IAGeneratingStep`) ahora vende el
+      rompecabezas con checkout directo a Shopify (antes saltaba a `/studio`,
+      que ya no existe), y `GenerationProductCard` hace lo mismo desde el
+      detalle del arte. `PersonalizeButton` pasa `variant_id` para no perder
+      el tema (Perro | Gato). Pendiente:
+    - [ ] En Shopify: título, descripción y la opción `Puzzle theme` del
+          producto en español (el storefront las muestra tal cual), y el
+          idioma del checkout.
+    - [ ] Las partes que solo se ven con `LAUNCH_MODE` apagado (home completa,
+          catálogo, carrito, `/product`, `LandingProducts`, `SimilarSouls`)
+          siguen en inglés con copy de canvas/PBN.
+    - [ ] Los mensajes de error del backend (p. ej. el 402 de créditos, que
+          `useCreateGeneration` detecta por regex) llegan en inglés.
+    - [ ] Legales: revisión profesional (TODO en cada página) y el costo de
+          envío sin cifra en `/shipping-returns`.
+    - [ ] `--color-primary-dark` (#367a8f), `--color-text-muted` y el
+          `#448da6` de `CreditsBadge` son tonos teal de ClawAndSoul que no
+          casan con el primario #292c40.
 
 - [ ] **5. Assets.** `public/studio/`, `public/landing/` y `public/process/` son
-      imágenes de PBN y canvas.
+      imágenes de PBN y canvas. Marcados con `TODO(assets)`: la foto del hero,
+      el antes/después de `LandingShowcase` (oculto en lanzamiento hasta tener
+      imágenes del rompecabezas) y un paso de "entrega" para "Cómo funciona".
 
 - [ ] **6. El selector de piezas y la referencia de escala.** `ProductSizeSelector`
       funciona, pero muestra el formato genérico. Conviene que enseñe
@@ -195,6 +214,8 @@ runtime**, no en compilación:
 `image-enhancement.service.ts` existe y está conectado, pero **hay que imprimir
 un puzzle real y mirarlo** antes de vender. Un canvas perdona artefactos de
 upscale a distancia de pared; un puzzle se mira a 40 cm y encima se corta.
+Ya hay una muestra impresa en MDF de 3 mm (2026-09-26); conviene repetir la
+prueba con cada estilo nuevo.
 
 **Producir puzzles no es un problema de software.** Impresión en calidad +
 troquelado requiere proveedor o maquinaria, y eso es lo que puede invalidar el

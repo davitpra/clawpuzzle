@@ -100,12 +100,12 @@ export function usePetUploadForm({
       resetSubmitError();
 
       if (!isExistingPet && !form.name.trim()) {
-        setValidationError("Pet name is required.");
+        setValidationError("El nombre de tu mascota es obligatorio.");
         return;
       }
       if (!styleId || !productRefId || !formatId) {
         setValidationError(
-          "Missing product or format info. Please start from the catalog link.",
+          "Falta el producto. Vuelve a empezar desde el inicio.",
         );
         return;
       }

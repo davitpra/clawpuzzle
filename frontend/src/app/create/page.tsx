@@ -13,6 +13,7 @@ import {
   IAStartFromProduct,
   IAStyleStep,
   type SelectedProductInfo,
+  type PuzzleOffer,
 } from "@/widgets/ia-generator";
 import { useCreateGeneration } from "@/widgets/ia-generator/model/useCreateGeneration";
 import type { Pet } from "@/widgets/ia-generator/ui/upload-step/types";
@@ -30,9 +31,9 @@ import { clearDraft, loadDraft, saveDraft } from "@/shared/lib/create-draft";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
 const PRODUCT_LOAD_ERROR =
-  "We couldn't load this product. Please pick it again from the catalog.";
+  "No pudimos cargar este producto. Vuelve a elegirlo desde el inicio.";
 const STYLE_CONTEXT_ERROR =
-  "This style is not connected to an available digital product yet.";
+  "Este estilo todavía no está disponible para rompecabezas.";
 
 // Flujo clásico (entrada desde una ficha de producto): el producto, el formato y
 // el estilo ya vienen resueltos, así que aquí solo queda la sesión, la foto y el
@@ -113,7 +114,7 @@ function StyleFirstResolver({
       <IAStartFromProduct
         message={error}
         actionHref="/#styles"
-        actionLabel="Back to styles"
+        actionLabel="Volver a los estilos"
       />
     );
   }
@@ -135,6 +136,9 @@ function IAGeneratorContent() {
   const productRefId = searchParams.get("product_ref_id");
   const formatId = searchParams.get("format_id");
   const styleId = searchParams.get("style_id");
+  // Variante que el cliente eligió en la ficha (p. ej. tema Perro | Gato).
+  // Varias variantes comparten formato, así que `format_id` no basta.
+  const variantId = searchParams.get("variant_id");
   const selectionsFromUrl = searchParams.get("selections");
 
   // El generador es una ruta de continuación: sin el contexto completo del
@@ -253,7 +257,10 @@ function IAGeneratorContent() {
 
   const productInfo: SelectedProductInfo | null = useMemo(() => {
     if (!formatId || !shopifyProduct || formats.length === 0) return null;
-    const f = formats.find((x) => x.formatId === formatId);
+    const f =
+      formats.find(
+        (x) => x.formatId === formatId && x.shopifyVariantId === variantId,
+      ) ?? formats.find((x) => x.formatId === formatId);
     if (!f) return null;
     const physicalSize = getFormatPhysicalSize(
       shopifyProduct,
@@ -270,7 +277,31 @@ function IAGeneratorContent() {
       formatWidth: physicalSize?.width ?? null,
       formatHeight: physicalSize?.height ?? null,
     };
-  }, [formats, shopifyProduct, formatId, template]);
+  }, [formats, shopifyProduct, formatId, variantId, template]);
+
+  // Oferta del paso final de lanzamiento: todas las variantes del formato
+  // elegido, para que el tema se pueda confirmar o cambiar al ver el arte.
+  const puzzleOffer: PuzzleOffer | null = useMemo(() => {
+    if (!productInfo || !shopifyProduct) return null;
+    const titles = new Map(
+      shopifyProduct.variants.edges.map(({ node }) => [node.id, node.title]),
+    );
+    return {
+      productTitle: productInfo.productTitle,
+      productImage: productInfo.productImage,
+      formatLabel: productInfo.formatLabel,
+      defaultVariantId: variantId,
+      options: formats
+        .filter((f) => f.formatId === formatId)
+        .map((f) => ({
+          variantId: f.shopifyVariantId,
+          label: titles.get(f.shopifyVariantId) ?? f.displayName,
+          price: f.price,
+          currencyCode: f.currencyCode,
+          available: f.availableForSale,
+        })),
+    };
+  }, [productInfo, shopifyProduct, formats, formatId, variantId]);
 
   // El paso de upload clásico solo se muestra con `productInfo` ya resuelto: si
   // se enviara antes, no habría variante y el producto físico nunca entraría al
@@ -407,7 +438,7 @@ function IAGeneratorContent() {
       setRetryError(
         err instanceof Error && err.message
           ? err.message
-          : "Couldn't retry. Please try again.",
+          : "No se pudo reintentar. Inténtalo de nuevo.",
       );
     } finally {
       setRetrying(false);
@@ -441,6 +472,7 @@ function IAGeneratorContent() {
   const productParams = new URLSearchParams();
   if (productRefId) productParams.set("product_ref_id", productRefId);
   if (formatId) productParams.set("format_id", formatId);
+  if (variantId) productParams.set("variant_id", variantId);
   const styleStepHref = `/create?${productParams.toString()}`;
 
   const handleStyleSelect = (id: string) => {
@@ -495,8 +527,8 @@ function IAGeneratorContent() {
 
           {step === STEP_ACCOUNT && (
             <IALeadStep
-              registerTitle="Create a free account"
-              registerSubtitle="5 free artworks included — your photo is ready to go."
+              registerTitle="Crea tu cuenta gratis"
+              registerSubtitle="Incluye 5 vistas previas gratis. Tu foto ya está lista."
               onComplete={() => void runSubmit()}
             />
           )}
@@ -504,7 +536,8 @@ function IAGeneratorContent() {
           {step === STEP_GENERATING && (
             <IAGeneratingStep
               generationId={generationId}
-              styleId={styleId}
+              styleName={style?.name ?? null}
+              offer={puzzleOffer}
               onRetry={lastPayload ? handleRetry : undefined}
               retrying={retrying}
               retryError={retryError}

@@ -34,13 +34,13 @@ export function AccountDetails({ user, address, isLoading }: Props) {
       <div className="rounded-xl bg-white p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-black text-text-main">
-            Account Details
+            Datos de la cuenta
           </h2>
           <Link
             href="/user/profile"
             className="text-sm font-bold text-primary hover:text-primary-dark"
           >
-            Edit Profile
+            Editar perfil
           </Link>
         </div>
         <dl className="mt-4 space-y-3 text-sm">
@@ -64,7 +64,7 @@ export function AccountDetails({ user, address, isLoading }: Props) {
               href="/user/profile"
               className="font-bold text-primary hover:text-primary-dark"
             >
-              Change password
+              Cambiar contraseña
             </Link>
           </div>
         </dl>
@@ -74,7 +74,7 @@ export function AccountDetails({ user, address, isLoading }: Props) {
       <div className="rounded-xl bg-white p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-black text-text-main">
-            Default Address
+            Dirección principal
           </h2>
         </div>
 
@@ -89,7 +89,7 @@ export function AccountDetails({ user, address, isLoading }: Props) {
 
           {!isLoading && !address && (
             <p className="text-text-muted">
-              No saved address yet. It will appear here after your first order.
+              Aún no hay una dirección guardada. Aparecerá aquí después de tu primer pedido.
             </p>
           )}
 

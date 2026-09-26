@@ -15,13 +15,13 @@ export default function CreditsBadge() {
 
   if (isAdmin || balance === null) return null;
 
-  const label = `${balance} ${balance === 1 ? "credit" : "credits"}`;
+  const label = `${balance} ${balance === 1 ? "crédito" : "créditos"}`;
 
   return (
     <Link
       href="/credits"
-      title={`${label} left — buy more`}
-      aria-label={`${label} left. Buy more credits.`}
+      title={`Te quedan ${label}. Compra más`}
+      aria-label={`Te quedan ${label}. Comprar más créditos.`}
       className="font-display inline-flex items-center gap-1.5 rounded-full bg-[#448da6]/10 px-3 h-10 text-sm font-medium text-[#448da6] transition-colors hover:bg-[#448da6]/20"
     >
       <span className="material-symbols-outlined text-base leading-none">
@@ -29,7 +29,7 @@ export default function CreditsBadge() {
       </span>
       <span>{balance}</span>
       <span className="hidden sm:inline">
-        {balance === 1 ? "credit" : "credits"}
+        {balance === 1 ? "crédito" : "créditos"}
       </span>
     </Link>
   );

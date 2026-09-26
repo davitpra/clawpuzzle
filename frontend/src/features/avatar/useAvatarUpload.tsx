@@ -48,11 +48,11 @@ export function useAvatarUpload(
 
     setError("");
     if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file.");
+      setError("Elige un archivo de imagen.");
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setError("Image must be 5 MB or smaller.");
+      setError("La imagen debe pesar 5 MB o menos.");
       return;
     }
 
@@ -83,7 +83,7 @@ export function useAvatarUpload(
       closeFramer();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not upload your photo.",
+        err instanceof Error ? err.message : "No se pudo subir tu foto.",
       );
     } finally {
       setUploading(false);
@@ -102,7 +102,7 @@ export function useAvatarUpload(
       setMenuOpen(false);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not remove your photo.",
+        err instanceof Error ? err.message : "No se pudo quitar tu foto.",
       );
     } finally {
       setRemoving(false);

@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useCart } from "@/context/CartContext";
+import { useCart, type CartItem } from "@/context/CartContext";
+import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
+import { LAUNCH_MODE } from "@/shared/config/launch";
 import {
   buildSizeOptions,
   findVariantForSize,
@@ -36,8 +38,8 @@ interface GenerationProductCardProps {
  * `generation_id` / `image_url` y el webhook de órdenes usa para reasociar el
  * arte — el mismo contrato que ya usa el flujo de creación.
  *
- * Para obras digitales el detalle sigue mostrando el kit Paint-by-Numbers; esta
- * card cubre los formatos físicos.
+ * En modo lanzamiento `/cart` está bloqueado, así que el botón va directo al
+ * checkout de Shopify con esta única línea (mismo patrón que `/credits`).
  */
 export function GenerationProductCard({
   source,
@@ -48,9 +50,10 @@ export function GenerationProductCard({
 }: GenerationProductCardProps) {
   const { product, variants, defaultImage, preselectedVariantId } = source;
   const { addToCart } = useCart();
+  const { startCheckout, isCheckingOut } = useShopifyCheckout();
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  // Sin formato mapeado, el mismo criterio que el kit PBN: la del medio cuando
-  // hay tres tallas, si no la primera.
+  // Sin formato mapeado: la del medio cuando hay tres tallas, si no la primera.
   const fallbackVariantId = useMemo(() => {
     if (variants.length === 0) return null;
     const mid = variants[Math.floor(variants.length / 2)];
@@ -67,13 +70,12 @@ export function GenerationProductCard({
 
   if (!product || !selected) return null;
 
-  // Miniatura: la obra generada manda. Al revés que en el kit PBN, donde la foto
-  // del producto enseña el lienzo numerado — aquí lo que se vende es *tu* obra
-  // sobre este soporte.
+  // Miniatura: la obra generada manda, porque lo que se vende es *tu* obra
+  // impresa en este soporte.
   const thumbUrl = artworkUrl || selected.image?.url || defaultImage;
 
   const unitPrice = Number.parseFloat(selected.price.amount) || 0;
-  const currency = selected.price.currencyCode || "CAD";
+  const currency = selected.price.currencyCode || "USD";
   const total = unitPrice * qty;
 
   // Eje talla: `sizeOptions` ya mantiene fijas las demás opciones al saltar de
@@ -157,8 +159,8 @@ export function GenerationProductCard({
     if (available) setVariantId(available.id);
   };
 
-  const handleAdd = () => {
-    addToCart({
+  const handleAdd = async () => {
+    const item: CartItem = {
       id: `gen-${generationId}-${selected.id}`,
       variantId: selected.id,
       name: product.title,
@@ -169,8 +171,22 @@ export function GenerationProductCard({
       img: artworkUrl || selected.image?.url || defaultImage || "",
       generationId,
       imageUrl: artworkUrl || undefined,
-    });
-    setAdded(true);
+    };
+
+    if (!LAUNCH_MODE) {
+      addToCart(item);
+      setAdded(true);
+      return;
+    }
+
+    setCheckoutError(null);
+    const result = await startCheckout([item]);
+    if (result.status !== "redirect") {
+      setCheckoutError(
+        result.message ??
+          "No pudimos iniciar el pago. Inténtalo de nuevo en un momento.",
+      );
+    }
   };
 
   return (
@@ -198,8 +214,8 @@ export function GenerationProductCard({
               </h3>
               <p className="mt-0.5 text-[13px] text-text-muted">
                 {styleName
-                  ? `${styleName} · printed with your artwork`
-                  : "Printed with your artwork"}
+                  ? `${styleName} · impreso con tu arte`
+                  : "Impreso con tu arte"}
               </p>
             </div>
           </div>
@@ -220,7 +236,7 @@ export function GenerationProductCard({
                   onClick={() => setDescExpanded((v) => !v)}
                   className="mt-1 text-[12px] font-semibold text-primary transition-colors hover:text-primary-dark"
                 >
-                  {descExpanded ? "Show less" : "Read more"}
+                  {descExpanded ? "Leer menos" : "Leer más"}
                 </button>
               )}
             </div>
@@ -237,8 +253,8 @@ export function GenerationProductCard({
         <div className="@2xl:border-l @2xl:border-[#E0DED9] @2xl:pl-8">
           {sizeOptionName && sizeOptions.length > 1 && (
             <PurchaseSizePicker
-              label="Choose a size"
-              ariaLabel={`${product.title} size`}
+              label="Elige una opción"
+              ariaLabel={`Opción de ${product.title}`}
               value={selectedSize ?? ""}
               onChange={changeSize}
               options={sizeOptions.map((o) => ({
@@ -273,12 +289,12 @@ export function GenerationProductCard({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-text-muted">
-                Quantity
+                Cantidad
               </span>
               <div className="flex items-center overflow-hidden rounded-xl border border-[#E0DED9]">
                 <button
                   type="button"
-                  aria-label="Decrease quantity"
+                  aria-label="Quitar uno"
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
                   disabled={qty <= 1}
                   className="grid size-9 place-items-center text-primary transition-colors hover:bg-cream disabled:text-black/20 disabled:hover:bg-transparent"
@@ -292,7 +308,7 @@ export function GenerationProductCard({
                 </span>
                 <button
                   type="button"
-                  aria-label="Increase quantity"
+                  aria-label="Agregar uno"
                   onClick={() => setQty((q) => Math.min(10, q + 1))}
                   disabled={qty >= 10}
                   className="grid size-9 place-items-center text-primary transition-colors hover:bg-cream disabled:text-black/20 disabled:hover:bg-transparent"
@@ -320,19 +336,38 @@ export function GenerationProductCard({
               <span className="material-symbols-outlined text-[20px]">
                 shopping_cart
               </span>
-              View cart
+              Ver carrito
             </Link>
           ) : (
             <button
               type="button"
-              onClick={handleAdd}
+              onClick={() => void handleAdd()}
+              disabled={isCheckingOut}
+              aria-busy={isCheckingOut}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-[15px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark"
             >
-              <span className="material-symbols-outlined text-[20px]">
-                shopping_bag
+              <span
+                className={`material-symbols-outlined text-[20px] ${
+                  isCheckingOut ? "animate-spin" : ""
+                }`}
+              >
+                {isCheckingOut
+                  ? "progress_activity"
+                  : LAUNCH_MODE
+                    ? "extension"
+                    : "shopping_bag"}
               </span>
-              Add to cart
+              {isCheckingOut
+                ? "Abriendo el pago…"
+                : LAUNCH_MODE
+                  ? "Pedir mi rompecabezas"
+                  : "Agregar al carrito"}
             </button>
+          )}
+          {checkoutError && (
+            <p className="mt-2 text-center text-sm text-red-600">
+              {checkoutError}
+            </p>
           )}
 
           {/* Tranquilizadores */}
@@ -340,11 +375,11 @@ export function GenerationProductCard({
             <span className="material-symbols-outlined text-[16px] text-primary">
               local_shipping
             </span>
-            ships in 5–7 days
+            Producción en 3 días · entrega en unos 3 más
           </div>
           <div className="mt-2 flex items-start justify-center gap-1 text-[11px] text-black/40">
             <span className="material-symbols-outlined text-[13px]">info</span>
-            Printed with the artwork you generated.
+            Impreso en MDF de 3 mm con el arte que generaste.
           </div>
         </div>
       </div>

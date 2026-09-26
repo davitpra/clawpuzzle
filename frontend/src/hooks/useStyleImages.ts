@@ -57,7 +57,7 @@ export function useStyleImages(styleId?: string | null): UseStyleImagesResult {
         setState({
           id: resolvedId,
           images: [],
-          error: "Failed to load images.",
+          error: "No se pudieron cargar las imágenes.",
         });
       });
 

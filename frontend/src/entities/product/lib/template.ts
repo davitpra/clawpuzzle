@@ -14,10 +14,10 @@ export function normalizeTemplate(value?: string | null): string {
   return value?.trim() ?? "";
 }
 
-// User-facing copy (storefront is in English).
+// Copy de cara al cliente (el storefront está en español).
 const TEMPLATE_LABELS: Record<string, string> = {
-  Puzzle: "Jigsaw Puzzle",
-  Credits: "Credits",
+  Puzzle: "Rompecabezas",
+  Credits: "Créditos",
 };
 
 /** Label visible del template. Devuelve el valor normalizado tal cual si no

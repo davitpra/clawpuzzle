@@ -36,6 +36,7 @@ export interface IAUploadStepProps {
 }
 
 export const SPECIES_OPTIONS = ["dog", "cat", "bird", "rabbit", "other"];
+export { SPECIES_LABELS } from "@/shared/config/species";
 export const MAX_PHOTOS = 4;
 export const EMPTY_FORM: PetForm = {
   name: "",

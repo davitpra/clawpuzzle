@@ -168,7 +168,7 @@ export default function Navbar() {
                 className="size-9 lg:size-11 transition-transform group-hover:scale-105"
               />
               <h2 className="font-display text-text-main text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] hidden sm:block">
-                Claw Puzzle
+                ClawPuzzle
               </h2>
             </Link>
 
@@ -217,8 +217,8 @@ export default function Navbar() {
                       value={searchTerm}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       className="w-full lg:w-48 xl:w-64 h-10 pl-10 pr-3 rounded-xl border border-[#E0DED9] bg-white/50 focus:bg-white text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                      placeholder="Search..."
-                      aria-label="Search"
+                      placeholder="Buscar…"
+                      aria-label="Buscar"
                     />
                   </div>
                 </form>
@@ -246,7 +246,7 @@ export default function Navbar() {
                 <Link
                   href="/cart"
                   className="flex items-center justify-center size-10 rounded-full bg-white hover:bg-gray-50 border border-transparent hover:border-[#E0DED9] text-text-main transition-all shadow-sm hover:shadow-md relative group"
-                  aria-label="Shopping cart"
+                  aria-label="Carrito"
                 >
                   <span className="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">
                     shopping_cart
@@ -264,7 +264,7 @@ export default function Navbar() {
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   className="lg:hidden flex items-center justify-center size-10 rounded-xl bg-white hover:bg-gray-50 border border-transparent hover:border-[#E0DED9] text-text-main transition-all shadow-sm"
-                  aria-label="Toggle menu"
+                  aria-label="Abrir menú"
                   aria-expanded={mobileMenuOpen}
                 >
                   <span className="material-symbols-outlined text-[24px]">

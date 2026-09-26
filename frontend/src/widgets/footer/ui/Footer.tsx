@@ -29,23 +29,23 @@ export default function Footer() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-xl">
               <h3 className="font-display text-2xl md:text-3xl font-black mb-3">
-                Turn your pet&apos;s photo into a painting only you could make
+                Una pieza de tu mejor amigo para tenerla contigo
               </h3>
               <p className="text-white/70">
                 {LAUNCH_MODE
-                  ? "Pick a style, upload a photo, and get your pet's portrait — plus a free printable paint-by-numbers to paint it yourself."
-                  : "Upload a photo, pick a style, and download your paint-by-numbers — free to try, no account needed to start."}
+                  ? "Elige un estilo, sube su foto y mira la vista previa gratis. Si te encanta, te lo enviamos como rompecabezas a todo Ecuador."
+                  : "Elige un rompecabezas, sube la foto de tu mascota y mira la vista previa gratis antes de pedirlo."}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4 shrink-0">
               <Link
                 className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-                href={LAUNCH_MODE ? "/#styles" : "/studio"}
+                href={LAUNCH_MODE ? "/#styles" : "/catalog"}
               >
                 <span className="material-symbols-outlined text-[20px]">
-                  {LAUNCH_MODE ? "auto_awesome" : "palette"}
+                  extension
                 </span>
-                {LAUNCH_MODE ? "Turn my pet into art" : "Try the Studio free"}
+                {LAUNCH_MODE ? "Crear su rompecabezas" : "Ver rompecabezas"}
               </Link>
               {/* Enlace a /catalog: ruta bloqueada en modo lanzamiento. */}
               {!LAUNCH_MODE && (
@@ -53,7 +53,7 @@ export default function Footer() {
                   className="text-white/70 hover:text-white font-bold transition-all"
                   href="/catalog"
                 >
-                  Create my own Painting
+                  Crear mi rompecabezas
                 </Link>
               )}
             </div>
@@ -88,7 +88,7 @@ export default function Footer() {
 
           <div className="border-t border-white/10 mt-12 pt-8 flex flex-col-reverse items-center gap-6 sm:flex-row sm:justify-between">
             <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+              © {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-6">
               <a

@@ -9,7 +9,7 @@ import { CatalogProduct } from "./types";
 
 // Formatea un monto como moneda (p. ej. "$42.00").
 function formatMoney(amount: string, currencyCode: string) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("es-EC", {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "narrowSymbol",

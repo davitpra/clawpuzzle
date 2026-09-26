@@ -3,11 +3,14 @@ import StudioShowcase, {
 } from "@/widgets/studio-showcase/ui/StudioShowcase";
 
 const PROOF_POINTS: ShowcaseFeature[] = [
-  { icon: "auto_awesome", text: "AI artwork made from your photo" },
-  { icon: "palette", text: "Your chosen style becomes a numbered design" },
-  { icon: "print", text: "Free PDF to print and paint at home" },
+  { icon: "auto_awesome", text: "Arte con IA hecho a partir de tu foto" },
+  { icon: "extension", text: "Impreso como rompecabezas en MDF de 3 mm" },
+  { icon: "local_shipping", text: "Listo para armar, con envío a todo Ecuador" },
 ];
 
+// TODO(assets): las imágenes siguen siendo las de ClawAndSoul (arte → PBN).
+// Hacen falta un "antes" (arte IA) y un "después" (el rompecabezas impreso);
+// hasta entonces `StudioLandingPage` no pinta esta sección en lanzamiento.
 export default function LandingShowcase({
   background,
 }: {
@@ -16,18 +19,18 @@ export default function LandingShowcase({
   return (
     <StudioShowcase
       background={background}
-      eyebrow="Before & After"
-      title="See the Magic for Yourself"
-      description="Drag the slider to see the journey from your pet's photo to AI artwork, then to a numbered paint-by-numbers design ready for your brush."
+      eyebrow="Antes y después"
+      title="Mira la magia con tus propios ojos"
+      description="Desliza para ver cómo el arte de tu mascota se convierte en un rompecabezas de verdad."
       features={PROOF_POINTS}
       image={{
         beforeSrc: "/studio/bengal-art.webp",
         afterSrc: "/studio/bengal-pbn.webp",
-        beforeLabel: "AI Artwork",
-        afterLabel: "Paint by Numbers",
+        beforeLabel: "Arte IA",
+        afterLabel: "Rompecabezas",
         width: 928,
         height: 1152,
-        alt: "A Bengal cat AI portrait transformed into a numbered paint-by-numbers design",
+        alt: "Retrato IA de un gato bengalí convertido en rompecabezas",
       }}
       primaryCta={null}
       secondaryCta={null}

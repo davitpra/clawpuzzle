@@ -69,7 +69,7 @@ export function useStyle(styleId: string | null): UseStyleResult {
       .catch((err) => {
         if (cancelled) return;
         console.error("useStyle error:", err);
-        setState({ id: styleId, style: null, error: "Failed to load style." });
+        setState({ id: styleId, style: null, error: "No se pudo cargar el estilo." });
       });
 
     return () => {

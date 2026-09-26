@@ -5,7 +5,7 @@ import { variantNumericId } from "@/hooks/useShopifyVariantImages";
 import type { Address, OrderItemThumb, UserOrderListItem } from "../types";
 
 export function formatOrderDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("es-EC", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -14,7 +14,7 @@ export function formatOrderDate(iso: string): string {
 
 export function formatPrice(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("es-EC", {
       style: "currency",
       currency,
     }).format(amount);
@@ -34,16 +34,16 @@ export interface StatusBadge {
 // los FulfillmentOrders (in_progress/on_hold/scheduled/...); si falta (órdenes
 // viejas sin resync) caemos al fulfillment_status simple de la orden.
 const FULFILLMENT_STATUS: Record<string, StatusBadge> = {
-  unfulfilled: { label: "Unfulfilled", classes: "bg-amber-100 text-amber-700" },
-  in_progress: { label: "In progress", classes: "bg-blue-100 text-blue-700" },
-  on_hold: { label: "On hold", classes: "bg-amber-100 text-amber-700" },
-  scheduled: { label: "Scheduled", classes: "bg-blue-100 text-blue-700" },
+  unfulfilled: { label: "Pendiente", classes: "bg-amber-100 text-amber-700" },
+  in_progress: { label: "En proceso", classes: "bg-blue-100 text-blue-700" },
+  on_hold: { label: "En espera", classes: "bg-amber-100 text-amber-700" },
+  scheduled: { label: "Programado", classes: "bg-blue-100 text-blue-700" },
   partially_fulfilled: {
-    label: "Partially fulfilled",
+    label: "Enviado en parte",
     classes: "bg-blue-100 text-blue-700",
   },
-  fulfilled: { label: "Fulfilled", classes: "bg-primary/10 text-primary" },
-  restocked: { label: "Restocked", classes: "bg-gray-100 text-gray-600" },
+  fulfilled: { label: "Enviado", classes: "bg-primary/10 text-primary" },
+  restocked: { label: "Devuelto", classes: "bg-gray-100 text-gray-600" },
 };
 
 // Fallback: estado simple de la orden (fulfillment_status) → clave canónica.
@@ -68,7 +68,7 @@ export function statusBadge(
   ).toLowerCase();
   return (
     FULFILLMENT_STATUS[key] ?? {
-      label: "Unfulfilled",
+      label: "Pendiente",
       classes: "bg-amber-100 text-amber-700",
     }
   );
@@ -76,13 +76,13 @@ export function statusBadge(
 
 // Estado de producción por item (productionStatus que devuelve /orders y /orders/:id).
 const PRODUCTION_STATUS: Record<string, StatusBadge> = {
-  pending: { label: "Pending", classes: "bg-amber-100 text-amber-700" },
-  paid: { label: "Paid", classes: "bg-blue-100 text-blue-700" },
-  in_production: { label: "In production", classes: "bg-amber-100 text-amber-700" },
-  shipped: { label: "Shipped", classes: "bg-blue-100 text-blue-700" },
-  delivered: { label: "Delivered", classes: "bg-primary/10 text-primary" },
-  cancelled: { label: "Cancelled", classes: "bg-gray-100 text-gray-600" },
-  refunded: { label: "Refunded", classes: "bg-gray-100 text-gray-600" },
+  pending: { label: "Pendiente", classes: "bg-amber-100 text-amber-700" },
+  paid: { label: "Pagado", classes: "bg-blue-100 text-blue-700" },
+  in_production: { label: "En producción", classes: "bg-amber-100 text-amber-700" },
+  shipped: { label: "Enviado", classes: "bg-blue-100 text-blue-700" },
+  delivered: { label: "Entregado", classes: "bg-primary/10 text-primary" },
+  cancelled: { label: "Cancelado", classes: "bg-gray-100 text-gray-600" },
+  refunded: { label: "Reembolsado", classes: "bg-gray-100 text-gray-600" },
 };
 
 export function productionStatusBadge(
@@ -99,10 +99,10 @@ export function productionStatusBadge(
 
 // Estado de una generación de IA (status que devuelve /generations).
 const GENERATION_STATUS: Record<string, StatusBadge> = {
-  completed: { label: "Ready", classes: "bg-primary/10 text-primary" },
-  processing: { label: "Processing", classes: "bg-blue-100 text-blue-700" },
-  pending: { label: "Pending", classes: "bg-amber-100 text-amber-700" },
-  failed: { label: "Failed", classes: "bg-red-100 text-red-700" },
+  completed: { label: "Listo", classes: "bg-primary/10 text-primary" },
+  processing: { label: "Procesando", classes: "bg-blue-100 text-blue-700" },
+  pending: { label: "Pendiente", classes: "bg-amber-100 text-amber-700" },
+  failed: { label: "Falló", classes: "bg-red-100 text-red-700" },
 };
 
 export function generationStatusBadge(status: string): StatusBadge {

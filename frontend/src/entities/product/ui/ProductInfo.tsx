@@ -70,7 +70,7 @@ export default function ProductInfo({
         )}
         {discount > 0 && (
           <span className="bg-primary/10 text-primary font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
-            Save {discount}%
+            Ahorra {discount}%
           </span>
         )}
       </div>
@@ -80,8 +80,8 @@ export default function ProductInfo({
           auto_awesome
         </span>
         <span className="font-body">
-          Generating each image costs{" "}
-          <span className="font-bold text-primary">1 credit</span>
+          Cada vista previa usa{" "}
+          <span className="font-bold text-primary">1 crédito</span>
         </span>
       </div>
 
@@ -101,7 +101,7 @@ export default function ProductInfo({
             {product.description}
           </p>
           <span className="mt-1 inline-block font-body text-sm font-bold text-primary group-hover:underline">
-            {isDescriptionExpanded ? "Read less" : "Read more"}
+            {isDescriptionExpanded ? "Leer menos" : "Leer más"}
           </span>
         </button>
       )}

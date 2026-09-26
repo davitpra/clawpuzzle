@@ -77,8 +77,8 @@ export function useBackendProductVariants(
           product: null,
           error:
             err.message === "not_found"
-              ? "This product is not available for personalization."
-              : "Failed to load product variants.",
+              ? "Este producto no está disponible para personalizar."
+              : "No se pudieron cargar las variantes.",
         });
       });
 

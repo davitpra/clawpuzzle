@@ -101,7 +101,7 @@ export function useBackendProducts(): UseBackendProductsResult {
               name: bp.displayName,
               desc: bp.description ?? "",
               price: minPrice
-                ? new Intl.NumberFormat("en-US", {
+                ? new Intl.NumberFormat("es-EC", {
                     style: "currency",
                     currency: minPrice.currencyCode,
                   }).format(parseFloat(minPrice.amount))
@@ -118,7 +118,7 @@ export function useBackendProducts(): UseBackendProductsResult {
       .catch((err) => {
         if (cancelled) return;
         console.error("useBackendProducts error:", err);
-        setState({ products: [], error: "Failed to load products." });
+        setState({ products: [], error: "No se pudieron cargar los productos." });
       });
 
     // Función de limpieza para cancelar actualizaciones si el componente se desmonta antes de finalizar

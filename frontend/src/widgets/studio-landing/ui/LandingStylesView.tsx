@@ -19,9 +19,9 @@ interface SectionProps extends LandingStylesHeading {
 }
 
 function SectionHeading({
-  eyebrow = "Art styles",
-  title = "One Photo, Your Style",
-  subtitle = "Choose the look that feels right for your pet. Each style comes with its own paint-by-numbers difficulty.",
+  eyebrow = "Estilos",
+  title = "Una foto, tu estilo",
+  subtitle = "Elige el look que mejor va con tu mascota. Así se verá impreso en tu rompecabezas.",
 }: LandingStylesHeading) {
   return (
     <div className="mb-14 text-center">
@@ -112,10 +112,9 @@ export function LandingStylesView({
                 key={style.id}
                 id={style.id}
                 displayName={style.displayName}
-                difficulty={style.difficulty}
                 artUrl={art.imageUrl}
                 artAlt={
-                  art.altImage ?? `${style.displayName} pet portrait art example`
+                  art.altImage ?? `Ejemplo de retrato de mascota en estilo ${style.displayName}`
                 }
                 onSelect={onSelect}
               />

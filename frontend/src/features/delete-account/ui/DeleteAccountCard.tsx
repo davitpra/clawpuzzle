@@ -70,7 +70,7 @@ export function DeleteAccountCard({
       router.replace("/");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not delete your account.",
+        err instanceof Error ? err.message : "No se pudo eliminar tu cuenta.",
       );
       setDeleting(false);
     }
@@ -79,12 +79,12 @@ export function DeleteAccountCard({
   return (
     <section className="rounded-xl border border-red-200 bg-white p-6 sm:p-8">
       <h2 className="font-display text-xl font-black text-red-600">
-        Delete account
+        Eliminar cuenta
       </h2>
       <p className="mt-1 text-sm text-text-muted">
-        Your access is revoked immediately. Your name, email, profile photo and
-        pet photos are permanently erased 30 days later. Past orders are kept for
-        accounting.
+        Tu acceso se revoca de inmediato. Tu nombre, correo, foto de perfil y
+        las fotos de tus mascotas se borran para siempre 30 días después. Los pedidos
+        anteriores se conservan por motivos contables.
       </p>
 
       <div className="mt-6">
@@ -94,7 +94,7 @@ export function DeleteAccountCard({
             onClick={() => setOpen(true)}
             className="flex h-12 cursor-pointer items-center justify-center rounded-lg border border-red-300 px-6 text-base font-bold text-red-600 transition-colors hover:bg-red-50"
           >
-            Delete my account
+            Eliminar mi cuenta
           </button>
         ) : (
           <form onSubmit={handleDelete} className="flex flex-col gap-4">
@@ -124,13 +124,13 @@ export function DeleteAccountCard({
             {hasPassword && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-text-main">
-                  Current password
+                  Contraseña actual
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your password"
+                  placeholder="Tu contraseña"
                   autoComplete="current-password"
                   className={inputClass}
                   disabled={deleting}
@@ -145,7 +145,7 @@ export function DeleteAccountCard({
                 disabled={!canSubmit || deleting}
                 className="flex h-12 cursor-pointer items-center justify-center rounded-lg bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {deleting ? "Deleting..." : "Permanently delete"}
+                {deleting ? "Eliminando…" : "Eliminar para siempre"}
               </button>
               <button
                 type="button"
@@ -153,7 +153,7 @@ export function DeleteAccountCard({
                 disabled={deleting}
                 className="flex h-12 cursor-pointer items-center justify-center rounded-lg px-6 text-base font-bold text-text-main transition-colors hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancel
+                Cancelar
               </button>
             </div>
           </form>

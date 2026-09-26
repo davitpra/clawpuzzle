@@ -1,5 +1,6 @@
 "use client";
 
+import { speciesLabel } from "@/shared/config/species";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/shared/ui/Card";
@@ -51,7 +52,7 @@ export function PetDetail({ petId }: Props) {
         }
       })
       .catch(() => {
-        if (active) setError("Couldn't load this pet.");
+        if (active) setError("No pudimos cargar esta mascota.");
       })
       .finally(() => {
         if (active) setIsLoading(false);
@@ -84,7 +85,7 @@ export function PetDetail({ petId }: Props) {
       setUploadError(
         err instanceof Error
           ? err.message
-          : "Couldn't upload photo. Please try again.",
+          : "No se pudo subir la foto. Inténtalo de nuevo.",
       );
     } finally {
       setUploading(false);
@@ -112,7 +113,7 @@ export function PetDetail({ petId }: Props) {
       });
       setPendingDelete(null);
     } catch {
-      setDeleteError("Couldn't delete this photo. Please try again.");
+      setDeleteError("No se pudo borrar la foto. Inténtalo de nuevo.");
     } finally {
       setDeletingId(null);
     }
@@ -144,7 +145,7 @@ export function PetDetail({ petId }: Props) {
     return (
       <section className="rounded-xl bg-white p-8">
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-          {error ?? "Pet not found."}
+          {error ?? "Mascota no encontrada."}
         </p>
         <Link
           href="/user/pets"
@@ -153,14 +154,14 @@ export function PetDetail({ petId }: Props) {
           <span className="material-symbols-outlined text-[18px]">
             arrow_back
           </span>
-          Back to My Pets
+          Volver a mis mascotas
         </Link>
       </section>
     );
   }
 
   const photos = orderedPhotos(pet);
-  const details = [pet.breed, pet.species].filter(Boolean).join(" · ");
+  const details = [pet.breed, speciesLabel(pet.species)].filter(Boolean).join(" · ");
 
   return (
     // h-[calc(100svh-4rem)]: alto de pantalla menos la navbar sticky (4rem), para
@@ -174,7 +175,7 @@ export function PetDetail({ petId }: Props) {
         <span className="material-symbols-outlined text-[18px]">
           arrow_back
         </span>
-        Back to My Pets
+        Volver a mis mascotas
       </Link>
 
       <div className="mx-auto mt-6 flex min-h-0 w-full max-w-2xl flex-1 flex-col">
@@ -204,7 +205,7 @@ export function PetDetail({ petId }: Props) {
                     style={{
                       backgroundImage: `url('${cloudinaryThumb(photo.photoUrl, 200)}')`,
                     }}
-                    aria-label={`View photo of ${pet.name}`}
+                    aria-label={`Ver foto de ${pet.name}`}
                   />
                   <button
                     type="button"
@@ -213,7 +214,7 @@ export function PetDetail({ petId }: Props) {
                       setPendingDelete(photo);
                     }}
                     className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-all hover:bg-red-600 focus-visible:opacity-100 group-hover:opacity-100"
-                    aria-label={`Delete photo of ${pet.name}`}
+                    aria-label={`Borrar foto de ${pet.name}`}
                   >
                     <span className="material-symbols-outlined text-[14px]">
                       delete
@@ -229,7 +230,7 @@ export function PetDetail({ petId }: Props) {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 className="flex aspect-square w-full shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-[#E0DED9] text-text-muted transition-all hover:border-primary hover:text-primary disabled:opacity-60"
-                aria-label="Upload photo"
+                aria-label="Subir foto"
               >
                 <span className="material-symbols-outlined text-[22px]">
                   {uploading ? "progress_activity" : "add_a_photo"}
@@ -251,7 +252,7 @@ export function PetDetail({ petId }: Props) {
               <span className="material-symbols-outlined text-[48px] text-text-muted">
                 pets
               </span>
-              <p className="text-text-muted">No photos yet.</p>
+              <p className="text-text-muted">Aún no hay fotos.</p>
             </div>
           )}
         </div>
@@ -297,10 +298,10 @@ export function PetDetail({ petId }: Props) {
               id="delete-photo-title"
               className="mt-5 font-display text-lg font-bold text-text-main"
             >
-              Delete this photo?
+              ¿Borrar esta foto?
             </h2>
             <p className="mt-1 text-sm text-text-muted">
-              This action can&apos;t be undone.
+              Esta acción no se puede deshacer.
             </p>
 
             {deleteError && (
@@ -316,7 +317,7 @@ export function PetDetail({ petId }: Props) {
                 disabled={deletingId !== null}
                 className="rounded-xl border border-[#E0DED9] bg-white px-4 py-2 text-sm font-bold text-text-main transition-all hover:bg-gray-50 disabled:opacity-60"
               >
-                Cancel
+                Cancelar
               </button>
               <button
                 type="button"
@@ -327,7 +328,7 @@ export function PetDetail({ petId }: Props) {
                 <span className="material-symbols-outlined text-[18px]">
                   delete
                 </span>
-                {deletingId !== null ? "Deleting…" : "Delete"}
+                {deletingId !== null ? "Borrando…" : "Borrar"}
               </button>
             </div>
           </div>

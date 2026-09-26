@@ -1,18 +1,39 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
 import { Container } from "@/shared/ui/Container";
 import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
+import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
+import type { CartItem } from "@/context/CartContext";
+import { formatPrice } from "@/entities/product/lib/variantPresentation";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
 
-/** Tiempo que el arte se queda en pantalla antes de saltar al studio. */
-const REVEAL_MS = 2000;
+/** Una variante comprable del formato elegido (p. ej. tema Perro | Gato). */
+export interface PuzzleOption {
+  variantId: string;
+  label: string;
+  price: string;
+  currencyCode: string;
+  available: boolean;
+}
+
+/** Lo que se vende al terminar la vista previa. */
+export interface PuzzleOffer {
+  productTitle: string;
+  productImage: string;
+  formatLabel: string;
+  options: PuzzleOption[];
+  /** Variante que el cliente eligió en la ficha, si llegó desde ella. */
+  defaultVariantId: string | null;
+}
 
 interface IAGeneratingStepProps {
   generationId: string | null;
-  styleId: string | null;
+  styleName: string | null;
+  /** Sin oferta (Shopify no respondió) solo se enlaza al arte guardado. */
+  offer: PuzzleOffer | null;
   /** Reintenta la generación fallida. Sin handler no se muestra el botón. */
   onRetry?: () => void;
   retrying?: boolean;
@@ -20,24 +41,27 @@ interface IAGeneratingStepProps {
 }
 
 /**
- * Último paso del embudo de lanzamiento: espera, revela el arte y lleva al studio.
+ * Último paso del embudo de lanzamiento: espera, revela la vista previa y la
+ * vende. La vista previa es lo gratis; aquí mismo se pide el rompecabezas con
+ * checkout directo a Shopify (`startCheckout([item])`, igual que `/credits`),
+ * porque `/cart` está bloqueado en lanzamiento.
  *
  * Deliberadamente **no** reutiliza `IAThanksStep`: aquel arrastra el mockup
- * enmarcado, el checkout del carrito y los CTAs de tienda, justo lo que el flujo
- * lineal del lanzamiento quiere fuera. Lo que sí comparte es el polling
- * (`useGenerationStatus`) y las frases rotativas.
- *
- * Tampoco ofrece cambiar de estilo: un estilo, una generación, a pintar.
+ * enmarcado, el carrito local y los CTAs de tienda. Lo que sí comparte es el
+ * polling (`useGenerationStatus`) y las frases rotativas.
  */
 export function IAGeneratingStep({
   generationId,
-  styleId,
+  styleName,
+  offer,
   onRetry,
   retrying = false,
   retryError,
 }: IAGeneratingStepProps) {
-  const router = useRouter();
   const { status, imageUrl } = useGenerationStatus(generationId);
+  const { startCheckout, isCheckingOut } = useShopifyCheckout();
+  const [pickedVariantId, setPickedVariantId] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const isFailed = status === "failed";
   const isGenerating = !!generationId && !imageUrl && !isFailed;
@@ -47,23 +71,42 @@ export function IAGeneratingStep({
     active: isGenerating,
   });
 
-  // Al completar, el arte se queda un instante en pantalla y luego el studio lo
-  // recoge. `replace` y no `push`: con `push`, volver atrás desde /studio caería
-  // en esta misma pantalla ya completada y volvería a redirigir.
-  useEffect(() => {
-    if (!imageUrl) return;
+  const availableOptions = offer?.options.filter((o) => o.available) ?? [];
+  const selectedOption =
+    availableOptions.find((o) => o.variantId === pickedVariantId) ??
+    availableOptions.find((o) => o.variantId === offer?.defaultVariantId) ??
+    availableOptions[0] ??
+    null;
 
-    const timeout = setTimeout(() => {
-      const params = new URLSearchParams({ imageUrl });
-      if (generationId) params.set("generationId", generationId);
-      // El studio lee styleId para cargar el `pbnConfig` del estilo; sin él
-      // procesaría con los valores por defecto genéricos.
-      if (styleId) params.set("styleId", styleId);
-      router.replace(`/studio?${params.toString()}`);
-    }, REVEAL_MS);
+  const savedArtHref = generationId
+    ? `/user/generations/${generationId}`
+    : "/user/generations";
 
-    return () => clearTimeout(timeout);
-  }, [imageUrl, generationId, styleId, router]);
+  const order = async () => {
+    if (!offer || !selectedOption || !generationId || !imageUrl) return;
+    setCheckoutError(null);
+    const item: CartItem = {
+      id: generationId,
+      variantId: selectedOption.variantId,
+      name: offer.productTitle,
+      size: offer.formatLabel,
+      style: styleName ?? undefined,
+      price: Number.parseFloat(selectedOption.price) || 0,
+      quantity: 1,
+      img: offer.productImage,
+      // generation_id + image_url viajan como attributes de la línea: el
+      // webhook de órdenes los usa para asociar el arte al pedido.
+      generationId,
+      imageUrl,
+    };
+    const result = await startCheckout([item]);
+    if (result.status !== "redirect") {
+      setCheckoutError(
+        result.message ??
+          "No pudimos iniciar el pago. Inténtalo de nuevo en un momento.",
+      );
+    }
+  };
 
   return (
     <main className="grow flex flex-col bg-white">
@@ -74,7 +117,7 @@ export function IAGeneratingStep({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={imageUrl}
-                alt="Your pet's artwork"
+                alt="Vista previa del arte de tu mascota"
                 className="size-full object-cover animate-in fade-in zoom-in-95 duration-700"
                 decoding="async"
               />
@@ -91,17 +134,17 @@ export function IAGeneratingStep({
 
           <h1 className="font-display text-4xl font-black tracking-tight text-slate-dark md:text-5xl">
             {isRevealing
-              ? "Your artwork is ready"
+              ? "¡Tu vista previa está lista!"
               : isFailed
-                ? "That didn't work"
-                : "Creating your artwork"}
+                ? "Algo no salió bien"
+                : "Creando tu arte"}
           </h1>
 
           <p className="min-h-12 max-w-md text-base leading-relaxed text-slate-dark/70">
             {isRevealing ? (
-              "Taking you to the studio to turn it into paint by numbers…"
+              "Así se verá tu rompecabezas. Si te encanta, lo imprimimos en MDF de 3 mm y te lo enviamos a casa."
             ) : isFailed ? (
-              "Something went wrong while creating your artwork. Give it another go."
+              "Hubo un problema al crear tu arte. Vuelve a intentarlo."
             ) : (
               <span
                 key={craftingMessage}
@@ -111,6 +154,84 @@ export function IAGeneratingStep({
               </span>
             )}
           </p>
+
+          {isRevealing && (
+            <div className="flex w-full max-w-sm flex-col items-center gap-4">
+              {offer && availableOptions.length > 1 && (
+                <fieldset className="w-full">
+                  <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-dark/60">
+                    Tema del rompecabezas
+                  </legend>
+                  <div className="flex justify-center gap-2">
+                    {availableOptions.map((option) => {
+                      const active =
+                        option.variantId === selectedOption?.variantId;
+                      return (
+                        <button
+                          key={option.variantId}
+                          type="button"
+                          onClick={() => setPickedVariantId(option.variantId)}
+                          aria-pressed={active}
+                          className={`rounded-full border px-5 py-2 text-sm font-bold transition-all ${
+                            active
+                              ? "border-primary bg-primary text-white"
+                              : "border-[#E5E0D8] bg-white text-slate-dark hover:bg-gray-50"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              )}
+
+              {offer && selectedOption ? (
+                <button
+                  type="button"
+                  onClick={() => void order()}
+                  disabled={isCheckingOut}
+                  aria-busy={isCheckingOut}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span
+                    className={`material-symbols-outlined text-[20px] ${
+                      isCheckingOut ? "animate-spin" : ""
+                    }`}
+                  >
+                    {isCheckingOut ? "progress_activity" : "extension"}
+                  </span>
+                  {isCheckingOut
+                    ? "Abriendo el pago…"
+                    : `Pedir mi rompecabezas · ${formatPrice(
+                        Number.parseFloat(selectedOption.price) || 0,
+                        selectedOption.currencyCode,
+                      )}`}
+                </button>
+              ) : (
+                <p className="text-sm text-slate-dark/60">
+                  Tu arte quedó guardado en tu cuenta. Pronto podrás pedirlo
+                  impreso desde ahí.
+                </p>
+              )}
+
+              {checkoutError && (
+                <p className="text-sm text-red-600">{checkoutError}</p>
+              )}
+
+              <p className="text-xs leading-relaxed text-slate-dark/60">
+                Producción en 3 días · Entrega en unos 3 días más ·
+                Envíos a todo Ecuador
+              </p>
+
+              <Link
+                href={savedArtHref}
+                className="text-sm font-bold text-primary underline-offset-4 hover:underline"
+              >
+                Guardar y decidir después
+              </Link>
+            </div>
+          )}
 
           {isFailed && onRetry && (
             <div className="flex w-full max-w-xs flex-col items-center gap-3">
@@ -127,7 +248,7 @@ export function IAGeneratingStep({
                 >
                   {retrying ? "progress_activity" : "refresh"}
                 </span>
-                {retrying ? "Retrying…" : "Try again"}
+                {retrying ? "Reintentando…" : "Reintentar"}
               </button>
               {retryError && (
                 <p className="text-sm text-red-600">{retryError}</p>

@@ -2,7 +2,7 @@ import { Container } from "@/shared/ui/Container";
 import { AllOrders } from "@/widgets/user-dashboard/ui/AllOrders";
 
 export const metadata = {
-  title: "My Orders — ClawPuzzle",
+  title: "Mis pedidos · ClawPuzzle",
 };
 
 export default function UserOrdersPage() {

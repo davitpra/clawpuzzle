@@ -69,7 +69,7 @@ export function IAHeader({
 
         <div className="flex items-center gap-3">
           <button className="hidden md:flex items-center justify-center px-4 h-9 rounded-lg border border-[#E5E0D8] text-sm font-bold text-slate-dark hover:bg-gray-50 transition-colors">
-            Help
+            Ayuda
           </button>
           <Link
             href="/"

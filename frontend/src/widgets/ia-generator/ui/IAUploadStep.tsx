@@ -84,7 +84,7 @@ export function IAUploadStep({
               <span className="material-symbols-outlined text-base leading-none">
                 auto_awesome
               </span>
-              {creditBalance} {creditBalance === 1 ? "credit" : "credits"} left
+              {creditBalance} {creditBalance === 1 ? "crédito disponible" : "créditos disponibles"}
             </span>
           </div>
         )}

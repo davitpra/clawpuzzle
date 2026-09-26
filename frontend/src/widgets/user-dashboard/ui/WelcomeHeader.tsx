@@ -13,8 +13,8 @@ function initials(name?: string | null, email?: string) {
 }
 
 const roleLabels: Record<string, string> = {
-  user: "Member",
-  premium: "Premium Member",
+  user: "Miembro",
+  premium: "Miembro premium",
   admin: "Admin",
 };
 
@@ -44,7 +44,7 @@ export function WelcomeHeader({
     <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="text-sm font-bold uppercase tracking-wider text-primary">
-          Account
+          Cuenta
         </p>
         <h1 className="font-display font-black mt-1 text-3xl text-text-main sm:text-4xl">
           {title}
@@ -57,13 +57,13 @@ export function WelcomeHeader({
           type="button"
           onClick={avatar.openMenu}
           className="group relative size-25 shrink-0 overflow-hidden rounded-full"
-          aria-label="Open profile photo options"
+          aria-label="Opciones de foto de perfil"
         >
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={cloudinaryThumb(avatarUrl, 160)}
-              alt={user?.fullName || "Profile photo"}
+              alt={user?.fullName || "Foto de perfil"}
               className="size-full object-cover"
               referrerPolicy="no-referrer"
             />
@@ -80,7 +80,7 @@ export function WelcomeHeader({
         </button>
         <div className="min-w-0">
           <p className="truncate font-display text-base font-bold text-text-main">
-            {user?.fullName || "Your account"}
+            {user?.fullName || "Tu cuenta"}
           </p>
           <p className="truncate text-sm text-text-muted">{user?.email}</p>
           <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">

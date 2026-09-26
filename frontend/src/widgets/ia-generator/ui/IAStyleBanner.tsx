@@ -33,7 +33,7 @@ export function IAStyleBanner({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={styleImg}
-            alt={styleName ? `${styleName} style` : "Selected style"}
+            alt={styleName ? `Estilo ${styleName}` : "Estilo elegido"}
             className="size-full object-cover"
             loading="lazy"
             decoding="async"
@@ -43,10 +43,10 @@ export function IAStyleBanner({
 
       <div className="min-w-0 flex-1">
         <p className="text-xs font-bold uppercase tracking-wider text-slate-dark/50">
-          Your style
+          Tu estilo
         </p>
         <p className="truncate font-display text-lg font-black text-slate-dark">
-          {styleName ?? "Loading…"}
+          {styleName ?? "Cargando…"}
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export function IAStyleBanner({
         onClick={onChangeStyle}
         className="shrink-0 rounded-lg border border-[#E5E0D8] bg-white px-3 py-2 text-sm font-bold text-slate-dark transition-colors hover:bg-gray-50"
       >
-        Change style
+        Cambiar estilo
       </Link>
     </div>
   );

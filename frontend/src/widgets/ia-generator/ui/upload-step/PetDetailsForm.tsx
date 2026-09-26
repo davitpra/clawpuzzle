@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ContinueButton } from "./ContinueButton";
-import { SPECIES_OPTIONS, type Pet, type PetForm } from "./types";
+import { SPECIES_OPTIONS, SPECIES_LABELS, type Pet, type PetForm } from "./types";
 
 interface PetDetailsFormProps {
   formId: string;
@@ -46,7 +46,7 @@ export function PetDetailsForm({
   return (
     <div>
       <h2 className="font-display text-xl font-black text-slate-dark mb-4">
-        Pet Details
+        Datos de tu mascota
       </h2>
 
       {isExistingPet && activePet && (
@@ -55,7 +55,7 @@ export function PetDetailsForm({
             check_circle
           </span>
           <span className="text-sm font-semibold text-primary">
-            {activePet.name} selected
+            {activePet.name} seleccionado
           </span>
           <button
             type="button"
@@ -70,14 +70,14 @@ export function PetDetailsForm({
       <form id={formId} onSubmit={onSubmit} className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Your Pets
+            Tus mascotas
           </label>
           {pets.length === 0 ? (
             <div className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm text-slate-500">
               <span className="material-symbols-outlined text-[16px] text-slate-400">
                 pets
               </span>
-              <span>No pets yet.</span>
+              <span>Aún no tienes mascotas.</span>
             </div>
           ) : (
             <div className="relative">
@@ -90,10 +90,10 @@ export function PetDetailsForm({
                 }}
                 className="w-full appearance-none border border-slate-300 rounded-lg pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white transition-shadow"
               >
-                <option value="">+ Add a new pet</option>
+                <option value="">+ Agregar una mascota</option>
                 {pets.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {`${p.name}${p.species ? ` (${p.species}${p.breed ? ` · ${p.breed}` : ""})` : ""}`}
+                    {`${p.name}${p.species ? ` (${SPECIES_LABELS[p.species] ?? p.species}${p.breed ? ` · ${p.breed}` : ""})` : ""}`}
                   </option>
                 ))}
               </select>
@@ -107,13 +107,13 @@ export function PetDetailsForm({
         {!isExistingPet && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Pet Name
+              Nombre
             </label>
             <input
               name="name"
               value={form.name}
               onChange={onFieldChange}
-              placeholder="e.g., Buddy"
+              placeholder="p. ej., Luna"
               maxLength={100}
               autoComplete="off"
               className="w-full border bg-white border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-shadow"
@@ -123,7 +123,7 @@ export function PetDetailsForm({
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Species
+            Especie
           </label>
           <div className="relative">
             <select
@@ -134,7 +134,7 @@ export function PetDetailsForm({
             >
               {SPECIES_OPTIONS.map((s) => (
                 <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {SPECIES_LABELS[s] ?? s}
                 </option>
               ))}
             </select>
@@ -146,13 +146,13 @@ export function PetDetailsForm({
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Breed
+            Raza
           </label>
           <input
             name="breed"
             value={form.breed}
             onChange={onFieldChange}
-            placeholder="e.g., Golden Retriever"
+            placeholder="p. ej., Golden Retriever"
             maxLength={100}
             className="w-full border bg-white border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-shadow"
           />
@@ -160,7 +160,7 @@ export function PetDetailsForm({
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Age
+            Edad
           </label>
           <input
             name="age"
@@ -169,7 +169,7 @@ export function PetDetailsForm({
             type="number"
             min={0}
             max={50}
-            placeholder="e.g., 3"
+            placeholder="p. ej., 3"
             className="w-full border bg-white border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-shadow"
           />
         </div>
@@ -185,7 +185,7 @@ export function PetDetailsForm({
                 <span className="material-symbols-outlined text-[16px]">
                   add_shopping_cart
                 </span>
-                Buy credits
+                Comprar créditos
               </Link>
             )}
           </div>

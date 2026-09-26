@@ -8,7 +8,7 @@ import { PhotoUploadPanel } from "./upload-step/PhotoUploadPanel";
 import { IAStyleBanner } from "./IAStyleBanner";
 import { usePetsList } from "../model/usePetsList";
 import { useExistingPetPhotos } from "../model/useExistingPetPhotos";
-import { SPECIES_OPTIONS, type Pet } from "./upload-step/types";
+import { SPECIES_OPTIONS, SPECIES_LABELS, type Pet } from "./upload-step/types";
 
 interface IAPhotoStepProps {
   styleName: string | null;
@@ -85,9 +85,9 @@ export function IAPhotoStep({
   const canContinue = hasPhoto && hasName && !submitting;
 
   const hint = !hasPhoto
-    ? "Upload a photo of your pet to continue"
+    ? "Sube una foto de tu mascota para continuar"
     : !hasName
-      ? "Tell us your pet's name to continue"
+      ? "Cuéntanos cómo se llama tu mascota para continuar"
       : null;
 
   const selectPet = (pet: Pet) => {
@@ -118,7 +118,7 @@ export function IAPhotoStep({
               <span className="material-symbols-outlined text-base leading-none">
                 auto_awesome
               </span>
-              {creditBalance} {creditBalance === 1 ? "artwork" : "artworks"} left
+              {creditBalance} {creditBalance === 1 ? "vista previa disponible" : "vistas previas disponibles"}
             </span>
           </div>
         )}
@@ -142,14 +142,14 @@ export function IAPhotoStep({
 
           <div>
             <h2 className="font-display text-xl font-black text-slate-dark mb-4">
-              Your Pet
+              Tu mascota
             </h2>
 
             {/* Reutilizar una mascota ya subida: solo tiene sentido con sesión. */}
             {isAuthenticated && pets.length > 0 && !activePet && (
               <div className="mb-4">
                 <p className="mb-2 text-sm text-slate-dark/60">
-                  Or pick one you&apos;ve already uploaded:
+                  O elige una que ya subiste:
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {pets.map((pet) => (
@@ -172,14 +172,14 @@ export function IAPhotoStep({
                   check_circle
                 </span>
                 <span className="text-sm font-semibold text-primary">
-                  {activePet.name} selected
+                  {activePet.name} seleccionado
                 </span>
                 <button
                   type="button"
                   onClick={clearPet}
                   className="ml-auto bg-transparent text-xs text-slate-500 underline hover:text-slate-700"
                 >
-                  Use another pet
+                  Usar otra mascota
                 </button>
               </div>
             )}
@@ -188,7 +188,7 @@ export function IAPhotoStep({
               htmlFor="pet-name"
               className="mb-1.5 block text-sm font-bold text-slate-dark"
             >
-              Pet name
+              Nombre de tu mascota
             </label>
             <input
               id="pet-name"
@@ -203,7 +203,7 @@ export function IAPhotoStep({
             />
 
             <p className="mt-4 mb-1.5 block text-sm font-bold text-slate-dark">
-              Pet type
+              Tipo de mascota
             </p>
             <div className="flex flex-wrap gap-2">
               {SPECIES_OPTIONS.map((option) => (
@@ -218,7 +218,7 @@ export function IAPhotoStep({
                       : "border-[#E5E0D8] bg-white text-slate-dark hover:bg-gray-50"
                   }`}
                 >
-                  {option}
+                  {SPECIES_LABELS[option] ?? option}
                 </button>
               ))}
             </div>
@@ -234,7 +234,7 @@ export function IAPhotoStep({
                     <span className="material-symbols-outlined text-[18px]">
                       auto_awesome
                     </span>
-                    Get more artworks
+                    Conseguir más vistas previas
                   </Link>
                 )}
               </div>
@@ -251,7 +251,7 @@ export function IAPhotoStep({
                   : "cursor-not-allowed bg-slate-200 text-slate-400"
               }`}
             >
-              {submitting ? "Creating your artwork…" : "Continue"}
+              {submitting ? "Creando tu arte…" : "Continuar"}
             </button>
             {hint && (
               <p className="mt-2 text-center text-xs text-slate-400">{hint}</p>

@@ -74,14 +74,14 @@ export default async function LandingProductDetails({
       <SectionShell background={background}>
         <div className="py-10 text-center">
           <p className="font-body text-base text-slate-dark/60">
-            Our canvas is getting ready. In the meantime, pick a style and
-            create your pet&apos;s artwork for free.
+            Nuestro rompecabezas se está preparando. Mientras tanto, elige un estilo
+            y crea gratis la vista previa de tu mascota.
           </p>
           <Link
             href="#styles"
             className="mt-4 inline-block font-bold text-primary hover:underline"
           >
-            Browse styles
+            Ver estilos
           </Link>
         </div>
       </SectionShell>

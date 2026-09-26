@@ -27,11 +27,11 @@ export function LandingStylesEmpty({
         <span className="material-symbols-outlined text-[32px]">palette</span>
       </span>
       <p className="mt-4 font-display text-xl font-black text-slate-dark">
-        Art styles are on their way
+        Los estilos vienen en camino
       </p>
       <p className="mt-1 text-sm text-slate-dark/55">
-        We couldn&apos;t load the art styles right now. Give it another try in a
-        moment.
+        No pudimos cargar los estilos en este momento. Vuelve a intentarlo en
+        un momento.
       </p>
       <button
         type="button"
@@ -39,7 +39,7 @@ export function LandingStylesEmpty({
         className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md"
       >
         <span className="material-symbols-outlined text-[18px]">refresh</span>
-        Try again
+        Reintentar
       </button>
     </div>
   );

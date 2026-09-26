@@ -2,7 +2,7 @@ import { Container } from "@/shared/ui/Container";
 import { AllArtWorks } from "@/widgets/user-dashboard/ui/AllArtWorks";
 
 export const metadata = {
-  title: "My Artworks — ClawPuzzle",
+  title: "Mi arte · ClawPuzzle",
 };
 
 export default function UserGenerationsPage() {

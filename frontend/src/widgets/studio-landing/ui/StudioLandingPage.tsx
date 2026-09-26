@@ -24,33 +24,34 @@ import { SITE_URL } from "@/shared/config/seo";
  */
 export const studioLandingMetadata: Metadata = {
   metadataBase: SITE_URL,
-  title: "Turn Your Pet Into Art & Paint It Free · ClawPuzzle",
+  title: "Rompecabezas personalizado de tu mascota · ClawPuzzle",
   description:
-    "Create 5 free AI artworks from your pet's photo, turn your favorite into a free printable paint-by-numbers PDF, or order it on canvas.",
+    "Convierte la foto de tu mascota en arte con IA y mira la vista previa gratis. Lo imprimimos como rompecabezas en MDF de 3 mm y lo enviamos a todo Ecuador.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     url: "/",
-    title: "Turn Your Pet Into Art & Paint It Free · ClawPuzzle",
+    locale: "es_EC",
+    title: "Una pieza de tu mejor amigo para tenerla contigo · ClawPuzzle",
     description:
-      "Create 5 free AI artworks from your pet's photo, download a free printable paint-by-numbers PDF, or order it on canvas.",
+      "Arte con IA hecho con la foto de tu mascota, impreso como rompecabezas en MDF de 3 mm. Vista previa gratis y envíos a todo Ecuador.",
     siteName: "ClawPuzzle",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Turn your pet's photo into AI art and a paint-by-numbers canvas",
+        alt: "La foto de tu mascota convertida en un rompecabezas personalizado",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Turn Your Pet Into Art & Paint It Free · ClawPuzzle",
+    title: "Una pieza de tu mejor amigo para tenerla contigo · ClawPuzzle",
     description:
-      "Create 5 free AI artworks from your pet's photo, download a free printable paint-by-numbers PDF, or order it on canvas.",
+      "Arte con IA hecho con la foto de tu mascota, impreso como rompecabezas en MDF de 3 mm. Vista previa gratis y envíos a todo Ecuador.",
     images: ["/opengraph-image"],
   },
 };
@@ -58,74 +59,66 @@ export const studioLandingMetadata: Metadata = {
 const LANDING_STEPS: ProcessStep[] = [
   {
     img: "/process/2 approve.png",
-    alt: "Choosing an AI art style for a pet portrait",
-    title: "1. Pick a Style",
-    text: "Choose the look that feels right for your pet. Each style has its own paint-by-numbers difficulty.",
+    alt: "Eligiendo un estilo de arte para el retrato de una mascota",
+    title: "1. Elige un estilo",
+    text: "Escoge el look que mejor va con la personalidad de tu mascota.",
   },
   {
     img: "/process/1. Upload Picture.png",
-    alt: "Uploading a pet photo from a phone",
-    title: "2. Upload a Photo",
-    text: "Any clear photo of your pet works — from phone snapshots to old favorites.",
+    alt: "Subiendo la foto de una mascota desde el celular",
+    title: "2. Sube su foto",
+    text: "Cualquier foto clara sirve, desde la del celular hasta esa favorita de hace años.",
   },
   {
+    // TODO(assets): falta una imagen del rompecabezas impreso para un paso de
+    // entrega propio; mientras tanto la entrega va en el texto de este paso.
     img: "/process/3. Final Art.png",
-    alt: "Finished AI portrait of a pet on a screen",
-    title: "3. Get Your Art",
-    text: "Our AI turns your photo into a custom portrait in the style you chose. You get five artworks free.",
-  },
-  {
-    img: "/process/4. Paint your art.png",
-    alt: "Painting a numbered pet portrait with a brush and palette",
-    title: "4. Paint It",
-    text: "Turn your favorite artwork into a paint-by-numbers design. Download the free PDF or order it on canvas.",
+    alt: "Retrato de una mascota hecho con IA en una pantalla",
+    title: "3. Mira la vista previa gratis",
+    text: "Si te encanta, lo imprimimos en MDF de 3 mm: 3 días de producción y unos 3 más de envío a tu ciudad.",
   },
 ];
 
 const LANDING_FAQS = [
   {
-    q: "Is the coloring page really free?",
-    a: "Yes. You get 5 free AI artworks, and you can turn any of them into a printable paint-by-numbers PDF at no cost. No credit card is needed. You only pay if you want the design printed on canvas.",
+    q: "¿La vista previa es gratis de verdad?",
+    a: "Sí. Al crear tu cuenta recibes 5 vistas previas gratis y no necesitas tarjeta de crédito. Solo pagas cuando decides pedir tu rompecabezas.",
   },
   {
-    q: "Do I need an account?",
-    a: "Yes, a free account is required to create AI artwork. Every new account starts with 5 free artworks, and you never need to add a payment method to use them.",
+    q: "¿Necesito una cuenta?",
+    a: "Sí, necesitas una cuenta gratuita para crear el arte. Así guardamos tus vistas previas y las fotos de tu mascota para que puedas volver a ellas cuando quieras.",
   },
   {
-    q: "What photos work best?",
-    a: "A clear, well-lit photo where your pet's face is easy to see gives the best result. Old photos, phone snapshots and even slightly blurry favorites usually work great — our AI does the heavy lifting.",
+    q: "¿De qué material es el rompecabezas?",
+    a: "Se imprime sobre MDF de 3 mm, un material firme que no se dobla ni se deshace. Está hecho para armarlo muchas veces.",
   },
   {
-    q: "What happens to my pet's photo?",
-    a: "When you create AI artwork, your pet's photo is uploaded so our service can generate and save your artwork. You can delete saved photos and artwork from your account whenever you want. We never sell your photos.",
+    q: "¿Cuánto tarda en llegar?",
+    a: "Lo producimos en 3 días y la entrega toma unos 3 días más, según tu ciudad. Te avisamos por correo cuando sale de nuestro taller.",
   },
   {
-    q: "How does the AI styling work?",
-    a: "Our AI studies your photo and redraws your pet in the art style you pick — watercolor, linocut, royal portrait and more. You see the preview before anything is printed, so there are no surprises.",
+    q: "¿A dónde hacen envíos?",
+    a: "Enviamos a todo Ecuador.",
   },
   {
-    q: "Can I choose the difficulty?",
-    a: "The difficulty comes with the style you choose. Each style is configured as Easy, Medium or Challenging, so you can pick the look and level of detail that suits you.",
+    q: "¿Qué fotos funcionan mejor?",
+    a: "Una foto clara y con buena luz, donde se vea bien la cara de tu mascota. Las fotos del celular y las fotos antiguas suelen funcionar muy bien.",
   },
   {
-    q: "Can I get it as a physical product?",
-    a: "Yes. The only physical product available at launch is a ready-to-paint canvas printed with your numbered design.",
+    q: "¿Qué pasa con la foto de mi mascota?",
+    a: "Tu foto se sube para que podamos crear y guardar tu arte. Puedes borrar tus fotos y tus diseños desde tu cuenta cuando quieras. Nunca vendemos tus fotos.",
   },
   {
-    q: "What do I need to paint it?",
-    a: "You will need acrylic paint and a couple of brushes: a fine one for small numbered areas and a wider one for the background. The free PDF lets you use the supplies you already have.",
+    q: "¿Cómo funciona el estilo con IA?",
+    a: "Nuestra IA estudia tu foto y vuelve a dibujar a tu mascota en el estilo que elegiste. Ves la vista previa antes de imprimir nada, así que no hay sorpresas.",
   },
   {
-    q: "Where do you ship, and how long does it take?",
-    a: "Canvas orders ship across Canada. You will get a tracking link by email when your order leaves our studio.",
+    q: "¿Y si quiero otro estilo?",
+    a: "Crea otra vista previa en otro estilo con una de tus vistas previas gratis. Puedes reutilizar una foto guardada o subir una nueva.",
   },
   {
-    q: "What if I want another style?",
-    a: "Create another artwork in a different style with one of your remaining free artworks. You can reuse a saved pet photo or upload a new one.",
-  },
-  {
-    q: "Is this a good memorial gift?",
-    a: "Many of our customers paint portraits of pets who have passed away. Families tell us that painting their companion, stroke by stroke, becomes a gentle and healing way to remember them. It's one of the most meaningful gifts you can give someone who is grieving a pet.",
+    q: "¿Sirve como regalo en memoria de una mascota?",
+    a: "Sí. Muchas familias lo piden para recordar a una mascota que ya no está. Armarlo juntos se vuelve una forma tranquila de recordarla, pieza por pieza.",
   },
 ];
 
@@ -162,13 +155,13 @@ export default function StudioLandingPage() {
                 // Destino de "How It Works" en el footer: /#how-it-works.
                 <div id="how-it-works" className="scroll-mt-20">
                   <AIProcess
-                    eyebrow="How it works"
-                    title="From Photo to Masterpiece in 4 Steps"
+                    eyebrow="Cómo funciona"
+                    title="De foto a rompecabezas en 3 pasos"
                     subtitle={
                       <>
-                        Free to try, free to download.
+                        La vista previa es gratis.
                         <br />
-                        Your first coloring page is on us.
+                        Solo pagas si te enamora.
                       </>
                     }
                     steps={LANDING_STEPS}
@@ -194,7 +187,12 @@ export default function StudioLandingPage() {
                 </div>
               ),
             },
-            { id: "showcase", node: <LandingShowcase background="" /> },
+            {
+              // Sin imágenes del rompecabezas todavía (ver LandingShowcase).
+              id: "showcase",
+              when: !LAUNCH_MODE,
+              node: <LandingShowcase background="" />,
+            },
           ]}
         />
       </main>

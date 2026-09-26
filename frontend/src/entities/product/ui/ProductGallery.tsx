@@ -69,7 +69,7 @@ export default function ProductGallery({
                     key={src}
                     type="button"
                     onClick={() => scrollTo(i)}
-                    aria-label={`View image ${i + 1}`}
+                    aria-label={`Ver imagen ${i + 1}`}
                     aria-current={i === selectedIndex}
                     className={`w-20 md:w-24 shrink-0 aspect-square overflow-hidden rounded-xl bg-white transition-all ${
                       i === selectedIndex
@@ -79,7 +79,7 @@ export default function ProductGallery({
                   >
                     <Image
                       src={src}
-                      alt={`${product.title} thumbnail ${i + 1}`}
+                      alt={`${product.title}, miniatura ${i + 1}`}
                       width={120}
                       height={120}
                       className="h-full w-full object-cover"

@@ -27,7 +27,7 @@ export function IALeadStep({
     setAuthError(null);
 
     if (!credentialResponse.credential) {
-      setAuthError("No token received from Google. Please try again.");
+      setAuthError("Google no devolvió la sesión. Inténtalo de nuevo.");
       return;
     }
 
@@ -36,13 +36,13 @@ export function IALeadStep({
       onComplete();
     } catch (err) {
       setAuthError(
-        err instanceof Error ? err.message : "Failed to sign in with Google.",
+        err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.",
       );
     }
   };
 
   const handleGoogleError = () => {
-    setAuthError("Failed to sign in with Google. Please try again.");
+    setAuthError("No se pudo iniciar sesión con Google. Inténtalo de nuevo.");
   };
 
   return (
@@ -52,11 +52,11 @@ export function IALeadStep({
           {/* Header */}
           <div className="px-8 pt-8 pb-4 text-center">
             <h2 className="font-display text-2xl font-black text-slate-dark mb-1">
-              {registerTitle ?? "Create Your Account"}
+              {registerTitle ?? "Crea tu cuenta"}
             </h2>
             <p className="text-slate-dark/60 text-sm">
               {registerSubtitle ??
-                "Save your pet\u2019s profile and photos securely."}
+                "Guarda el perfil y las fotos de tu mascota de forma segura."}
             </p>
           </div>
 
@@ -86,8 +86,7 @@ export function IALeadStep({
             </div>
 
             <p className="text-xs text-center text-slate-dark/40 italic">
-              By continuing, you agree to receive art updates from Claw and
-              Soul.
+              Al continuar, aceptas recibir novedades de ClawPuzzle.
             </p>
           </div>
         </div>

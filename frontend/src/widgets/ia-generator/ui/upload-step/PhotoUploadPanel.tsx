@@ -53,7 +53,7 @@ export function PhotoUploadPanel({
   return (
     <div className="flex flex-col h-full">
       <h2 className="font-display text-xl font-black text-slate-dark mb-4">
-        Upload Pet Photos
+        Sube fotos de tu mascota
       </h2>
 
       {/* Main preview / drop zone */}
@@ -90,7 +90,7 @@ export function PhotoUploadPanel({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={displayPhoto}
-              alt="Pet photo"
+              alt="Foto de tu mascota"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
 
@@ -101,8 +101,8 @@ export function PhotoUploadPanel({
               </span>
               <p className="text-white text-sm font-semibold tracking-wide">
                 {atMax
-                  ? "Remove a photo to add another"
-                  : "Click to add more photos"}
+                  ? "Quita una foto para agregar otra"
+                  : "Toca para agregar más fotos"}
               </p>
             </div>
 
@@ -142,10 +142,10 @@ export function PhotoUploadPanel({
               </span>
             </div>
             <p className="text-sm font-semibold text-slate-600 group-hover:text-primary transition-colors">
-              {isDragging ? "Drop it here!" : "Click or drag & drop"}
+              {isDragging ? "¡Suéltala aquí!" : "Toca o arrastra tu foto"}
             </p>
             <p className="text-xs text-slate-400">
-              JPG, PNG, WEBP · Max 10 MB · up to {MAX_PHOTOS} photos
+              JPG, PNG, WEBP · Máx. 10 MB · hasta {MAX_PHOTOS} fotos
             </p>
           </>
         )}
@@ -206,8 +206,8 @@ export function PhotoUploadPanel({
                 src={thumb.src}
                 alt={
                   thumb.kind === "existing"
-                    ? "Saved pet photo"
-                    : `Pet photo ${thumb.index + 1}`
+                    ? "Foto guardada de tu mascota"
+                    : `Foto ${thumb.index + 1} de tu mascota`
                 }
                 className="absolute inset-0 w-full h-full object-cover"
               />

@@ -30,7 +30,7 @@ function itemSummary(order: UserOrderListItem): string {
   const count = order.items?.length ?? 0;
   if (count === 0) return "No items";
   const first = order.items[0]?.title ?? "Item";
-  return count === 1 ? first : `${first} +${count - 1} more`;
+  return count === 1 ? first : `${first} y ${count - 1} más`;
 }
 
 export function RecentOrders({ orders, isLoading, error }: Props) {
@@ -43,13 +43,13 @@ export function RecentOrders({ orders, isLoading, error }: Props) {
     <section className="rounded-xl bg-white p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-black text-text-main">
-          Recent Orders
+          Pedidos recientes
         </h2>
         <Link
           href="/user/orders"
           className="text-sm font-bold text-primary hover:text-primary-dark"
         >
-          View all orders
+          Ver todos los pedidos
         </Link>
       </div>
 
@@ -72,12 +72,12 @@ export function RecentOrders({ orders, isLoading, error }: Props) {
           <EmptyState
             headingLevel="h3"
             icon="shopping_bag"
-            title="No orders yet"
-            description="When you place an order it will show up here."
+            title="Aún no tienes pedidos"
+            description="Cuando hagas un pedido aparecerá aquí."
             cta={
               LAUNCH_MODE
                 ? undefined
-                : { href: "/catalog", icon: "storefront", label: "Start shopping" }
+                : { href: "/catalog", icon: "storefront", label: "Crear mi rompecabezas" }
             }
           />
         )}

@@ -110,7 +110,7 @@ export function useCollectionProducts(
             const firstImage = shopify.images.edges[0]?.node.url;
 
             const formatMoney = (amount: string, currencyCode: string) =>
-              new Intl.NumberFormat("en-US", {
+              new Intl.NumberFormat("es-EC", {
                 style: "currency",
                 currency: currencyCode,
               }).format(parseFloat(amount));
@@ -162,7 +162,7 @@ export function useCollectionProducts(
           products: [],
           title: null,
           description: null,
-          error: "Failed to load products.",
+          error: "No se pudieron cargar los productos.",
         });
       });
 

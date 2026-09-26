@@ -6,7 +6,7 @@ import { Container } from "@/shared/ui/Container";
 interface LegalPageProps {
   title: string;
   intro: string;
-  /** Fecha de última revisión, ya formateada (p. ej. "July 30, 2026"). */
+  /** Fecha de última revisión, ya formateada (p. ej. "26 de septiembre de 2026"). */
   lastUpdated: string;
   children: ReactNode;
 }
@@ -39,7 +39,7 @@ export default function LegalPage({
               {intro}
             </p>
             <p className="text-text-muted/70 text-sm mt-4">
-              Last updated: {lastUpdated}
+              Última actualización: {lastUpdated}
             </p>
 
             <div className="mt-12 flex flex-col gap-10 text-text-muted leading-relaxed [&_h2]:font-display [&_h2]:text-text-main [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mb-3 [&_li]:mb-2 [&_p+p]:mt-3 [&_ul]:list-disc [&_ul]:pl-6">

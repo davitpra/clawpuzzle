@@ -11,7 +11,7 @@ export function BackToOrdersLink() {
       className="inline-flex items-center gap-1 text-sm font-bold text-primary transition-all hover:gap-2 hover:text-primary-dark"
     >
       <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-      Back to orders
+      Volver a pedidos
     </Link>
   );
 }

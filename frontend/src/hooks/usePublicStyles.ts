@@ -44,7 +44,7 @@ export function usePublicStyles(): UsePublicStylesResult {
       .catch((err) => {
         if (cancelled) return;
         console.error("usePublicStyles error:", err);
-        setState({ version, styles: [], error: "Failed to load styles." });
+        setState({ version, styles: [], error: "No se pudieron cargar los estilos." });
       });
 
     return () => {

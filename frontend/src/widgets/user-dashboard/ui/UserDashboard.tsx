@@ -69,7 +69,7 @@ export function UserDashboard() {
         if (active) setOrders(res.data?.data ?? []);
       })
       .catch(() => {
-        if (active) setOrdersError("Couldn't load your orders.");
+        if (active) setOrdersError("No pudimos cargar tus pedidos.");
       })
       .finally(() => {
         if (active) setOrdersLoading(false);
@@ -82,7 +82,7 @@ export function UserDashboard() {
         if (active) setArtworks(res.data?.data ?? []);
       })
       .catch(() => {
-        if (active) setArtworksError("Couldn't load your artworks.");
+        if (active) setArtworksError("No pudimos cargar tu arte.");
       })
       .finally(() => {
         if (active) setArtworksLoading(false);
@@ -93,7 +93,7 @@ export function UserDashboard() {
         if (active) setPets(res.data ?? []);
       })
       .catch(() => {
-        if (active) setPetsError("Couldn't load your pets.");
+        if (active) setPetsError("No pudimos cargar tus mascotas.");
       })
       .finally(() => {
         if (active) setPetsLoading(false);

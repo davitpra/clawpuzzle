@@ -19,7 +19,7 @@ export default function CompareSlider({
   beforeSrc,
   afterSrc,
   beforeLabel = "Original",
-  afterLabel = "Paint by numbers",
+  afterLabel = "Rompecabezas",
   width,
   height,
   alt = "",
@@ -68,7 +68,7 @@ export default function CompareSlider({
       ref={wrapperRef}
       role="slider"
       tabIndex={0}
-      aria-label="Compare original photo with the paint-by-numbers result"
+      aria-label="Compara la imagen original con el resultado"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(pos)}

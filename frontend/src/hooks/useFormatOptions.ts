@@ -160,8 +160,8 @@ export function useFormatOptions(
           data: EMPTY,
           error:
             err.message === "not_found"
-              ? "This product is not available for personalization."
-              : "Failed to load format options. Please try again.",
+              ? "Este producto no está disponible para personalizar."
+              : "No se pudieron cargar las opciones. Inténtalo de nuevo.",
         });
       });
 

@@ -21,7 +21,7 @@ export function mapProductReferences(
         name: node.title,
         desc: node.description ?? "",
         price: price
-          ? new Intl.NumberFormat("en-US", {
+          ? new Intl.NumberFormat("es-EC", {
               style: "currency",
               currency: price.currencyCode,
             }).format(parseFloat(price.amount))

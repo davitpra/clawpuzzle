@@ -35,7 +35,7 @@ export function OrderSummary({ order }: OrderSummaryProps) {
 
   return (
     <div className="mt-4 space-y-2 text-sm">
-      {paymentStatus && <SummaryRow label="Payment" value={paymentStatus} />}
+      {paymentStatus && <SummaryRow label="Pago" value={paymentStatus} />}
       {order.subtotalAmount != null && (
         <SummaryRow
           label="Subtotal"
@@ -44,13 +44,13 @@ export function OrderSummary({ order }: OrderSummaryProps) {
       )}
       {order.shippingAmount != null && (
         <SummaryRow
-          label="Shipping"
+          label="Envío"
           value={formatPrice(order.shippingAmount, order.currency)}
         />
       )}
       {order.taxAmount != null && (
         <SummaryRow
-          label="Tax"
+          label="Impuestos"
           value={formatPrice(order.taxAmount, order.currency)}
         />
       )}

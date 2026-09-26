@@ -129,7 +129,7 @@ export default function ProductSizeSelector({
             </p>
             {current.disabled && (
               <p className="font-body text-sm font-bold text-text-muted">
-                Sold out
+                Agotado
               </p>
             )}
           </div>
@@ -141,7 +141,7 @@ export default function ProductSizeSelector({
             <button
               type="button"
               onClick={() => move(1)}
-              aria-label={`Next ${label.toLowerCase()}`}
+              aria-label={`Siguiente: ${label.toLowerCase()}`}
               className={chevronClassName}
             >
               <span className="material-symbols-outlined text-[20px]">
@@ -151,7 +151,7 @@ export default function ProductSizeSelector({
             <button
               type="button"
               onClick={() => move(-1)}
-              aria-label={`Previous ${label.toLowerCase()}`}
+              aria-label={`Anterior: ${label.toLowerCase()}`}
               className={chevronClassName}
             >
               <span className="material-symbols-outlined text-[20px]">

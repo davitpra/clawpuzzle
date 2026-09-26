@@ -61,7 +61,7 @@ export function GenerationImage({
             error
           </span>
           <p className="px-6 text-sm">
-            {errorMessage ?? "This generation failed to complete."}
+            {errorMessage ?? "No se pudo completar esta generación."}
           </p>
         </div>
       ) : (
@@ -69,7 +69,7 @@ export function GenerationImage({
           className={`flex aspect-4/5 w-full flex-col items-center justify-center gap-3 rounded-xl bg-cream text-center text-text-muted ${ARTWORK_MAX_HEIGHT}`}
         >
           <div className="size-10 animate-spin rounded-full border-b-2 border-primary" />
-          <p className="text-sm">Your artwork is still being created…</p>
+          <p className="text-sm">Tu arte todavía se está creando…</p>
         </div>
       )}
     </div>

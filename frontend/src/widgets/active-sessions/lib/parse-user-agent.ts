@@ -24,13 +24,13 @@ function detectOS(ua: string): string {
 }
 
 export function parseUserAgent(userAgent?: string | null): string {
-  if (!userAgent) return "Unknown device";
+  if (!userAgent) return "Dispositivo desconocido";
 
   const browser = detectBrowser(userAgent);
   const os = detectOS(userAgent);
 
-  if (browser && os) return `${browser} on ${os}`;
+  if (browser && os) return `${browser} en ${os}`;
   if (browser) return browser;
   if (os) return os;
-  return "Unknown device";
+  return "Dispositivo desconocido";
 }

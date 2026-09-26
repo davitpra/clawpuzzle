@@ -20,7 +20,7 @@ export default function ProductFAQ({
   return (
     <div className={`p-6 md:p-12 ${background}`}>
       <h2 className="font-display text-3xl font-black text-slate-dark md:text-4xl text-center mb-16">
-        Frequently Asked Questions
+        Preguntas frecuentes
       </h2>
       <div className="flex flex-col gap-4 max-w-3xl mx-auto">
         {faqs.map((faq, i) => (

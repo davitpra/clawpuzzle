@@ -66,7 +66,7 @@ export function useProductStyle(handle: string | null): UseProductStyleResult {
         setState({
           handle,
           data: EMPTY,
-          error: "Failed to load product style.",
+          error: "No se pudo cargar el estilo del producto.",
         });
       });
 

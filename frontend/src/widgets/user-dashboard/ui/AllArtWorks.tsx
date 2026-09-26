@@ -40,7 +40,7 @@ function generationImage(generation: UserGeneration): string | null {
 // reutiliza el estado de la generación.
 function generationToProduct(generation: UserGeneration, img: string): Product {
   return {
-    name: generation.pet?.name || "Untitled",
+    name: generation.pet?.name || "Sin nombre",
     desc: generation.style?.displayName || "",
     price: "",
     img,
@@ -56,13 +56,13 @@ const PLACEHOLDER_BY_STATUS: Record<
   string,
   { icon: string; text: string; spin: boolean }
 > = {
-  pending: { icon: "hourglass_empty", text: "Queued…", spin: false },
+  pending: { icon: "hourglass_empty", text: "En cola…", spin: false },
   processing: {
     icon: "progress_activity",
-    text: "Creating your artwork…",
+    text: "Creando tu arte…",
     spin: true,
   },
-  failed: { icon: "error", text: "Generation failed", spin: false },
+  failed: { icon: "error", text: "La generación falló", spin: false },
 };
 
 function GenerationPlaceholder({ generation }: { generation: UserGeneration }) {
@@ -70,7 +70,7 @@ function GenerationPlaceholder({ generation }: { generation: UserGeneration }) {
   const badge = generationStatusBadge(generation.status);
   const state = PLACEHOLDER_BY_STATUS[status] ?? {
     icon: "image",
-    text: "No preview yet",
+    text: "Aún sin vista previa",
     spin: false,
   };
   const isFailed = status === "failed";
@@ -106,7 +106,7 @@ function GenerationPlaceholder({ generation }: { generation: UserGeneration }) {
 
       <div className="flex flex-col items-center gap-3">
         <h3 className="text-center font-display font-black text-slate-dark md:text-lg">
-          {generation.pet?.name || "Untitled"}
+          {generation.pet?.name || "Sin nombre"}
         </h3>
       </div>
     </div>
@@ -162,7 +162,7 @@ export function AllArtWorks() {
       } catch {
         // Un fallo cargando más no debe borrar las obras ya visibles: solo la
         // primera página cae al estado de error a pantalla completa.
-        if (isFirst) setError("Couldn't load your artworks. Please try again.");
+        if (isFirst) setError("No pudimos cargar tu arte. Inténtalo de nuevo.");
         else setLoadMoreError(true);
       } finally {
         isFetchingRef.current = false;
@@ -227,7 +227,7 @@ export function AllArtWorks() {
               <span className="material-symbols-outlined text-[18px]">
                 refresh
               </span>
-              Retry
+              Reintentar
             </button>
           </div>
         )}
@@ -235,15 +235,15 @@ export function AllArtWorks() {
         {!isLoading && !error && generations.length === 0 && (
           <EmptyState
             icon="palette"
-            title="No artworks yet"
-            description="When you create an artwork it will show up here."
+            title="Aún no tienes arte"
+            description="Cuando crees una vista previa aparecerá aquí."
             cta={
               LAUNCH_MODE
                 ? undefined
                 : {
                     href: "/catalog",
                     icon: "auto_awesome",
-                    label: "Create your first artwork",
+                    label: "Crea tu primera vista previa",
                   }
             }
           />
@@ -299,14 +299,14 @@ export function AllArtWorks() {
             {loadMoreError && (
               <div className="mt-6 text-center">
                 <p className="text-sm text-text-muted">
-                  Couldn&apos;t load more artworks.
+                  No pudimos cargar más arte.
                 </p>
                 <button
                   type="button"
                   onClick={() => loadPage(page + 1)}
                   className="mt-3 rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white"
                 >
-                  Try again
+                  Reintentar
                 </button>
               </div>
             )}

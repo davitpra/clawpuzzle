@@ -21,8 +21,8 @@ export interface NavSection {
 
 /** Links principales del header, en el orden en que se muestran. */
 const FULL_MAIN_NAV: NavLink[] = [
-  { label: "Catalog", href: "/catalog" },
-  { label: "Contact", href: "/contact" },
+  { label: "Catálogo", href: "/catalog" },
+  { label: "Contacto", href: "/contact" },
 ];
 
 // Vacía a propósito: "Catalog" y "Contact" son rutas bloqueadas y "Create your
@@ -38,18 +38,18 @@ export const MAIN_NAV: NavLink[] = LAUNCH_MODE
 const ACCOUNT_SECTION: NavSection = {
   // Los links de `/user/**` no se ocultan sin sesión: `app/user/layout.tsx`
   // redirige a `/login` por su cuenta.
-  title: "Account",
+  title: "Cuenta",
   links: [
-    { label: "My Account", href: "/user" },
-    { label: "My Artworks", href: "/user/generations" },
-    { label: "Orders", href: "/user/orders" },
+    { label: "Mi cuenta", href: "/user" },
+    { label: "Mi arte", href: "/user/generations" },
+    { label: "Mis pedidos", href: "/user/orders" },
   ],
 };
 
 const SUPPORT_LINKS: NavLink[] = [
-  { label: "Shipping & Returns", href: "/shipping-returns" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
+  { label: "Envíos y devoluciones", href: "/shipping-returns" },
+  { label: "Política de privacidad", href: "/privacy" },
+  { label: "Términos del servicio", href: "/terms" },
 ];
 
 /**
@@ -59,26 +59,26 @@ const SUPPORT_LINKS: NavLink[] = [
  */
 const FULL_FOOTER_SECTIONS: NavSection[] = [
   {
-    title: "Create",
+    title: "Crear",
     links: [
-      { label: "Custom Pet Puzzle", href: "/catalog" },
-      { label: "How It Works", href: "/studio-landing" },
-      { label: "Buy Credits", href: "/credits" },
+      { label: "Rompecabezas de tu mascota", href: "/catalog" },
+      { label: "Cómo funciona", href: "/studio-landing" },
+      { label: "Comprar créditos", href: "/credits" },
     ],
   },
   {
-    title: "Shop",
+    title: "Tienda",
     links: [
-      { label: "All Puzzles", href: "/catalog" },
-      { label: "Buy Credits", href: "/credits" },
+      { label: "Todos los rompecabezas", href: "/catalog" },
+      { label: "Comprar créditos", href: "/credits" },
     ],
   },
   ACCOUNT_SECTION,
   {
-    title: "Support",
+    title: "Ayuda",
     links: [
-      { label: "Contact", href: "/contact" },
-      { label: "FAQ", href: "/studio-landing#faq" },
+      { label: "Contacto", href: "/contact" },
+      { label: "Preguntas frecuentes", href: "/studio-landing#faq" },
       ...SUPPORT_LINKS,
     ],
   },
@@ -88,18 +88,18 @@ const FULL_FOOTER_SECTIONS: NavSection[] = [
 // apuntan a las secciones de la landing, que en lanzamiento vive en `/`.
 const LAUNCH_FOOTER_SECTIONS: NavSection[] = [
   {
-    title: "Create",
+    title: "Crear",
     links: [
-      { label: "Create your art", href: "/#styles" },
-      { label: "How It Works", href: "/#how-it-works" },
-      { label: "Buy Credits", href: "/credits" },
+      { label: "Crear su rompecabezas", href: "/#styles" },
+      { label: "Cómo funciona", href: "/#how-it-works" },
+      { label: "Comprar créditos", href: "/credits" },
     ],
   },
   ACCOUNT_SECTION,
   {
-    title: "Support",
+    title: "Ayuda",
     links: [
-      { label: "FAQ", href: "/#faq" },
+      { label: "Preguntas frecuentes", href: "/#faq" },
       ...SUPPORT_LINKS,
     ],
   },

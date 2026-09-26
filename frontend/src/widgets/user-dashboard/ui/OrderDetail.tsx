@@ -39,7 +39,7 @@ export function OrderDetail({ id }: Props) {
       setOrder(res.data ?? null);
     } catch (err) {
       if (isNotFound(err)) setNotFound(true);
-      else setError("Couldn't load this order. Please try again.");
+      else setError("No pudimos cargar este pedido. Inténtalo de nuevo.");
     } finally {
       setIsLoading(false);
     }
@@ -93,10 +93,10 @@ export function OrderDetail({ id }: Props) {
     return (
       <DetailNotFound
         icon="receipt_long"
-        title="Order not found"
-        message="We couldn't find this order in your account."
+        title="Pedido no encontrado"
+        message="No encontramos este pedido en tu cuenta."
         backHref="/user/orders"
-        backLabel="Back to orders"
+        backLabel="Volver a pedidos"
       />
     );
   }
@@ -105,7 +105,7 @@ export function OrderDetail({ id }: Props) {
     return (
       <DetailErrorState
         back={<BackToOrdersLink />}
-        message={error ?? "Couldn't load this order."}
+        message={error ?? "No pudimos cargar este pedido."}
         onRetry={load}
       />
     );
@@ -147,7 +147,7 @@ export function OrderDetail({ id }: Props) {
               <span className="material-symbols-outlined text-[18px]">
                 local_shipping
               </span>
-              Track shipping
+              Seguir envío
               <span className="material-symbols-outlined text-[16px]">
                 open_in_new
               </span>
@@ -160,7 +160,7 @@ export function OrderDetail({ id }: Props) {
         <section className="rounded-xl bg-white p-6 md:p-8 lg:col-span-2">
           <SectionHeading
             icon="shopping_bag"
-            title="Items"
+            title="Productos"
             trailing={
               itemCount > 0 ? (
                 <span className="rounded-full bg-cream px-2 py-0.5 text-xs font-bold text-text-muted">
@@ -171,7 +171,7 @@ export function OrderDetail({ id }: Props) {
           />
           {itemCount === 0 ? (
             <p className="mt-4 rounded-xl bg-cream px-4 py-8 text-center text-text-muted">
-              No items in this order.
+              Este pedido no tiene productos.
             </p>
           ) : (
             <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -189,13 +189,13 @@ export function OrderDetail({ id }: Props) {
 
         <div className="space-y-6">
           <section className="rounded-xl bg-white p-6">
-            <SectionHeading icon="receipt_long" title="Summary" />
+            <SectionHeading icon="receipt_long" title="Resumen" />
             <OrderSummary order={order} />
           </section>
 
           {address && (
             <section className="rounded-xl bg-white p-6">
-              <SectionHeading icon="location_on" title="Shipping address" />
+              <SectionHeading icon="location_on" title="Dirección de envío" />
               <p className="mt-3 text-sm leading-relaxed text-text-muted">
                 {address}
               </p>
@@ -212,7 +212,7 @@ export function OrderDetail({ id }: Props) {
 
           {order.customerNote && (
             <section className="rounded-xl bg-white p-6">
-              <SectionHeading icon="sticky_note_2" title="Note" />
+              <SectionHeading icon="sticky_note_2" title="Nota" />
               <p className="mt-3 text-sm leading-relaxed text-text-muted">
                 {order.customerNote}
               </p>

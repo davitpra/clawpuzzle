@@ -40,7 +40,7 @@ export function AvatarMenuModal({
           id="avatar-menu-title"
           className="text-center text-base font-semibold text-text-main"
         >
-          Profile photo
+          Foto de perfil
         </h2>
 
         <div className="mt-6 flex justify-center">
@@ -48,7 +48,7 @@ export function AvatarMenuModal({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={cloudinaryThumb(avatarUrl, 320)}
-              alt="Profile photo"
+              alt="Foto de perfil"
               className="size-36 rounded-full object-cover ring-1 ring-black/10"
             />
           ) : (
@@ -71,7 +71,7 @@ export function AvatarMenuModal({
             disabled={busy}
             className="h-11 rounded-full bg-primary text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : "Change photo"}
+            {uploading ? "Subiendo…" : "Cambiar foto"}
           </button>
 
           {avatarUrl && (
@@ -81,7 +81,7 @@ export function AvatarMenuModal({
               disabled={busy}
               className="h-11 rounded-full text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {removing ? "Removing…" : "Remove photo"}
+              {removing ? "Quitando…" : "Quitar foto"}
             </button>
           )}
 
@@ -91,7 +91,7 @@ export function AvatarMenuModal({
             disabled={busy}
             className="h-11 rounded-full text-sm font-medium text-text-muted transition-colors hover:text-text-main disabled:opacity-50"
           >
-            Cancel
+            Cancelar
           </button>
         </div>
       </div>

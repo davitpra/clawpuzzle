@@ -34,7 +34,7 @@ export function useGenerationDetail(id: string) {
       setIsFavorite(res.data?.isFavorite ?? false);
     } catch (err) {
       if (isNotFound(err)) setNotFound(true);
-      else setError("Couldn't load this artwork. Please try again.");
+      else setError("No pudimos cargar este arte. Inténtalo de nuevo.");
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +73,7 @@ export function useGenerationDetail(id: string) {
       return true;
     } catch {
       setDeleting(false);
-      setDeleteError("Couldn't delete this artwork. Please try again.");
+      setDeleteError("No se pudo borrar este arte. Inténtalo de nuevo.");
       return false;
     }
   }, [del, id, deleting]);

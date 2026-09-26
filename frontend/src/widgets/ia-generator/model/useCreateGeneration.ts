@@ -42,7 +42,7 @@ export interface CreateGenerationResult {
   pet: Pet;
 }
 
-const NO_PHOTO_ERROR = "Add a photo of your pet to continue.";
+const NO_PHOTO_ERROR = "Agrega una foto de tu mascota para continuar.";
 
 /**
  * Pipeline de creación: guarda la mascota, sube las fotos y dispara la
@@ -208,7 +208,7 @@ export function useCreateGeneration() {
         const msg =
           err instanceof Error && err.message
             ? err.message
-            : "Could not start generation. Try again.";
+            : "No se pudo crear el arte. Inténtalo de nuevo.";
         setError(msg);
         setOutOfCredits(/out of generation credits/i.test(msg));
         throw err;

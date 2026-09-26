@@ -1,12 +1,17 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Turn your pet into AI art and paint it yourself";
+export const alt = "La foto de tu mascota convertida en un rompecabezas personalizado";
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = "image/png";
+
+// Colores de marca de `globals.css` (`--color-primary`, `--color-cream`). La
+// imagen se genera en el edge y no ve las variables CSS, así que van a mano.
+const PRIMARY = "#292c40";
+const CREAM = "#f0eee9";
 
 export default function OpenGraphImage() {
   return new ImageResponse(
@@ -14,8 +19,8 @@ export default function OpenGraphImage() {
       <div
         style={{
           alignItems: "center",
-          background: "#f5efe6",
-          color: "#263238",
+          background: CREAM,
+          color: PRIMARY,
           display: "flex",
           height: "100%",
           justifyContent: "space-between",
@@ -28,45 +33,44 @@ export default function OpenGraphImage() {
             display: "flex",
             flexDirection: "column",
             gap: 24,
-            maxWidth: 700,
+            maxWidth: 720,
           }}
         >
           <div
             style={{
-              color: "#148f83",
               display: "flex",
               fontSize: 28,
               fontWeight: 700,
               letterSpacing: "0.12em",
             }}
           >
-            CLAW &amp; SOUL
+            CLAWPUZZLE
           </div>
           <div
             style={{
               display: "flex",
-              fontSize: 68,
+              fontSize: 64,
               fontWeight: 900,
               lineHeight: 1.05,
             }}
           >
-            Turn your pet into art.
+            Una pieza de tu mejor amigo para tenerla contigo.
           </div>
           <div
             style={{
-              color: "#526168",
+              color: "#5c5f73",
               display: "flex",
               fontSize: 30,
               lineHeight: 1.3,
             }}
           >
-            5 free AI artworks · Free printable PDF · Canvas available
+            Vista previa gratis · MDF de 3 mm · Envíos a todo Ecuador
           </div>
         </div>
         <div
           style={{
             alignItems: "center",
-            background: "#148f83",
+            background: PRIMARY,
             borderRadius: 999,
             color: "white",
             display: "flex",
@@ -80,9 +84,9 @@ export default function OpenGraphImage() {
             width: 260,
           }}
         >
-          <span>PHOTO</span>
+          <span>FOTO</span>
           <span style={{ fontSize: 26, margin: "12px 0" }}>↓</span>
-          <span>PAINT</span>
+          <span>PUZZLE</span>
         </div>
       </div>
     ),

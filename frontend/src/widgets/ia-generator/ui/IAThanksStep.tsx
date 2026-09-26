@@ -46,8 +46,8 @@ export function IAThanksStep({
   // La presentación del cuadro (lienzo / póster / plano) se deriva del tipo de
   // producto, igual que en el resto de la app (ProductGallery, Hero, etc.).
   const frameStyle = toFrameStyle(template);
-  // El arte "art" (Digital/PBN) solo ofrece convertir a Paint by Numbers; el
-  // arte físico (canvas/poster) va a checkout y no muestra ese CTA.
+  // El arte "art" (sin producto físico) solo enlaza a la galería del usuario;
+  // el rompecabezas va a checkout.
   const isArt = frameStyle === "art";
 
   // La petición de generación ya se disparó antes de llegar aquí; hacemos
@@ -68,19 +68,12 @@ export function IAThanksStep({
   });
   const doneMessage =
     status === "failed"
-      ? "This is taking a little longer than usual — we'll email your artwork and keep it in your profile."
-      : "Your artwork is ready — you'll find it anytime in your profile.";
+      ? "Está tardando un poco más de lo normal. Te enviaremos tu arte por correo y quedará guardado en tu perfil."
+      : "Tu arte está listo. Lo encontrarás siempre en tu perfil.";
 
-  // El CTA de PBN queda en suspenso hasta que la imagen generada aparece en
-  // pantalla (imageUrl del polling); solo entonces se puede convertir.
+  // Los CTAs de compra esperan a que la imagen generada aparezca en pantalla
+  // (imageUrl del polling).
   const pbnReady = !!imageUrl;
-  const goToPbnStudio = () => {
-    if (!imageUrl) return;
-    const params = new URLSearchParams();
-    if (generationId) params.set("generationId", generationId);
-    params.set("imageUrl", imageUrl);
-    router.push(`/studio?${params.toString()}`);
-  };
 
   // El arte no-Digital ya se agregó al carrito en el paso de upload; solo
   // ofrecemos checkout cuando el carrito tiene items.
@@ -99,11 +92,11 @@ export function IAThanksStep({
     const result = await startCheckout();
     if (result.status === "no-variants") {
       setCheckoutError(
-        "This item isn't available for checkout yet. Please try from your cart.",
+        "Este producto aún no se puede pagar. Inténtalo desde tu carrito.",
       );
     } else if (result.status === "error") {
       setCheckoutError(
-        result.message ?? "Something went wrong. Please try again.",
+        result.message ?? "Algo salió mal. Inténtalo de nuevo.",
       );
     }
   };
@@ -148,7 +141,7 @@ export function IAThanksStep({
                     <img
                       key={displayImage}
                       src={displayImage}
-                      alt="Your personalized artwork"
+                      alt="Tu arte personalizado"
                       loading="lazy"
                       decoding="async"
                       className={`animate-in fade-in duration-700 ${
@@ -177,7 +170,7 @@ export function IAThanksStep({
                 </span>
 
                 <h1 className="font-display text-5xl md:text-6xl font-black text-slate-dark tracking-tight leading-none">
-                  Thank you!
+                  ¡Gracias!
                 </h1>
 
                 <div className="flex items-center gap-3 w-full justify-center md:justify-start">
@@ -213,7 +206,7 @@ export function IAThanksStep({
                         >
                           {retrying ? "progress_activity" : "refresh"}
                         </span>
-                        {retrying ? "Retrying…" : "Retry"}
+                        {retrying ? "Reintentando…" : "Reintentar"}
                       </button>
                       {retryError && (
                         <p className="text-sm text-red-600 text-center">
@@ -225,25 +218,6 @@ export function IAThanksStep({
 
                   {isArt && (
                     <>
-                      {!isFailed && (
-                        <button
-                          onClick={goToPbnStudio}
-                          disabled={!pbnReady}
-                          aria-busy={!pbnReady}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-dark text-white px-6 py-3 text-sm font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-sm disabled:hover:bg-primary"
-                        >
-                          <span
-                            className={`material-symbols-outlined text-[18px] ${
-                              pbnReady ? "" : "animate-spin"
-                            }`}
-                          >
-                            {pbnReady ? "format_paint" : "progress_activity"}
-                          </span>
-                          {pbnReady
-                            ? "Turn into Paint by Numbers"
-                            : "Preparing your artwork…"}
-                        </button>
-                      )}
                       <button
                         onClick={() => router.push("/user/generations")}
                         className="w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-[#E0DED9] text-slate-dark hover:bg-gray-50 px-6 py-3 text-sm font-bold transition-all shadow-sm hover:shadow-md"
@@ -251,7 +225,7 @@ export function IAThanksStep({
                         <span className="material-symbols-outlined text-[18px]">
                           brush
                         </span>
-                        See all my Artwork
+                        Ver todo mi arte
                       </button>
                     </>
                   )}
@@ -273,7 +247,7 @@ export function IAThanksStep({
                             ? "progress_activity"
                             : "shopping_cart_checkout"}
                         </span>
-                        {isCheckingOut ? "Redirecting…" : "Proceed to Checkout"}
+                        {isCheckingOut ? "Redirigiendo…" : "Ir a pagar"}
                       </button>
                       <button
                         onClick={() => router.push("/cart")}
@@ -282,7 +256,7 @@ export function IAThanksStep({
                         <span className="material-symbols-outlined text-[18px]">
                           shopping_cart
                         </span>
-                        View Cart
+                        Ver carrito
                       </button>
                       {checkoutError && (
                         <p className="text-sm text-red-600 text-center">
@@ -296,7 +270,7 @@ export function IAThanksStep({
                         <span className="material-symbols-outlined text-[18px]">
                           brush
                         </span>
-                        See all my Artwork
+                        Ver todo mi arte
                       </button>
                     </>
                   )}
@@ -307,7 +281,7 @@ export function IAThanksStep({
                     <span className="material-symbols-outlined text-[18px]">
                       storefront
                     </span>
-                    Continue Shopping
+                    Seguir comprando
                   </button>
                 </div>
               </div>

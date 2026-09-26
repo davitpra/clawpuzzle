@@ -32,7 +32,7 @@ function orderToProduct(
 ): Product {
   const primary = order.items?.[0];
   return {
-    name: `Order ${order.orderNumber}`,
+    name: `Pedido ${order.orderNumber}`,
     desc: "",
     price: formatPrice(order.totalAmount, order.currency),
     img:
@@ -88,7 +88,7 @@ export function AllOrders() {
         setTotalPages(res.data?.meta?.totalPages ?? 1);
         setPage(pageToLoad);
       } catch {
-        setError("Couldn't load your orders. Please try again.");
+        setError("No pudimos cargar tus pedidos. Inténtalo de nuevo.");
       } finally {
         if (isFirst) setIsLoading(false);
         else setIsLoadingMore(false);
@@ -156,7 +156,7 @@ export function AllOrders() {
             <span className="material-symbols-outlined text-[18px]">
               refresh
             </span>
-            Retry
+            Reintentar
           </button>
         </div>
       )}
@@ -164,12 +164,12 @@ export function AllOrders() {
       {!showSkeleton && !error && orders.length === 0 && (
         <EmptyState
           icon="shopping_bag"
-          title="No orders yet"
-          description="When you place an order it will show up here."
+          title="Aún no tienes pedidos"
+          description="Cuando hagas un pedido aparecerá aquí."
           cta={
             LAUNCH_MODE
               ? undefined
-              : { href: "/catalog", icon: "storefront", label: "Start shopping" }
+              : { href: "/catalog", icon: "storefront", label: "Crear mi rompecabezas" }
           }
         />
       )}
@@ -202,7 +202,7 @@ export function AllOrders() {
                 disabled={isLoadingMore}
                 className="rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoadingMore ? "Loading…" : "Load more orders"}
+                {isLoadingMore ? "Cargando…" : "Cargar más pedidos"}
               </button>
             </div>
           )}

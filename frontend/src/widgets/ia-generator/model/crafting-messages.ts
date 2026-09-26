@@ -6,9 +6,9 @@
  * (flujo de lanzamiento).
  */
 export const CRAFTING_MESSAGES = [
-  "Sketching the first lines…",
-  "Mixing the perfect palette…",
-  "Capturing your pet's personality…",
-  "Adding brushstrokes of character…",
-  "Bringing your artwork to life…",
+  "Trazando las primeras líneas…",
+  "Eligiendo los colores perfectos…",
+  "Capturando la personalidad de tu mascota…",
+  "Cuidando cada detalle…",
+  "Preparando cada pieza…",
 ];

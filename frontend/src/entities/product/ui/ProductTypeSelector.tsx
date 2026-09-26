@@ -41,7 +41,7 @@ export default function ProductTypeSelector({
             {info.short}
           </p>
           <Accordion
-            title={`About ${value}`}
+            title={`Sobre ${value}`}
             summaryClassName="py-1"
             titleClassName="font-body text-sm font-bold  text-text-muted"
             iconClassName="text-[20px] text-text-muted"

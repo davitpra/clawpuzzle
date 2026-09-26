@@ -27,13 +27,13 @@ export function ContinueButton({
   const disabled = needsPhoto || needsName || missingParams || submitting;
 
   const hint = missingParams
-    ? "Missing product or format info — use a catalog link"
+    ? "Falta el producto: vuelve a empezar desde el inicio"
     : needsPhoto && needsName
-      ? "Upload a photo and enter a pet name to continue"
+      ? "Sube una foto y escribe el nombre de tu mascota para continuar"
       : needsPhoto
-        ? "Upload at least one photo to continue"
+        ? "Sube al menos una foto para continuar"
         : needsName
-          ? "Enter a pet name to continue"
+          ? "Escribe el nombre de tu mascota para continuar"
           : null;
 
   return (
@@ -49,10 +49,10 @@ export function ContinueButton({
         }`}
       >
         {submitting
-          ? "Saving..."
+          ? "Guardando…"
           : isExistingPet
-            ? "Update & Continue"
-            : "Save & Continue"}
+            ? "Actualizar y continuar"
+            : "Guardar y continuar"}
       </button>
       {hint && (
         <p className="mt-2 text-xs text-slate-400 text-center">{hint}</p>

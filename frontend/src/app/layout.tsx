@@ -31,7 +31,7 @@ const MATERIAL_SYMBOLS_WOFF2 =
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: "ClawPuzzle",
-  description: "Capture your pet's soul in art with our personalized gifts.",
+  description: "Rompecabezas personalizados con el arte de tu mascota, impresos en MDF de 3 mm y enviados a todo Ecuador.",
 };
 
 export default function RootLayout({
@@ -57,7 +57,7 @@ export default function RootLayout({
     // declara. Con las clases en <body>, --font-lato no existía en :root, la
     // variable quedaba inválida y toda la web caía al sans del sistema.
     <html
-      lang="en"
+      lang="es"
       className={`light ${epilogue.variable} ${lato.variable}`}
     >
       <head>

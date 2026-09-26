@@ -79,15 +79,15 @@ export default function ArtProductTemplate({
             id: "process",
             node: (
               <AIProcess
-                eyebrow="HOW TO USE"
+                eyebrow="Cómo funciona"
                 // Derivado de los pasos: el coloreable suma un cuarto y el copy
                 // no puede quedarse en "3".
-                title={`Get your custom pet portrait in ${processSteps.length} easy steps`}
+                title={`Tu rompecabezas personalizado en ${processSteps.length} pasos`}
                 subtitle={
                   <>
-                    Watch your pet become a masterpiece in seconds.
+                    Mira a tu mascota convertida en arte en segundos.
                     <br />
-                    Try it free before you buy.
+                    La vista previa es gratis.
                   </>
                 }
                 steps={processSteps}
@@ -99,7 +99,7 @@ export default function ArtProductTemplate({
             when: sameStyleItems.length > 0,
             node: (
               <ExpandingGallery
-                eyebrow={styleName ?? "Same style"}
+                eyebrow={styleName ?? "Mismo estilo"}
                 title={sameStyleGalleryTitle()}
                 items={sameStyleItems}
                 background=""

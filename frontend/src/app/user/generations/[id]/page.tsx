@@ -2,7 +2,7 @@ import { Container } from "@/shared/ui/Container";
 import { GenerationDetail } from "@/widgets/user-dashboard/ui/GenerationDetail";
 
 export const metadata = {
-  title: "Artwork — ClawPuzzle",
+  title: "Mi arte · ClawPuzzle",
 };
 
 export default async function UserGenerationDetailPage({

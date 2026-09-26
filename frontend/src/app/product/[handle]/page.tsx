@@ -54,13 +54,13 @@ export default function ProductDetail({
         <div className="grow flex items-center justify-center">
           <div className="text-center">
             <h1 className="font-display text-4xl font-black text-text-main mb-4">
-              Product Not Found
+              Producto no encontrado
             </h1>
             <Link
               href="/catalog"
               className="text-primary font-bold hover:underline"
             >
-              Back to Shop
+              Volver a la tienda
             </Link>
           </div>
         </div>
@@ -71,20 +71,20 @@ export default function ProductDetail({
 
   const faqs = [
     {
-      q: "What kind of photo works best?",
-      a: "Clear, high-resolution photos with natural lighting work best. Make sure your pet's face is clearly visible and not blurry.",
+      q: "¿Qué tipo de foto funciona mejor?",
+      a: "Las fotos claras, en buena resolución y con luz natural funcionan mejor. Asegúrate de que la cara de tu mascota se vea bien y sin movimiento.",
     },
     {
-      q: "Can I see the art before I buy?",
-      a: "Absolutely! Our AI generator allows you to preview the artistic transformation for free before adding the product to your cart.",
+      q: "¿Puedo ver el arte antes de comprar?",
+      a: "¡Claro! La vista previa es gratis: ves el resultado antes de pedir tu rompecabezas.",
     },
     {
-      q: "How long does shipping take?",
-      a: "Since each item is custom-made, production takes 3-5 business days. Shipping usually takes another 5-7 days depending on your location.",
+      q: "¿Cuánto tarda en llegar?",
+      a: "Cada rompecabezas se hace bajo pedido: la producción toma 3 días y la entrega unos 3 días más, según tu ciudad. Enviamos a todo Ecuador.",
     },
     {
-      q: "Is the AI art unique?",
-      a: "Yes. No two transformations are identical. The AI processes each photo uniquely to ensure your art is as one-of-a-kind as your pet.",
+      q: "¿El arte con IA es único?",
+      a: "Sí. No hay dos resultados iguales: la IA trabaja cada foto por separado para que tu arte sea tan único como tu mascota.",
     },
   ];
 

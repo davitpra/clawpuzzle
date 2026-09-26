@@ -13,7 +13,7 @@ export default function BrandBanner() {
           ClawPuzzle
         </p>
         <p className="mt-5 text-base font-bold uppercase tracking-wide text-slate-dark md:text-lg">
-          Love with claws care with soul
+          Tu mejor amigo, pieza por pieza
         </p>
       </Container>
     </div>

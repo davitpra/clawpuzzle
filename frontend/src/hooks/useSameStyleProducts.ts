@@ -114,7 +114,7 @@ export function useSameStyleProducts(
               name: bp.displayName,
               desc: bp.description ?? "",
               price: minPrice
-                ? new Intl.NumberFormat("en-US", {
+                ? new Intl.NumberFormat("es-EC", {
                     style: "currency",
                     currency: minPrice.currencyCode,
                   }).format(parseFloat(minPrice.amount))
@@ -131,7 +131,7 @@ export function useSameStyleProducts(
       .catch((err) => {
         if (cancelled) return;
         console.error("useSameStyleProducts error:", err);
-        setResult({ key, products: [], error: "Failed to load products." });
+        setResult({ key, products: [], error: "No se pudieron cargar los productos." });
       });
 
     return () => {

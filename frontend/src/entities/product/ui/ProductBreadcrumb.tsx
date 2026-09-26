@@ -22,7 +22,7 @@ export default function ProductBreadcrumb({
   )?.node;
 
   const crumbs: Crumb[] = [
-    { label: "Home", href: "/" },
+    { label: "Inicio", href: "/" },
     { label: "Catalog", href: "/catalog" },
     ...(collection
       ? [

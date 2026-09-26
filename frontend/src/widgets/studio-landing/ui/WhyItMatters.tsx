@@ -2,37 +2,37 @@ import Image from "next/image";
 import { Container } from "@/shared/ui/Container";
 
 const COMPARISON = [
-  "Made from your pet's photo",
-  "Instant digital delivery",
-  "Print it anytime, anywhere",
-  "Affordable and meaningful",
+  "Hecho con la foto de tu mascota",
+  "Vista previa gratis antes de pagar",
+  "MDF resistente de 3 mm",
+  "Envíos a todo Ecuador",
 ];
 
 const BENEFITS = [
   {
-    title: "Truly Personal",
+    title: "Único de verdad",
     text: (
       <>
-        Every design is made from <em>your</em> pet&apos;s photo, not a generic
-        template.
+        Cada diseño nace de la foto de <em>tu</em> mascota, no de una plantilla
+        genérica.
       </>
     ),
   },
   {
-    title: "Fast & Easy",
-    text: "Get your custom PDF in hours, ready to print and color.",
+    title: "Lo ves antes de comprar",
+    text: "La vista previa es gratis. Solo pagas si te encanta el resultado.",
   },
   {
-    title: "Print Anywhere, Anytime",
-    text: "Reprint it as many times as you want, whenever you want.",
+    title: "Hecho para durar",
+    text: "Impreso sobre MDF de 3 mm: firme para armarlo una y otra vez.",
   },
   {
-    title: "Affordable Memories",
-    text: "A unique keepsake without spending hundreds on framed art.",
+    title: "Rápido hasta tu puerta",
+    text: "Lo producimos en 3 días y llega en unos 3 días más, según tu ciudad.",
   },
   {
-    title: "Stress-Free Fun",
-    text: "Relax, color, and create a piece you'll treasure forever.",
+    title: "Un plan para compartir",
+    text: "Ármalo en familia y quédate con un recuerdo que se puede tocar.",
   },
 ];
 
@@ -46,7 +46,7 @@ export default function WhyItMatters() {
       <Container>
         <div className="grid grid-cols-1 items-center gap-10 py-14 md:grid-cols-2 md:gap-8 md:py-20">
           <h2 className="text-center font-display text-3xl font-black tracking-tight text-slate-dark md:text-4xl">
-            Why we stand out?
+            ¿Por qué elegirnos?
           </h2>
 
           <div className="mx-auto w-full max-w-md drop-shadow-md">
@@ -70,7 +70,7 @@ export default function WhyItMatters() {
                     scope="col"
                     className="w-16 px-2 pb-3 pt-4 text-sm font-bold sm:w-20"
                   >
-                    Others
+                    Otros
                   </th>
                 </tr>
               </thead>
@@ -90,7 +90,7 @@ export default function WhyItMatters() {
                     </th>
                     <td className="bg-primary text-center">
                       <span
-                        aria-label="Yes"
+                        aria-label="Sí"
                         className="material-symbols-outlined text-[20px] leading-none text-white"
                       >
                         check

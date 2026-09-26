@@ -53,7 +53,7 @@ export function useGenerateImage() {
         const msg =
           err instanceof Error
             ? err.message
-            : "Couldn't start the generation. Please try again.";
+            : "No se pudo iniciar la generación. Inténtalo de nuevo.";
         setError(msg);
         throw err;
       } finally {

@@ -37,7 +37,7 @@ export function ImageZoom({
         classDialog={dialogClassName}
         zoomImg={zoomSrc ? { src: zoomSrc, alt: alt ?? "" } : undefined}
         a11yNameButtonZoom="Zoom image"
-        a11yNameButtonUnzoom="Close zoomed image"
+        a11yNameButtonUnzoom="Cerrar imagen ampliada"
       >
         {children}
       </Zoom>

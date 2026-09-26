@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 
 interface ConfirmDialogProps {
   open: boolean;
-  /** Título de la pregunta (p.ej. "Delete this artwork?"). */
+  /** Título de la pregunta (p. ej. "¿Borrar este arte?"). */
   title: ReactNode;
   /** Texto de apoyo bajo el título. */
   description?: ReactNode;
@@ -37,8 +37,8 @@ export function ConfirmDialog({
   title,
   description,
   children,
-  confirmLabel = "Delete",
-  cancelLabel = "Cancel",
+  confirmLabel = "Borrar",
+  cancelLabel = "Cancelar",
   loadingLabel,
   confirmIcon = "delete",
   destructive = true,
@@ -106,7 +106,7 @@ export function ConfirmDialog({
             <span className="material-symbols-outlined text-[18px]">
               {confirmIcon}
             </span>
-            {loading ? (loadingLabel ?? "Working…") : confirmLabel}
+            {loading ? (loadingLabel ?? "Procesando…") : confirmLabel}
           </button>
         </div>
       </div>

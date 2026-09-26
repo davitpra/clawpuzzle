@@ -19,13 +19,13 @@ export function MyArtworks({ artworks, isLoading, error }: Props) {
     <section className="relative overflow-hidden rounded-xl bg-white p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-black text-text-main">
-          My Artworks
+          Mi arte
         </h2>
         <Link
           href="/user/generations"
           className="text-sm font-bold text-primary hover:text-primary-dark"
         >
-          View all
+          Ver todo
         </Link>
       </div>
 
@@ -51,15 +51,15 @@ export function MyArtworks({ artworks, isLoading, error }: Props) {
           <EmptyState
             headingLevel="h3"
             icon="palette"
-            title="No artworks yet"
-            description="When you create an artwork it will show up here."
+            title="Aún no tienes arte"
+            description="Cuando crees una vista previa aparecerá aquí."
             cta={
               LAUNCH_MODE
                 ? undefined
                 : {
                     href: "/catalog",
                     icon: "auto_awesome",
-                    label: "Create your first artwork",
+                    label: "Crea tu primera vista previa",
                   }
             }
           />

@@ -11,11 +11,11 @@ export function variantLabel(variant: ShopifyVariant): string {
 
 /**
  * Precio formateado para las cards de compra del storefront. El locale es el
- * de la tienda (Canadá), no el del navegador: el importe lo cobra Shopify en
- * CAD y verlo en otro formato al pasar por checkout genera desconfianza.
+ * de la tienda (Ecuador, USD), no el del navegador: verlo en otro formato al
+ * pasar por checkout genera desconfianza.
  */
 export function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-CA", {
+  return new Intl.NumberFormat("es-EC", {
     style: "currency",
     currency: currency || "USD",
   }).format(amount);

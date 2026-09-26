@@ -14,10 +14,10 @@ interface IAStyleStepProps {
 }
 
 const HEADING: LandingStylesHeading = {
-  eyebrow: "Step 1",
-  title: "Choose Your Style",
+  eyebrow: "Paso 1",
+  title: "Elige tu estilo",
   subtitle:
-    "Pick the look you want for your pet. Next, you'll upload the photo we'll turn into art.",
+    "Elige el look que quieres para tu mascota. Después subirás la foto que convertiremos en arte.",
 };
 
 /**

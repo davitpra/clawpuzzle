@@ -1,5 +1,6 @@
 "use client";
 
+import { speciesLabel } from "@/shared/config/species";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/shared/ui/Card";
@@ -16,7 +17,7 @@ function primaryPhotoUrl(pet: UserPet): string | null {
 }
 
 function petDetails(pet: UserPet): string {
-  return [pet.breed, pet.species].filter(Boolean).join(" · ");
+  return [pet.breed, speciesLabel(pet.species)].filter(Boolean).join(" · ");
 }
 
 interface Props {
@@ -42,7 +43,7 @@ export function AllPets({ initialPets }: Props) {
         if (active) setPets(res.data ?? []);
       })
       .catch(() => {
-        if (active) setError("Couldn't load your pets.");
+        if (active) setError("No pudimos cargar tus mascotas.");
       })
       .finally(() => {
         if (active) setIsLoading(false);
@@ -76,8 +77,8 @@ export function AllPets({ initialPets }: Props) {
         {!isLoading && !error && pets.length === 0 && (
           <EmptyState
             icon="pets"
-            title="No pets yet"
-            description="When you add a pet it will show up here."
+            title="Aún no tienes mascotas"
+            description="Cuando agregues una mascota aparecerá aquí."
           />
         )}
 

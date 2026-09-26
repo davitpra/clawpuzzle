@@ -30,13 +30,13 @@ function LoginContent() {
     } catch (err) {
       console.error("Google login error:", err);
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to sign in with Google.";
+        err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
       setError(errorMessage);
     }
   };
 
   const handleGoogleError = () => {
-    setError("Failed to sign in with Google. Please try again.");
+    setError("No se pudo iniciar sesión con Google. Inténtalo de nuevo.");
   };
 
   return (
@@ -49,7 +49,7 @@ function LoginContent() {
             backgroundImage: `url("/images/login-hero.webp")`,
           }}
           role="img"
-          aria-label="Painterly portrait of a dog and cat cuddling together"
+          aria-label="Retrato pintado de un perro y un gato abrazados"
         />
         {/* Brand tint + gradient for legibility */}
         <div className="absolute inset-0 bg-primary/15 mix-blend-multiply" />
@@ -68,10 +68,10 @@ function LoginContent() {
         {/* Welcome message */}
         <div className="absolute inset-x-10 bottom-12 z-10 text-white">
           <h2 className="max-w-md font-display text-4xl font-black leading-tight drop-shadow-md">
-            Your pet&apos;s soul, turned into art
+            Una pieza de tu mejor amigo para tenerla contigo
           </h2>
           <p className="mt-3 max-w-md text-lg text-white/90 drop-shadow-sm">
-            Sign in to keep creating personalized memories that last a lifetime.
+            Inicia sesión para seguir creando recuerdos que se pueden armar.
           </p>
 
           {/* Floating trust card */}
@@ -80,7 +80,7 @@ function LoginContent() {
               ★★★★★
             </span>
             <p className="text-sm font-bold text-slate-dark">
-              Loved by thousands of families
+              Hecho con cariño en Ecuador
             </p>
           </div>
         </div>
@@ -102,10 +102,10 @@ function LoginContent() {
           {/* Header */}
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-3xl font-black leading-tight tracking-tight text-text-main sm:text-4xl">
-              Welcome
+              Te damos la bienvenida
             </h1>
             <p className="text-base text-text-muted">
-              Sign in or create your account with Google to continue.
+              Inicia sesión o crea tu cuenta con Google para continuar.
             </p>
           </div>
 

@@ -154,7 +154,7 @@ export default function UserProfilePage() {
 
     const trimmed = fullName.trim();
     if (!trimmed) {
-      setNameError("Please enter your name.");
+      setNameError("Escribe tu nombre.");
       return;
     }
 
@@ -169,10 +169,10 @@ export default function UserProfilePage() {
         setProfile(res.data);
         setFullName(res.data.fullName ?? "");
       }
-      setNameSuccess("Name updated successfully.");
+      setNameSuccess("Nombre actualizado.");
     } catch (err) {
       setNameError(
-        err instanceof Error ? err.message : "Could not update your name.",
+        err instanceof Error ? err.message : "No se pudo actualizar tu nombre.",
       );
     } finally {
       setSavingName(false);
@@ -185,11 +185,11 @@ export default function UserProfilePage() {
     setPwSuccess("");
 
     if (passwords.newPassword.length < 8) {
-      setPwError("New password must be at least 8 characters.");
+      setPwError("La nueva contraseña debe tener al menos 8 caracteres.");
       return;
     }
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPwError("New passwords do not match.");
+      setPwError("Las contraseñas nuevas no coinciden.");
       return;
     }
 
@@ -203,7 +203,7 @@ export default function UserProfilePage() {
           newPassword: passwords.newPassword,
         }),
       });
-      setPwSuccess("Password updated successfully.");
+      setPwSuccess("Contraseña actualizada.");
       setPasswords({
         currentPassword: "",
         newPassword: "",
@@ -211,7 +211,7 @@ export default function UserProfilePage() {
       });
     } catch (err) {
       setPwError(
-        err instanceof Error ? err.message : "Could not update your password.",
+        err instanceof Error ? err.message : "No se pudo actualizar tu contraseña.",
       );
     } finally {
       setSavingPw(false);
@@ -225,8 +225,8 @@ export default function UserProfilePage() {
       <div className="flex flex-col gap-6">
         {/* Account details */}
         <SectionCard
-          title="Account"
-          description="Your account details. Email changes are coming soon."
+          title="Cuenta"
+          description="Los datos de tu cuenta. Pronto podrás cambiar tu correo."
         >
           <div className="flex flex-col gap-6">
             {/* Identity header */}
@@ -235,13 +235,13 @@ export default function UserProfilePage() {
                 type="button"
                 onClick={avatar.openMenu}
                 className="group relative size-20 shrink-0 overflow-hidden rounded-full"
-                aria-label="Open profile photo options"
+                aria-label="Opciones de foto de perfil"
               >
                 {profile?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={cloudinaryThumb(profile.avatarUrl, 160)}
-                    alt={profile.fullName || "Profile photo"}
+                    alt={profile.fullName || "Foto de perfil"}
                     className="size-full object-cover"
                   />
                 ) : (
@@ -257,7 +257,7 @@ export default function UserProfilePage() {
               </button>
               <div className="flex min-w-0 flex-col items-center gap-1 sm:items-start">
                 <p className="truncate font-display text-lg font-black text-text-main">
-                  {profile?.fullName || user?.fullName || "Your name"}
+                  {profile?.fullName || user?.fullName || "Tu nombre"}
                 </p>
                 {email && (
                   <p className="truncate text-sm text-text-muted">{email}</p>
@@ -276,18 +276,18 @@ export default function UserProfilePage() {
               {nameError && <Alert kind="error" message={nameError} />}
               {nameSuccess && <Alert kind="success" message={nameSuccess} />}
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Full name" icon="person">
+                <Field label="Nombre completo" icon="person">
                   <input
                     name="fullName"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     maxLength={100}
-                    placeholder="Enter your full name"
+                    placeholder="Escribe tu nombre completo"
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Email" icon="mail">
+                <Field label="Correo electrónico" icon="mail">
                   <input
                     type="email"
                     value={email}
@@ -301,7 +301,7 @@ export default function UserProfilePage() {
                 disabled={savingName}
                 className="flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-primary px-5 text-base font-bold text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:self-start sm:px-8"
               >
-                {savingName ? "Saving..." : "Save changes"}
+                {savingName ? "Guardando…" : "Guardar cambios"}
               </button>
             </form>
           </div>
@@ -310,8 +310,8 @@ export default function UserProfilePage() {
         {/* Credits */}
         {!isAdmin && (
           <SectionCard
-            title="Credits"
-            description="Generation credits available on your account."
+            title="Créditos"
+            description="Vistas previas disponibles en tu cuenta."
           >
             <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="inline-flex items-center gap-3 rounded-xl bg-primary/10 px-5 py-4">
@@ -334,7 +334,7 @@ export default function UserProfilePage() {
                 <span className="material-symbols-outlined text-xl">
                   add_shopping_cart
                 </span>
-                Buy credits
+                Comprar créditos
               </Link>
             </div>
           </SectionCard>
@@ -342,13 +342,13 @@ export default function UserProfilePage() {
 
         {/* Password */}
         <SectionCard
-          title="Password"
-          description="Choose a strong password you don't use elsewhere."
+          title="Contraseña"
+          description="Elige una contraseña segura que no uses en otro sitio."
         >
           <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
             {pwError && <Alert kind="error" message={pwError} />}
             {pwSuccess && <Alert kind="success" message={pwSuccess} />}
-            <Field label="Current password" icon="lock">
+            <Field label="Contraseña actual" icon="lock">
               <input
                 name="currentPassword"
                 type={showCurrent ? "text" : "password"}
@@ -359,7 +359,7 @@ export default function UserProfilePage() {
                     currentPassword: e.target.value,
                   })
                 }
-                placeholder="Enter your current password"
+                placeholder="Escribe tu contraseña actual"
                 className={inputClass}
                 required
               />
@@ -373,7 +373,7 @@ export default function UserProfilePage() {
                 </span>
               </button>
             </Field>
-            <Field label="New password" icon="key">
+            <Field label="Nueva contraseña" icon="key">
               <input
                 name="newPassword"
                 type={showNew ? "text" : "password"}
@@ -381,7 +381,7 @@ export default function UserProfilePage() {
                 onChange={(e) =>
                   setPasswords({ ...passwords, newPassword: e.target.value })
                 }
-                placeholder="At least 8 characters"
+                placeholder="Al menos 8 caracteres"
                 className={inputClass}
                 required
               />
@@ -395,7 +395,7 @@ export default function UserProfilePage() {
                 </span>
               </button>
             </Field>
-            <Field label="Confirm new password" icon="shield">
+            <Field label="Confirma la nueva contraseña" icon="shield">
               <input
                 name="confirmPassword"
                 type={showConfirm ? "text" : "password"}
@@ -406,7 +406,7 @@ export default function UserProfilePage() {
                     confirmPassword: e.target.value,
                   })
                 }
-                placeholder="Re-enter your new password"
+                placeholder="Vuelve a escribir la nueva contraseña"
                 className={inputClass}
                 required
               />
@@ -425,7 +425,7 @@ export default function UserProfilePage() {
               disabled={savingPw}
               className="flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-primary px-5 text-base font-bold text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:self-start sm:px-8"
             >
-              {savingPw ? "Updating..." : "Update password"}
+              {savingPw ? "Actualizando…" : "Actualizar contraseña"}
             </button>
           </form>
         </SectionCard>

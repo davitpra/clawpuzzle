@@ -1,131 +1,133 @@
 // TODO (legal): este texto es una base genérica escrita a partir de lo que la
 // app realmente hace (fotos de mascotas, generación con IA, pedidos vía
-// Shopify, descargas digitales). NO es asesoría legal: debe revisarlo un
-// profesional antes de producción, sobre todo las secciones de retención de
-// datos, terceros y derechos del usuario según la jurisdicción de la tienda.
+// Shopify). NO es asesoría legal: debe revisarlo un profesional antes de
+// producción, sobre todo las secciones de retención de datos, terceros y
+// derechos del usuario según la Ley Orgánica de Protección de Datos
+// Personales de Ecuador.
 import type { Metadata } from "next";
 import { LegalPage } from "@/widgets/legal-page";
 import { BRAND } from "@/shared/config/navigation";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · ClawPuzzle",
+  title: "Política de privacidad · ClawPuzzle",
   description:
-    "How ClawPuzzle collects, uses and protects your data — including the pet photos you upload and the artwork you generate.",
+    "Cómo ClawPuzzle recopila, usa y protege tus datos, incluidas las fotos de tu mascota y el arte que generas.",
 };
 
 export default function PrivacyPolicyPage() {
   return (
     <LegalPage
-      title="Privacy Policy"
-      intro="This policy explains what we collect when you use ClawPuzzle, why we collect it, and the control you have over it."
-      lastUpdated="July 30, 2026"
+      title="Política de privacidad"
+      intro="Esta política explica qué datos recopilamos cuando usas ClawPuzzle, para qué los usamos y el control que tienes sobre ellos."
+      lastUpdated="26 de septiembre de 2026"
     >
       <section>
-        <h2>Information we collect</h2>
+        <h2>Datos que recopilamos</h2>
         <ul>
           <li>
-            <strong>Account details</strong> — your name, email address and
-            password when you create an account, or the basic profile Google
-            shares with us if you sign in with Google.
+            <strong>Datos de tu cuenta</strong>: tu nombre y correo
+            electrónico, o el perfil básico que Google comparte con nosotros si
+            inicias sesión con Google.
           </li>
           <li>
-            <strong>Photos and pet details</strong> — the images you upload to
-            the Studio or the AI generator, plus any pet name or notes you save
-            alongside them.
+            <strong>Fotos y datos de tu mascota</strong>: las imágenes que
+            subes al generador de arte, junto con el nombre y los datos de tu
+            mascota que guardes con ellas.
           </li>
           <li>
-            <strong>Generated artwork</strong> — the portraits and
-            paint-by-numbers templates created from your photos, stored so you
-            can find them again in your account.
+            <strong>Arte generado</strong>: las vistas previas creadas a partir
+            de tus fotos, guardadas para que puedas encontrarlas en tu cuenta.
           </li>
           <li>
-            <strong>Order information</strong> — what you bought, your shipping
-            address and order status. Payments are processed by Shopify; we
-            never see or store your full card details.
+            <strong>Datos de tus pedidos</strong>: lo que compraste, tu
+            dirección de envío y el estado del pedido. Los pagos los procesa
+            Shopify; nunca vemos ni guardamos los datos completos de tu tarjeta.
           </li>
           <li>
-            <strong>Technical data</strong> — session information and basic
-            usage data needed to keep you signed in and to keep the service
-            running.
+            <strong>Datos técnicos</strong>: información de sesión y datos
+            básicos de uso necesarios para mantener tu sesión abierta y que el
+            servicio funcione.
           </li>
         </ul>
       </section>
 
       <section>
-        <h2>How we use it</h2>
+        <h2>Cómo los usamos</h2>
         <p>
-          We use your information to create the artwork you ask for, to keep it
-          available in your account, to fulfil and support your orders, and to
-          answer you when you contact us. We do not sell your personal data, and
-          we do not use your photos for advertising.
+          Usamos tus datos para crear el arte que nos pides, mantenerlo
+          disponible en tu cuenta, fabricar y atender tus pedidos, y
+          responderte cuando nos escribes. No vendemos tus datos personales ni
+          usamos tus fotos para publicidad.
         </p>
       </section>
 
       <section>
-        <h2>Service providers</h2>
+        <h2>Proveedores de servicio</h2>
         <p>
-          Some parts of the service run on third parties acting on our behalf:
-          Shopify for the store and checkout, Cloudinary for image hosting, and
-          the AI providers that generate your artwork. They only receive what
-          they need to perform their function.
+          Algunas partes del servicio funcionan con terceros que actúan en
+          nuestro nombre: Shopify para la tienda y el pago, Cloudinary para
+          alojar las imágenes y los proveedores de IA que generan tu arte. Solo
+          reciben lo que necesitan para cumplir su función.
         </p>
       </section>
 
       <section>
-        <h2>Keeping your data</h2>
+        <h2>Conservación de tus datos</h2>
         <p>
-          Your photos, artwork and orders stay in your account until you delete
-          them or ask us to close your account. Order records may be kept longer
-          when accounting or tax rules require it.
+          Tus fotos, tu arte y tus pedidos permanecen en tu cuenta hasta que los
+          borres o nos pidas cerrar tu cuenta. Los registros de pedidos pueden
+          conservarse más tiempo cuando lo exigen normas contables o
+          tributarias.
         </p>
       </section>
 
       <section>
-        <h2>Your choices</h2>
+        <h2>Tus opciones</h2>
         <p>
-          You can view and edit your details from your account profile, delete
-          saved pets and artwork at any time, and ask us to delete your account
-          entirely. Write to{" "}
+          Puedes ver y editar tus datos desde tu perfil, borrar mascotas y arte
+          guardados cuando quieras y pedirnos que eliminemos tu cuenta por
+          completo. Escribe a{" "}
           <a
             className="text-primary underline hover:text-primary-dark transition-colors"
             href={`mailto:${BRAND.email}`}
           >
             {BRAND.email}
           </a>{" "}
-          and we will handle it.
+          y nos encargamos.
         </p>
       </section>
 
       <section>
-        <h2>Security</h2>
+        <h2>Seguridad</h2>
         <p>
-          Sessions are held in httpOnly cookies so they are not readable by
-          scripts in your browser, and access tokens are short-lived. No system
-          is perfect, but we take reasonable measures to protect your account.
+          Las sesiones se guardan en cookies httpOnly, que los scripts de tu
+          navegador no pueden leer, y los tokens de acceso duran poco. Ningún
+          sistema es perfecto, pero tomamos medidas razonables para proteger tu
+          cuenta.
         </p>
       </section>
 
       <section>
-        <h2>Children</h2>
+        <h2>Menores de edad</h2>
         <p>
-          ClawPuzzle is not directed at children under 13, and we do not
-          knowingly collect their personal information.
+          ClawPuzzle no está dirigido a menores de 13 años y no recopilamos
+          sus datos personales de forma intencional.
         </p>
       </section>
 
       <section>
-        <h2>Changes to this policy</h2>
+        <h2>Cambios en esta política</h2>
         <p>
-          If we make a meaningful change we will update the date at the top of
-          this page. Continuing to use the service after a change means you
-          accept the updated policy.
+          Si hacemos un cambio importante, actualizaremos la fecha al inicio de
+          esta página. Seguir usando el servicio después de un cambio significa
+          que aceptas la política actualizada.
         </p>
       </section>
 
       <section>
-        <h2>Contact</h2>
+        <h2>Contacto</h2>
         <p>
-          Questions about this policy? Email{" "}
+          ¿Preguntas sobre esta política? Escribe a{" "}
           <a
             className="text-primary underline hover:text-primary-dark transition-colors"
             href={`mailto:${BRAND.email}`}

@@ -4,15 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
-import {
-  DIFFICULTY_LABELS,
-  type StyleDifficulty,
-} from "@/entities/art-style/model/difficulty";
 
 interface LandingStyleCardProps {
   id: string;
   displayName: string;
-  difficulty: StyleDifficulty;
   artUrl: string;
   artAlt: string;
   /**
@@ -31,7 +26,6 @@ const posterClasses =
 export function LandingStyleCard({
   id,
   displayName,
-  difficulty,
   artUrl,
   artAlt,
   onSelect,
@@ -45,7 +39,7 @@ export function LandingStyleCard({
       >
         {imageFailed ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm font-bold text-slate-dark/55">
-            Preview unavailable
+            Vista previa no disponible
           </div>
         ) : (
           <Image
@@ -57,11 +51,6 @@ export function LandingStyleCard({
             onError={() => setImageFailed(true)}
           />
         )}
-
-        <span className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-          <span className="material-symbols-outlined text-[14px]">brush</span>
-          {DIFFICULTY_LABELS[difficulty]}
-        </span>
       </div>
 
       <p className="text-center font-bold text-slate-dark">{displayName}</p>
@@ -70,13 +59,13 @@ export function LandingStyleCard({
           type="button"
           onClick={() => onSelect(id)}
           className={`${overlayClasses} cursor-pointer`}
-          aria-label={`Choose the ${displayName} style`}
+          aria-label={`Elegir el estilo ${displayName}`}
         />
       ) : (
         <Link
           href={`/create?style_id=${encodeURIComponent(id)}`}
           className={overlayClasses}
-          aria-label={`Create your pet portrait in the ${displayName} style`}
+          aria-label={`Crear el rompecabezas de tu mascota en estilo ${displayName}`}
         />
       )}
     </article>
