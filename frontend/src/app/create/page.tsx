@@ -528,6 +528,9 @@ function IAGeneratorContent() {
               generationId={generationId}
               styleName={style?.name ?? null}
               offer={puzzleOffer}
+              styleImage={style?.img ?? null}
+              formatWidth={productInfo?.formatWidth ?? null}
+              formatHeight={productInfo?.formatHeight ?? null}
               onRetry={lastPayload ? handleRetry : undefined}
               retrying={retrying}
               retryError={retryError}

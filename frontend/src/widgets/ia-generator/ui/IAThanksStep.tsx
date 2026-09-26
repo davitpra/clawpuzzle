@@ -3,20 +3,14 @@
 import { useState } from "react";
 import { Container } from "@/shared/ui/Container";
 import { useRouter } from "next/navigation";
-import { SetLighting } from "@/entities/product/ui/SetLighting";
 import { toFrameStyle } from "@/entities/product/lib/frameStyle";
-import { setArtworkFilter } from "@/entities/product/lib/setLighting";
 import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
 import { useCart } from "@/context/CartContext";
 import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
-
-// Escala de la imagen del producto centrada según el formato elegido. Tuneables:
-const BASE_WIDTH_PCT = 90; // % del panel que ocupa el lado mayor del formato de referencia
-const REFERENCE_MAX_CM = 50; // lado (cm) del formato que alcanza BASE_WIDTH_PCT
-const MIN_SCALE = 0.4; // el formato más pequeño nunca baja de esto
+import { FormatArtwork } from "./FormatArtwork";
 
 interface IAThanksStepProps {
   generationId?: string | null;
@@ -101,66 +95,18 @@ export function IAThanksStep({
     }
   };
 
-  // El cuadro adopta la proporción real del formato y escala con su tamaño
-  // físico (lado mayor). Sin dimensiones válidas caemos al ancho base con la
-  // proporción natural de la imagen.
-  const hasDims =
-    !!formatWidth && !!formatHeight && formatWidth > 0 && formatHeight > 0;
-  let widthPct = BASE_WIDTH_PCT;
-  let aspectRatio: string | undefined;
-  if (hasDims) {
-    const w = formatWidth as number;
-    const h = formatHeight as number;
-    const longSide = Math.max(w, h);
-    const scale = Math.min(Math.max(longSide / REFERENCE_MAX_CM, MIN_SCALE), 1);
-    // El lado mayor ocupa la misma huella sin importar la orientación: en
-    // retrato es la altura, así que reducimos el ancho por (w/h).
-    widthPct =
-      w >= h ? BASE_WIDTH_PCT * scale : BASE_WIDTH_PCT * scale * (w / h);
-    aspectRatio = `${w} / ${h}`;
-  }
-
   return (
     <main className="grow flex flex-col bg-white">
       <section>
         {/* Left — image, half screen */}
         <Container>
           <div className="flex-1 flex flex-col md:flex-row animate-in fade-in duration-700">
-            <div className="w-full md:w-1/2 bg-white flex items-center justify-center min-h-72 md:min-h-0">
-              <div className="relative flex items-center justify-center overflow-hidden bg-white w-full max-w-2xl aspect-3/4 max-h-screen">
-                {displayImage && (
-                  // Imagen del producto centrada y escalada a la proporción y al
-                  // tamaño del formato elegido. Conserva sombra + lienzo + luz.
-                  <SetLighting
-                    style={{
-                      width: `${widthPct}%`,
-                      ...(aspectRatio ? { aspectRatio } : {}),
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      key={displayImage}
-                      src={displayImage}
-                      alt="Tu arte personalizado"
-                      loading="lazy"
-                      decoding="async"
-                      className={`animate-in fade-in duration-700 ${
-                        aspectRatio
-                          ? "block h-full w-full object-cover"
-                          : "block h-auto w-full"
-                      }`}
-                      style={setArtworkFilter}
-                    />
-                    {isGenerating && (
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 animate-pulse bg-white/40"
-                      />
-                    )}
-                  </SetLighting>
-                )}
-              </div>
-            </div>
+            <FormatArtwork
+              image={displayImage ?? null}
+              formatWidth={formatWidth}
+              formatHeight={formatHeight}
+              isGenerating={isGenerating}
+            />
 
             {/* Right — text content, half screen */}
             <div className="w-full md:w-1/2 flex items-center justify-center px-10 py-14 bg-white">
