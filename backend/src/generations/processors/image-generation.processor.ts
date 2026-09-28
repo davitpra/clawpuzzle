@@ -1,6 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { ApiError } from '@fal-ai/client';
 import { Pet, PetPhoto, Format } from '@prisma/client';
 import { GenerationsService } from '../generations.service';
 import { StrategyRegistry } from '../pipeline/strategy.registry';
@@ -130,8 +131,16 @@ export class ImageGenerationProcessor extends WorkerHost {
         );
       }
     } catch (error) {
-      const errorMessage =
+      let errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+      // fal solo pone el status en `message`; el motivo real viene en `body`.
+      if (error instanceof ApiError && error.body) {
+        errorMessage = `${errorMessage}: ${JSON.stringify(error.body)}`.slice(
+          0,
+          1000,
+        );
+        this.logger.error(`[${generationId}] fal error body: ${errorMessage}`);
+      }
       this.logger.error(
         `Image generation failed: ${generationId}`,
         error instanceof Error ? error.stack : undefined,

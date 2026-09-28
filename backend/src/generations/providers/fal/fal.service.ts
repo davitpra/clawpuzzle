@@ -33,6 +33,47 @@ interface FalResponse {
   image?: FalImage;
 }
 
+// Modelos que validan `aspect_ratio` contra una lista cerrada (fal da 422 si
+// no está). Un formato fuera de la lista (p. ej. A3 = 5:7) se genera en la
+// proporción soportada más cercana; el print master recorta después a la
+// proporción exacta de impresión.
+const SUPPORTED_ASPECT_RATIOS: { prefix: string; ratios: string[] }[] = [
+  {
+    prefix: 'fal-ai/nano-banana',
+    ratios: [
+      '21:9',
+      '16:9',
+      '3:2',
+      '4:3',
+      '5:4',
+      '1:1',
+      '4:5',
+      '3:4',
+      '2:3',
+      '9:16',
+    ],
+  },
+];
+
+function ratioValue(ratio: string): number | null {
+  const [w, h] = ratio.split(':').map(Number);
+  return w > 0 && h > 0 ? w / h : null;
+}
+
+/** Devuelve la proporción soportada por `model` más cercana a `ratio`. */
+export function snapAspectRatio(model: string, ratio: string): string {
+  const entry = SUPPORTED_ASPECT_RATIOS.find((e) => model.startsWith(e.prefix));
+  const target = ratioValue(ratio);
+  if (!entry || entry.ratios.includes(ratio) || target === null) return ratio;
+  // Distancia en escala logarítmica: 2:1 y 1:2 quedan igual de lejos de 1:1.
+  return entry.ratios.reduce((best, candidate) =>
+    Math.abs(Math.log(ratioValue(candidate)! / target)) <
+    Math.abs(Math.log(ratioValue(best)! / target))
+      ? candidate
+      : best,
+  );
+}
+
 @Injectable()
 export class FalService {
   private readonly logger = new Logger(FalService.name);
@@ -42,6 +83,16 @@ export class FalService {
   }
 
   async generate(input: FalGenerateInput): Promise<FalGenerateResult> {
+    if (input.aspectRatio) {
+      const snapped = snapAspectRatio(input.model, input.aspectRatio);
+      if (snapped !== input.aspectRatio) {
+        this.logger.log(
+          `${input.model} no admite aspect_ratio=${input.aspectRatio}; se usa ${snapped}`,
+        );
+        input = { ...input, aspectRatio: snapped };
+      }
+    }
+
     this.logger.log(
       `Generating with ${input.model} | aspectRatio=${input.aspectRatio ?? '-'} | imageSize=${input.imageSize ? `${input.imageSize.width}x${input.imageSize.height}` : '-'} | images=${input.imageUrls?.length ?? 0}`,
     );
