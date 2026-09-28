@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsInt,
   IsBoolean,
+  Matches,
   MaxLength,
   Min,
   Max,
@@ -24,6 +25,12 @@ export class CreateVisionConfigDto {
   @ApiProperty({ example: 'google/gemini-2.5-flash', required: false })
   @IsOptional()
   @IsString()
+  // Va como `model` a fal `openrouter/router/vision`: debe ser un modelo de
+  // OpenRouter, no la ruta del endpoint ni un modelo de fal (OpenRouter da 400).
+  @Matches(/^(?!openrouter\/router\b|fal-ai\/)[\w.-]+\/[\w.:-]+$/, {
+    message:
+      'visionModel debe ser un modelo de OpenRouter, p. ej. google/gemini-2.5-flash',
+  })
   visionModel?: string;
 
   @ApiProperty({ example: 0.7, required: false })
