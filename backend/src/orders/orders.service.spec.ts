@@ -147,7 +147,11 @@ describe('OrdersService', () => {
       }
     ).reverseCreditsForItems(orderId, itemIds);
 
-  const ingestLine = (orderUserId: string | null, financialStatus: string) =>
+  const ingestLine = (
+    orderUserId: string | null,
+    financialStatus: string,
+    properties = [{ name: 'generation_id', value: 'generation-1' }],
+  ) =>
     (
       service as unknown as {
         ingestLineItem: (
@@ -173,7 +177,7 @@ describe('OrdersService', () => {
         quantity: 1,
         price: '25.00',
         total_discount: '0.00',
-        properties: [{ name: 'generation_id', value: 'generation-1' }],
+        properties,
       },
       financialStatus,
     );
@@ -214,6 +218,25 @@ describe('OrdersService', () => {
         data: expect.objectContaining({
           generationId: 'generation-1',
           productionStatus: 'draft',
+        }),
+      });
+    });
+
+    it('reads the hidden _generation_id and _image_url attributes', async () => {
+      mockPrisma.generation.findFirst.mockResolvedValue({
+        id: 'generation-1',
+        status: 'completed',
+      });
+
+      await ingestLine('order-user', 'paid', [
+        { name: '_generation_id', value: 'generation-1' },
+        { name: '_image_url', value: 'https://example.com/art.png' },
+      ]);
+
+      expect(mockPrisma.orderItem.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          generationId: 'generation-1',
+          imageUrl: 'https://example.com/art.png',
         }),
       });
     });

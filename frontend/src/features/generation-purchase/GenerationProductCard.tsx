@@ -22,7 +22,7 @@ interface GenerationProductCardProps {
   /** Producto de origen ya resuelto por {@link useGenerationProduct}. */
   source: UseGenerationProductResult;
   generationId: string;
-  /** La obra generada: miniatura de la card y `image_url` de la línea de carrito. */
+  /** La obra generada: miniatura de la card y `_image_url` de la línea de carrito. */
   artworkUrl: string;
   /** Label del tipo de producto, que el consumidor arma con `template`. */
   productLabel: string;
@@ -35,7 +35,7 @@ interface GenerationProductCardProps {
  * póster que el cliente eligió antes de generar), mostrada en el detalle de la
  * obra. Vende ese producto con la obra del usuario: la línea de carrito viaja
  * con `generationId` + `imageUrl`, que el checkout convierte en las propiedades
- * `generation_id` / `image_url` y el webhook de órdenes usa para reasociar el
+ * `_generation_id` / `_image_url` y el webhook de órdenes usa para reasociar el
  * arte — el mismo contrato que ya usa el flujo de creación.
  *
  * En modo lanzamiento `/cart` está bloqueado, así que el botón va directo al

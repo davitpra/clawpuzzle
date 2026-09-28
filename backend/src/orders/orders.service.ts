@@ -101,7 +101,7 @@ export class OrdersService {
     // (fallback for guest checkouts whose email doesn't match an account).
     const genIds = payload.line_items
       .flatMap((li) => li.properties)
-      .filter((p) => p.name === 'generation_id')
+      .filter((p) => p.name === '_generation_id' || p.name === 'generation_id')
       .map((p) => p.value);
 
     if (!userId && genIds.length > 0) {
@@ -569,8 +569,10 @@ export class OrdersService {
     const attrs = Object.fromEntries(
       lineItem.properties.map((p) => [p.name, p.value]),
     );
-    const generationIdAttr = attrs['generation_id'] ?? null;
-    const imageUrl = attrs['image_url'] ?? null;
+    // Con "_" Shopify los oculta al cliente; sin prefijo = carritos anteriores.
+    const generationIdAttr =
+      attrs['_generation_id'] ?? attrs['generation_id'] ?? null;
+    const imageUrl = attrs['_image_url'] ?? attrs['image_url'] ?? null;
     const style = attrs['Style'] ?? attrs['style'] ?? null;
     const size = attrs['Size'] ?? attrs['size'] ?? null;
 

@@ -89,7 +89,7 @@ export function IAGeneratingStep({
       price: Number.parseFloat(offer.price) || 0,
       quantity: 1,
       img: offer.productImage,
-      // generation_id + image_url viajan como attributes de la línea: el
+      // _generation_id + _image_url viajan como attributes de la línea: el
       // webhook de órdenes los usa para asociar el arte al pedido.
       generationId,
       imageUrl,

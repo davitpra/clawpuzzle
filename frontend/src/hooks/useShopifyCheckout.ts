@@ -25,7 +25,7 @@ export interface CheckoutResult {
  * Fuente única del flujo de checkout de Shopify, compartida por la página de
  * carrito (`/cart`) y la pantalla de agradecimiento del generador IA. Arma las
  * líneas del carrito (con los attributes que lee el webhook de órdenes:
- * `_user_id`, `generation_id`, `image_url`, etc.), crea el carrito en Shopify,
+ * `_user_id`, `_generation_id`, `_image_url`, etc.), crea el carrito en Shopify,
  * vacía nuestro carrito local y redirige a la URL de checkout.
  *
  * `startCheckout` admite una lista de items explícita para vender algo sin
@@ -56,14 +56,16 @@ export function useShopifyCheckout() {
           ...(isAuthenticated && user
             ? [{ key: "_user_id", value: user.id }]
             : []),
+          // Los ids y la URL de la obra también llevan "_": el webhook los
+          // necesita, pero al cliente no le dicen nada en el checkout.
           ...(item.paintByNumbersId
-            ? [{ key: "paint_by_numbers_id", value: item.paintByNumbersId }]
+            ? [{ key: "_paint_by_numbers_id", value: item.paintByNumbersId }]
             : []),
           ...(item.generationId
-            ? [{ key: "generation_id", value: item.generationId }]
+            ? [{ key: "_generation_id", value: item.generationId }]
             : []),
           ...(item.generationId && item.imageUrl
-            ? [{ key: "image_url", value: item.imageUrl }]
+            ? [{ key: "_image_url", value: item.imageUrl }]
             : []),
         ];
         return {
