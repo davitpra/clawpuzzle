@@ -78,12 +78,16 @@ export interface PublicStyleWithArt {
 }
 
 /**
- * Empareja cada estilo con su imagen de muestra (`orderIndex === 0`) y descarta
- * los que no tienen: una card sin imagen no le enseña nada al visitante.
+ * Empareja cada estilo con su imagen de muestra —la primaria o, si no hay, la
+ * primera en orden, como `derivePreviewUrl` del backend— y descarta los que no
+ * tienen imágenes: una card sin imagen no le enseña nada al visitante. No se
+ * exige `orderIndex === 0`: al borrar imágenes en el admin los índices quedan
+ * con huecos y el estilo desaparecía de la landing.
  */
 export function withPreviewArt(styles: PublicStyle[]): PublicStyleWithArt[] {
   return styles.flatMap((style) => {
-    const art = style.images.find((image) => image.orderIndex === 0);
+    const art =
+      style.images.find((image) => image.isPrimary) ?? style.images[0];
     if (!art) return [];
 
     return [{ style, art }];
