@@ -358,7 +358,7 @@ export class StylesService {
       petSpecies?: string;
       petBreed?: string;
     },
-    aspectRatio?: string,
+    sizing: { aspectRatio?: string; formatId?: string },
     userSelections?: Record<string, string | number>,
   ) {
     const style = await this.prisma.style.findUnique({
@@ -422,12 +422,25 @@ export class StylesService {
       throw new BadRequestException('Provide either a file or a petPhotoId');
     }
 
+    // Con formato, la generación lleva su `formatId` y el pipeline pide sus
+    // píxeles exactos (`resolveImageSize`); un `aspectRatio` lo anularía, así
+    // que el formato manda.
+    const { formatId } = sizing;
+    const aspectRatio = formatId ? undefined : sizing.aspectRatio;
+    if (formatId) {
+      const format = await this.prisma.format.findUnique({
+        where: { id: formatId },
+      });
+      if (!format) throw new NotFoundException('Format not found');
+    }
+
     const generation = await this.prisma.generation.create({
       data: {
         userId: adminUserId,
         petId: resolvedPetId,
         petPhotoId: resolvedPetPhotoId,
         styleId,
+        formatId: formatId ?? null,
         type: 'image',
         status: 'pending',
         prompt: style.promptTemplate,

@@ -228,6 +228,11 @@ export class AdminStylesController {
         petSpecies: { type: 'string' },
         petBreed: { type: 'string' },
         aspectRatio: { type: 'string', example: '1:1' },
+        formatId: {
+          type: 'string',
+          description:
+            'ID of a Format; generates at its exact width/height (overrides aspectRatio)',
+        },
         userSelections: {
           type: 'string',
           description: 'JSON-encoded Record<string, string|number>',
@@ -251,6 +256,7 @@ export class AdminStylesController {
     @Body('petSpecies') petSpecies?: string,
     @Body('petBreed') petBreed?: string,
     @Body('aspectRatio') aspectRatio?: string,
+    @Body('formatId') formatId?: string,
     @Body('userSelections') userSelectionsJson?: string,
   ) {
     if (!file && !petPhotoId) {
@@ -288,7 +294,10 @@ export class AdminStylesController {
         petSpecies: petSpecies || undefined,
         petBreed: petBreed || undefined,
       },
-      aspectRatio || undefined,
+      {
+        aspectRatio: aspectRatio || undefined,
+        formatId: formatId || undefined,
+      },
       userSelections,
     );
   }

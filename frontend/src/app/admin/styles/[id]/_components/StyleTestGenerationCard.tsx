@@ -18,9 +18,17 @@ import {
   Popover,
 } from "@shopify/polaris";
 import { PlusIcon } from "@shopify/polaris-icons";
-import type { AdminStyle, AdminPet } from "@/entities/admin/api";
+import type {
+  AdminStyle,
+  AdminPet,
+  AdminFormat,
+} from "@/entities/admin/api";
 import { hexToHsb, hsbToHex, type HsbColor } from "@/lib/colorUtils";
 import type { TemplateVarOption } from "../templateVars";
+
+// Prefijo que distingue un formato del catálogo de un aspect ratio suelto en
+// el select "Formato de imagen".
+export const FORMAT_PREFIX = "format:";
 
 // Card "Generar imagen de prueba": selección de mascota/foto, formato, opciones
 // del template y disparo de la generación. Incluye el modal de nueva mascota.
@@ -45,6 +53,7 @@ export function StyleTestGenerationCard({
   onUploadPetPhoto,
   testAspectRatio,
   setTestAspectRatio,
+  formats,
   userSelections,
   updateSelection,
   colorHsbs,
@@ -83,6 +92,7 @@ export function StyleTestGenerationCard({
   onUploadPetPhoto: (e: React.ChangeEvent<HTMLInputElement>) => void;
   testAspectRatio: string;
   setTestAspectRatio: Dispatch<SetStateAction<string>>;
+  formats: AdminFormat[];
   userSelections: Record<string, string | number>;
   updateSelection: (key: string, value: string | number) => void;
   colorHsbs: Record<string, HsbColor>;
@@ -285,6 +295,10 @@ export function StyleTestGenerationCard({
                   { label: "2:3 — retrato vertical", value: "2:3" },
                   { label: "16:9 — landscape", value: "16:9" },
                   { label: "9:16 — vertical / stories", value: "9:16" },
+                  ...formats.map((f) => ({
+                    label: `Formato ${f.displayName} — ${f.width}×${f.height}px`,
+                    value: `${FORMAT_PREFIX}${f.id}`,
+                  })),
                 ]}
                 value={testAspectRatio}
                 onChange={setTestAspectRatio}

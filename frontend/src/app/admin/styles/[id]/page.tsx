@@ -43,6 +43,7 @@ import {
   AdminVisionConfig,
   AdminImageGenConfig,
   AdminPet,
+  AdminFormat,
 } from "@/entities/admin/api";
 import { useAdminGenerationStatus } from "@/hooks/useAdminGenerationStatus";
 import { hexToHsb, type HsbColor } from "@/lib/colorUtils";
@@ -53,7 +54,10 @@ import {
   EXAMPLE_TEMPLATE_VAR_OPTIONS,
   validateTemplateVarOptions,
 } from "./templateVars";
-import { StyleTestGenerationCard } from "./_components/StyleTestGenerationCard";
+import {
+  StyleTestGenerationCard,
+  FORMAT_PREFIX,
+} from "./_components/StyleTestGenerationCard";
 import { StyleImageViewerModal } from "./_components/StyleImageViewerModal";
 import { SortableImageTile, UploadTile } from "./_components/StyleImageTiles";
 
@@ -128,7 +132,10 @@ export default function AdminStyleDetailPage() {
   const [testGenRunning, setTestGenRunning] = useState(false);
   const [testGenError, setTestGenError] = useState<string | null>(null);
   const [testGenSuccess, setTestGenSuccess] = useState(false);
+  // Valor del select de formato: un aspect ratio ("4:5") o un formato del
+  // catálogo con prefijo FORMAT_PREFIX ("format:<id>").
   const [testAspectRatio, setTestAspectRatio] = useState("4:5");
+  const [formats, setFormats] = useState<AdminFormat[]>([]);
   const [userSelections, setUserSelections] = useState<
     Record<string, string | number>
   >({});
@@ -218,6 +225,15 @@ export default function AdminStyleDetailPage() {
   }, []);
 
   useEffect(() => {
+    adminApi.formats
+      .list()
+      .then((list) => setFormats(list.filter((f) => f.isActive)))
+      .catch(() => {
+        // silent — sin formatos quedan los aspect ratios fijos
+      });
+  }, []);
+
+  useEffect(() => {
     if (!style?.templateVarOptions) return;
     setUserSelections((prev) => {
       const next = { ...prev };
@@ -264,9 +280,14 @@ export default function AdminStyleDetailPage() {
     setTestGenSuccess(false);
     setTestGenRunning(true);
     try {
+      const formatId = testAspectRatio.startsWith(FORMAT_PREFIX)
+        ? testAspectRatio.slice(FORMAT_PREFIX.length)
+        : undefined;
       const result = await adminApi.styles.runTestGeneration(style.id, {
         petPhotoId: selectedPhotoId,
-        aspectRatio: testAspectRatio || undefined,
+        ...(formatId
+          ? { formatId }
+          : { aspectRatio: testAspectRatio || undefined }),
         userSelections,
       });
       setTestGenId(result.generationId);
@@ -788,6 +809,7 @@ export default function AdminStyleDetailPage() {
               uploadingPetPhoto={uploadingPetPhoto}
               onUploadPetPhoto={handleUploadPetPhoto}
               testAspectRatio={testAspectRatio}
+              formats={formats}
               setTestAspectRatio={setTestAspectRatio}
               userSelections={userSelections}
               updateSelection={updateSelection}

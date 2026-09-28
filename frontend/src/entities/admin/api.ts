@@ -1063,6 +1063,8 @@ export const adminApi = {
         petSpecies?: string;
         petBreed?: string;
         aspectRatio?: string;
+        /** Genera a los píxeles exactos del formato; anula `aspectRatio`. */
+        formatId?: string;
         userSelections?: Record<string, string | number>;
       },
     ) => {
@@ -1073,6 +1075,7 @@ export const adminApi = {
       if (options.petSpecies) form.append("petSpecies", options.petSpecies);
       if (options.petBreed) form.append("petBreed", options.petBreed);
       if (options.aspectRatio) form.append("aspectRatio", options.aspectRatio);
+      if (options.formatId) form.append("formatId", options.formatId);
       if (
         options.userSelections &&
         Object.keys(options.userSelections).length > 0
