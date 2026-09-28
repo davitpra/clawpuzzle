@@ -213,7 +213,7 @@ runtime**, no en compilación:
         ningún `#448da6` ni `#367a8f` (hoy: `CreditsBadge` e `IAUploadStep`).
         El admin (Polaris) puede quedarse teal.
 
-- [ ] **5. Assets.** `LandingShowcase` ya muestra el rompecabezas impreso
+- [x] **5. Assets.** `LandingShowcase` ya muestra el rompecabezas impreso
       (`/puzzle/Otto.webp`). Quedan dos, marcados con `TODO(assets)`:
   - [x] La foto del hero (`LandingHero.tsx`): sigue siendo la de ClawAndSoul,
         alguien pintando un PBN. Reemplazarla por una del rompecabezas armado
