@@ -60,6 +60,8 @@ export function useStyle(styleId: string | null): UseStyleResult {
             img:
               data.previewUrl ??
               "https://placehold.co/400x500?text=Style",
+            // El backend ya las devuelve por `orderIndex`, como en la landing.
+            dogImg: data.images?.[1]?.imageUrl ?? null,
             thanksUrl: null,
             templateVarOptions: data.templateVarOptions ?? null,
           },

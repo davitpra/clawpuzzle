@@ -75,6 +75,8 @@ export async function fetchPublicStyles(): Promise<PublicStyle[]> {
 export interface PublicStyleWithArt {
   style: PublicStyle;
   art: PublicStyleImage;
+  /** Segunda imagen en orden: la que se muestra con la variante Perro. */
+  altArt: PublicStyleImage | null;
 }
 
 /**
@@ -90,6 +92,6 @@ export function withPreviewArt(styles: PublicStyle[]): PublicStyleWithArt[] {
       style.images.find((image) => image.isPrimary) ?? style.images[0];
     if (!art) return [];
 
-    return [{ style, art }];
+    return [{ style, art, altArt: style.images[1] ?? null }];
   });
 }

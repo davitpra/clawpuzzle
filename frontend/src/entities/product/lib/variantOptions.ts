@@ -89,3 +89,20 @@ export function findVariantForOption(
     )?.node ?? null
   );
 }
+
+/**
+ * ¿La variante es del tema Perro (`Puzzle theme`: Perro | Gato)? Se busca en
+ * cualquier opción, sin distinguir mayúsculas ni tildes.
+ */
+export function isDogVariant(variant: ShopifyVariant | undefined) {
+  return (
+    variant?.selectedOptions.some(
+      (o) =>
+        o.value
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "") === "perro",
+    ) ?? false
+  );
+}

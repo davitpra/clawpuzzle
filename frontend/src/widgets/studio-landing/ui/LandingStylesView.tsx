@@ -107,7 +107,7 @@ export function LandingStylesView({
           <LandingStylesEmpty onRetry={onRetry} />
         ) : (
           <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
-            {styles.map(({ style, art }) => (
+            {styles.map(({ style, art, altArt }) => (
               <LandingStyleCard
                 key={style.id}
                 id={style.id}
@@ -115,6 +115,11 @@ export function LandingStylesView({
                 artUrl={art.imageUrl}
                 artAlt={
                   art.altImage ?? `Ejemplo de retrato de mascota en estilo ${style.displayName}`
+                }
+                dogArtUrl={altArt?.imageUrl}
+                dogArtAlt={
+                  altArt?.altImage ??
+                  `Ejemplo de retrato de perro en estilo ${style.displayName}`
                 }
                 onSelect={onSelect}
               />

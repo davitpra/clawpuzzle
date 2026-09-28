@@ -16,6 +16,7 @@ import { AIProcess, type ProcessStep } from "@/widgets/ai-process";
 import SectionFlow from "@/shared/ui/SectionFlow";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import { SITE_URL } from "@/shared/config/seo";
+import { LandingThemeProvider } from "../model/LandingThemeContext";
 
 /**
  * SEO de la landing del studio. La sirve `/studio-landing` con el flag apagado
@@ -116,71 +117,73 @@ export default function StudioLandingPage() {
       <Navbar />
 
       <main className="flex-1">
-        <SectionFlow
-          start="white"
-          sections={[
-            {
-              id: "product",
-              node: (
-                <Suspense
-                  fallback={<LandingProductDetailsSkeleton background="" />}
-                >
-                  <LandingProductDetails background="" />
-                </Suspense>
-              ),
-            },
-            {
-              id: "styles",
-              node: (
-                <Suspense fallback={<LandingStylesSkeleton background="" />}>
-                  <LandingStyles background="" />
-                </Suspense>
-              ),
-            },
-            {
-              id: "process",
-              node: (
-                // Destino de "How It Works" en el footer: /#how-it-works.
-                <div id="how-it-works" className="scroll-mt-20">
-                  <AIProcess
-                    eyebrow="Cómo funciona"
-                    title="De foto a rompecabezas en 3 pasos"
-                    subtitle={
-                      <>
-                        La vista previa es gratis.
-                        <br />
-                        Solo pagas si te enamora.
-                      </>
-                    }
-                    steps={LANDING_STEPS}
-                  />
-                </div>
-              ),
-            },
+        <LandingThemeProvider>
+          <SectionFlow
+            start="white"
+            sections={[
+              {
+                id: "product",
+                node: (
+                  <Suspense
+                    fallback={<LandingProductDetailsSkeleton background="" />}
+                  >
+                    <LandingProductDetails background="" />
+                  </Suspense>
+                ),
+              },
+              {
+                id: "styles",
+                node: (
+                  <Suspense fallback={<LandingStylesSkeleton background="" />}>
+                    <LandingStyles background="" />
+                  </Suspense>
+                ),
+              },
+              {
+                id: "process",
+                node: (
+                  // Destino de "How It Works" en el footer: /#how-it-works.
+                  <div id="how-it-works" className="scroll-mt-20">
+                    <AIProcess
+                      eyebrow="Cómo funciona"
+                      title="De foto a rompecabezas en 3 pasos"
+                      subtitle={
+                        <>
+                          La vista previa es gratis.
+                          <br />
+                          Solo pagas si te enamora.
+                        </>
+                      }
+                      steps={LANDING_STEPS}
+                    />
+                  </div>
+                ),
+              },
 
-            {
-              id: "products",
-              pin: "white",
-              when: !LAUNCH_MODE,
-              node: <LandingProducts background="" />,
-            },
-            { id: "brand", node: <BrandBanner /> },
-            // { id: "why", node: <WhyItMatters /> },
-            {
-              id: "faq",
-              node: (
-                // Destino de "FAQ" en el footer: /#faq.
-                <div id="faq" className="scroll-mt-20">
-                  <ProductFAQ faqs={LANDING_FAQS} background="" />
-                </div>
-              ),
-            },
-            {
-              id: "showcase",
-              node: <LandingShowcase background="" />,
-            },
-          ]}
-        />
+              {
+                id: "products",
+                pin: "white",
+                when: !LAUNCH_MODE,
+                node: <LandingProducts background="" />,
+              },
+              { id: "brand", node: <BrandBanner /> },
+              // { id: "why", node: <WhyItMatters /> },
+              {
+                id: "faq",
+                node: (
+                  // Destino de "FAQ" en el footer: /#faq.
+                  <div id="faq" className="scroll-mt-20">
+                    <ProductFAQ faqs={LANDING_FAQS} background="" />
+                  </div>
+                ),
+              },
+              {
+                id: "showcase",
+                node: <LandingShowcase background="" />,
+              },
+            ]}
+          />
+        </LandingThemeProvider>
       </main>
 
       <Footer />

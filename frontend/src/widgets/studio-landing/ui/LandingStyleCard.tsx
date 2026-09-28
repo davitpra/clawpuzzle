@@ -4,12 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { FRAME_SHADOWS } from "@/entities/product/lib/frameStyle";
+import { useLandingTheme } from "../model/LandingThemeContext";
 
 interface LandingStyleCardProps {
   id: string;
   displayName: string;
   artUrl: string;
   artAlt: string;
+  /** Imagen para la variante Perro de la ficha; sin ella se usa `artUrl`. */
+  dogArtUrl?: string;
+  dogArtAlt?: string;
   /**
    * Con `onSelect` la card es un botón (paso de estilo de `/create`); sin él,
    * un link a `/create?style_id=…` (landing).
@@ -28,9 +32,17 @@ export function LandingStyleCard({
   displayName,
   artUrl,
   artAlt,
+  dogArtUrl,
+  dogArtAlt,
   onSelect,
 }: LandingStyleCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const { isDogTheme } = useLandingTheme();
+  const useDogArt = isDogTheme && !!dogArtUrl;
+  const src = useDogArt ? dogArtUrl : artUrl;
+  const alt = useDogArt ? (dogArtAlt ?? artAlt) : artAlt;
+  // Se guarda qué imagen falló: al cambiar de tema la otra puede cargar bien.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imageFailed = failedSrc === src;
 
   return (
     <article className="relative flex flex-col gap-4">
@@ -43,12 +55,12 @@ export function LandingStyleCard({
           </div>
         ) : (
           <Image
-            src={artUrl}
-            alt={artAlt}
+            src={src}
+            alt={alt}
             fill
             sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
             className="h-full w-full object-cover"
-            onError={() => setImageFailed(true)}
+            onError={() => setFailedSrc(src)}
           />
         )}
       </div>

@@ -20,9 +20,13 @@ import type { Pet } from "@/widgets/ia-generator/ui/upload-step/types";
 
 import { getFormatPhysicalSize } from "@/entities/product/lib/formatPhysicalSize";
 import { normalizeTemplate } from "@/entities/product/lib/template";
+import { isDogVariant } from "@/entities/product/lib/variantOptions";
 import { useStyle } from "@/hooks/useStyle";
 import { useFormatOptions } from "@/hooks/useFormatOptions";
-import { useGenerateImage, type GeneratePayload } from "@/hooks/useGenerateImage";
+import {
+  useGenerateImage,
+  type GeneratePayload,
+} from "@/hooks/useGenerateImage";
 import { useCredits } from "@/hooks/useCredits";
 import { useCart } from "@/context/CartContext";
 import { LAUNCH_MODE } from "@/shared/config/launch";
@@ -82,8 +86,7 @@ function StyleFirstResolver({
       .then(async (response) => {
         if (!response.ok) throw new Error("compat_request_failed");
         const json = (await response.json()) as
-          | { data: StyleCompatResponse }
-          | StyleCompatResponse;
+          { data: StyleCompatResponse } | StyleCompatResponse;
         return "data" in json ? json.data : json;
       })
       .then((compat) => {
@@ -222,8 +225,10 @@ function IAGeneratorContent() {
     null,
   );
 
+  // En el paso de estilo también: la variante (Perro | Gato) decide qué imagen
+  // enseñan las cards.
   useEffect(() => {
-    if (!hasProductContext) return;
+    if (!hasProductContext && !needsStyle) return;
     let cancelled = false;
     fetch(`${API_URL}/products/${productRefId}`, {
       credentials: "include",
@@ -242,7 +247,7 @@ function IAGeneratorContent() {
     return () => {
       cancelled = true;
     };
-  }, [hasProductContext, productRefId]);
+  }, [hasProductContext, needsStyle, productRefId]);
 
   const {
     formats,
@@ -285,8 +290,7 @@ function IAGeneratorContent() {
       (f) => f.formatId === formatId && f.availableForSale,
     );
     const chosen =
-      available.find((f) => f.shopifyVariantId === variantId) ??
-      available[0];
+      available.find((f) => f.shopifyVariantId === variantId) ?? available[0];
     if (!chosen) return null;
     return {
       productTitle: productInfo.productTitle,
@@ -305,6 +309,19 @@ function IAGeneratorContent() {
   // (backend + Shopify) en la puerta principal del embudo.
   const isResolvingProduct =
     !productLookupError && (!resolvedHandle || isLoadingFormats);
+
+  // Tema elegido en la ficha, para las cards del paso de estilo y la imagen del
+  // estilo de los pasos siguientes. Mientras se resuelve el producto se espera,
+  // para no pasar de la imagen de Gato a la de Perro delante del visitante.
+  const isDogTheme = isDogVariant(
+    shopifyProduct?.variants.edges.find((e) => e.node.id === variantId)?.node,
+  );
+  const isResolvingTheme =
+    !!variantId && !shopifyProduct && !productLookupError && !formatsError;
+  const isThemeLoading = needsStyle && isResolvingTheme;
+  const styleImg = isResolvingTheme
+    ? null
+    : ((isDogTheme ? style?.dogImg : null) ?? style?.img ?? null);
 
   const productError =
     productLookupError ??
@@ -455,9 +472,7 @@ function IAGeneratorContent() {
       ? 1
       : Math.max(launchSteps.indexOf(step) + 1, 1) + STYLE_STEP_COUNT
     : step;
-  const headerTotal = LAUNCH_MODE
-    ? launchSteps.length + STYLE_STEP_COUNT
-    : 3;
+  const headerTotal = LAUNCH_MODE ? launchSteps.length + STYLE_STEP_COUNT : 3;
 
   // El producto y el formato se conservan: elegir o cambiar de estilo solo
   // toca `style_id` (las `selections` son de un estilo concreto y se sueltan).
@@ -481,7 +496,11 @@ function IAGeneratorContent() {
       />
 
       {needsStyle ? (
-        <IAStyleStep onSelect={handleStyleSelect} />
+        <IAStyleStep
+          onSelect={handleStyleSelect}
+          isDogTheme={isDogTheme}
+          isThemeLoading={isThemeLoading}
+        />
       ) : hasStyleOnly ? (
         <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
       ) : !hasProductContext ? (
@@ -499,7 +518,7 @@ function IAGeneratorContent() {
           {step === STEP_PHOTO && (
             <IAPhotoStep
               styleName={style?.name ?? null}
-              styleImg={style?.img ?? null}
+              styleImg={styleImg}
               photos={photos}
               onPhotosChange={setPhotos}
               petName={petName}
@@ -528,7 +547,7 @@ function IAGeneratorContent() {
               generationId={generationId}
               styleName={style?.name ?? null}
               offer={puzzleOffer}
-              styleImage={style?.img ?? null}
+              styleImage={styleImg}
               formatWidth={productInfo?.formatWidth ?? null}
               formatHeight={productInfo?.formatHeight ?? null}
               onRetry={lastPayload ? handleRetry : undefined}

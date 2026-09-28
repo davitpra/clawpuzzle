@@ -37,6 +37,8 @@ export interface Style {
   id?: string;
   name: string;
   img: string;
+  /** Segunda imagen del estilo: la que se enseña con la variante Perro. */
+  dogImg?: string | null;
   thanksUrl?: string | null;
   templateVarOptions?: Record<string, TemplateVarOption> | null;
 }
