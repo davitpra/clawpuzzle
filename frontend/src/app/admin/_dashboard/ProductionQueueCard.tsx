@@ -18,7 +18,13 @@ import {
 import { fmtAge, fmtCount } from "./format";
 
 /** Orden del pipeline; el backend solo devuelve los estados de la cola. */
-const QUEUE_ORDER = ["draft", "pre_production", "in_production", "printed"];
+const QUEUE_ORDER = [
+  "draft",
+  "pre_production",
+  "in_production",
+  "printed",
+  "packed",
+];
 
 /**
  * La lista de trabajo del estudio. Es la única card que ignora el selector de

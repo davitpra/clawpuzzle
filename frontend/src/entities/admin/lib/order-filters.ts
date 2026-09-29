@@ -19,6 +19,7 @@ export const STATUS_OPTIONS: FilterOption[] = [
   "pre_production",
   "in_production",
   "printed",
+  "packed",
   "shipped",
   "delivered",
   "on_hold",
