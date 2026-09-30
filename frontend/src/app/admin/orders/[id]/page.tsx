@@ -120,11 +120,6 @@ export default function AdminOrderDetailPage() {
     .filter((i) => CANCELLABLE_STATUSES.includes(i.productionStatus))
     .map((i) => i.id);
 
-  // El historial de eventos etiqueta cada cambio con el tipo de su item.
-  const kindByItemId = Object.fromEntries(
-    order.items.map((i) => [i.id, orderItemKind(i)]),
-  );
-
   return (
     <Page
       backAction={{ url: "/admin/orders", content: "Pedidos" }}
@@ -173,15 +168,14 @@ export default function AdminOrderDetailPage() {
               Items ({order.items.length})
             </Text>
             {order.items.map((item) => {
-              const kind = orderItemKind(item);
               const shopifyImageUrl =
                 shopifyVariantImages[
                   variantNumericId(item.productVariant?.shopifyVariantId) ?? ""
                 ] ?? null;
 
-              // Accesorios y créditos no llevan arte: card simple sin generación,
-              // impresión ni Print Studio.
-              return kind === "art" ? (
+              // Los packs de créditos no llevan arte: card simple sin
+              // generación, impresión ni cambios de estado.
+              return orderItemKind(item) === "art" ? (
                 <OrderItemCard
                   key={item.id}
                   item={item}
@@ -196,20 +190,13 @@ export default function AdminOrderDetailPage() {
                 <SimpleOrderItemCard
                   key={item.id}
                   item={item}
-                  kind={kind}
-                  orderId={id}
                   currency={order.currency}
                   shopifyImageUrl={shopifyImageUrl}
-                  onUpdate={load}
-                  onRequestCancel={setCancelItemIds}
                 />
               );
             })}
 
-            <OrderEventsCard
-              events={order.events}
-              kindByItemId={kindByItemId}
-            />
+            <OrderEventsCard events={order.events} />
           </BlockStack>
         </Layout.Section>
 

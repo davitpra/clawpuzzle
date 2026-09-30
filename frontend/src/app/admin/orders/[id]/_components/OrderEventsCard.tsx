@@ -10,27 +10,14 @@ import {
 } from "@shopify/polaris";
 import { AdminOrderDetail } from "@/entities/admin/api";
 import { productionStatusLabel } from "@/entities/admin/lib/production-status";
-import { OrderItemKind } from "@/entities/admin/lib/order-item-kind";
 import { fmtDate } from "@/entities/admin/lib/order-format";
 
 type OrderEventsCardProps = {
   events: AdminOrderDetail["events"];
-  // Tipo de cada item del pedido: los accesorios renombran algún estado, así que
-  // el historial se etiqueta con el tipo del item que cambió.
-  kindByItemId: Record<string, OrderItemKind>;
 };
 
-export function OrderEventsCard({
-  events,
-  kindByItemId,
-}: OrderEventsCardProps) {
+export function OrderEventsCard({ events }: OrderEventsCardProps) {
   if (events.length === 0) return null;
-
-  const labelFor = (status: string, orderItemId: string | null) =>
-    productionStatusLabel(
-      status,
-      (orderItemId && kindByItemId[orderItemId]) || "art",
-    );
 
   return (
     <Card>
@@ -59,8 +46,8 @@ export function OrderEventsCard({
                     {ev.fromStatus && ev.toStatus && (
                       <Text as="span" tone="subdued">
                         {" "}
-                        · {labelFor(ev.fromStatus, ev.orderItemId)} →{" "}
-                        {labelFor(ev.toStatus, ev.orderItemId)}
+                        · {productionStatusLabel(ev.fromStatus)} →{" "}
+                        {productionStatusLabel(ev.toStatus)}
                       </Text>
                     )}
                   </Text>

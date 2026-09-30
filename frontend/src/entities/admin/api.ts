@@ -283,7 +283,6 @@ export interface AdminOrderItem {
     fulfillmentMethod: string;
     shopifyHandle: string | null;
     template: string | null;
-    isAccessory: boolean;
     isCreditPack: boolean;
     style: { images: { imageUrl: string }[] } | null;
   } | null;
