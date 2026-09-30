@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // ts-jest transpila cada fichero por separado en vez de montar un programa
+    // de TypeScript por suite. Los tests pierden el chequeo de tipos, pero
+    // `npm run typecheck` sigue cubriendo los *.spec.ts (tsconfig.json no los
+    // excluye).
+    "isolatedModules": true
+  }
+}

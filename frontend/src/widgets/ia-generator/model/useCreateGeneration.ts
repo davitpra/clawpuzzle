@@ -5,9 +5,9 @@ import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useGenerateImage, type GeneratePayload } from "@/hooks/useGenerateImage";
 import { useCredits } from "@/hooks/useCredits";
 import { useCart } from "@/context/CartContext";
-import { ApiError } from "@/lib/auth/fetch-with-refresh";
 import { normalizeTemplate } from "@/entities/product/lib/template";
 import type { SelectedProductInfo } from "./selectedProduct";
+import { isOutOfCreditsError } from "./outOfCredits";
 import {
   primaryPhotoOf,
   type Pet,
@@ -210,7 +210,7 @@ export function useCreateGeneration() {
             ? err.message
             : "No se pudo crear el arte. Inténtalo de nuevo.";
         setError(msg);
-        setOutOfCredits(err instanceof ApiError && err.status === 402);
+        setOutOfCredits(isOutOfCreditsError(err));
         throw err;
       } finally {
         setSubmitting(false);

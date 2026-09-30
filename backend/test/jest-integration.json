@@ -1,0 +1,27 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".int-spec.ts$",
+  "maxWorkers": 1,
+  "testTimeout": 30000,
+  "globalSetup": "<rootDir>/integration/global-setup.ts",
+  "setupFiles": [
+    "<rootDir>/integration/env.ts"
+  ],
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/integration/uuid-shim.ts"
+  },
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/../tsconfig.spec.json"
+      }
+    ]
+  }
+}

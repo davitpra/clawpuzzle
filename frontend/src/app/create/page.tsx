@@ -23,6 +23,7 @@ import { normalizeTemplate } from "@/entities/product/lib/template";
 import { isDogVariant } from "@/entities/product/lib/variantOptions";
 import { useStyle } from "@/hooks/useStyle";
 import { useFormatOptions } from "@/hooks/useFormatOptions";
+import { pickOfferVariant } from "@/widgets/ia-generator/model/offerVariant";
 import {
   useGenerateImage,
   type GeneratePayload,
@@ -286,11 +287,7 @@ function IAGeneratorContent() {
   // primera disponible del formato.
   const puzzleOffer: PuzzleOffer | null = useMemo(() => {
     if (!productInfo) return null;
-    const available = formats.filter(
-      (f) => f.formatId === formatId && f.availableForSale,
-    );
-    const chosen =
-      available.find((f) => f.shopifyVariantId === variantId) ?? available[0];
+    const chosen = pickOfferVariant(formats, formatId, variantId);
     if (!chosen) return null;
     return {
       productTitle: productInfo.productTitle,

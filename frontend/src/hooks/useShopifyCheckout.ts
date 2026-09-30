@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { shopifyFetch, GRAPHQL_QUERIES } from "@/lib/shopify";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { buildCheckoutLines } from "@/hooks/lib/checkoutLines";
 
 /**
  * Resultado de `startCheckout`. `redirect` significa que ya se está navegando a
@@ -40,42 +41,13 @@ export function useShopifyCheckout() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const checkoutInFlight = useRef(false);
 
-  // Build the Shopify cart lines from our local cart. Line attributes become
-  // Shopify order line-item `properties`, which the orders webhook
-  // (`ingestLineItem`) reads to re-associate the art. Accessories carry no
-  // generation/paint-by-numbers attributes, so they stay decoupled.
-  const buildLines = useCallback((source: CartItem[] = items) => {
-    return source
-      .map((item) => {
-        const attributes = [
-          { key: "Style", value: item.style || "Default" },
-          ...(item.size ? [{ key: "Size", value: item.size }] : []),
-          // _user_id (prefijo "_" → Shopify lo oculta al cliente) permite al
-          // webhook acreditar/vincular la orden a la cuenta correcta sin
-          // depender del email tecleado en el checkout.
-          ...(isAuthenticated && user
-            ? [{ key: "_user_id", value: user.id }]
-            : []),
-          // Los ids y la URL de la obra también llevan "_": el webhook los
-          // necesita, pero al cliente no le dicen nada en el checkout.
-          ...(item.paintByNumbersId
-            ? [{ key: "_paint_by_numbers_id", value: item.paintByNumbersId }]
-            : []),
-          ...(item.generationId
-            ? [{ key: "_generation_id", value: item.generationId }]
-            : []),
-          ...(item.generationId && item.imageUrl
-            ? [{ key: "_image_url", value: item.imageUrl }]
-            : []),
-        ];
-        return {
-          merchandiseId: item.variantId || "",
-          quantity: item.quantity,
-          attributes,
-        };
-      })
-      .filter((line) => line.merchandiseId !== "");
-  }, [items, isAuthenticated, user]);
+  // Líneas con los attributes que lee el webhook de órdenes: ver
+  // `buildCheckoutLines`.
+  const buildLines = useCallback(
+    (source: CartItem[] = items) =>
+      buildCheckoutLines(source, isAuthenticated && user ? user.id : null),
+    [items, isAuthenticated, user],
+  );
 
   const startCheckout = useCallback(
     async (source?: CartItem[]): Promise<CheckoutResult> => {

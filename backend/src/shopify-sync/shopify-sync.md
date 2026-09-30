@@ -20,7 +20,7 @@ All three layers share the same upsert and variant sync logic via `ProductSyncSe
 - `shopify-sync/shopify-webhooks.controller.ts`: Real-time webhook receivers for `products/create`, `products/update`, `products/delete`.
 - `shopify-sync/admin-sync.controller.ts`: Admin endpoints to trigger and monitor syncs.
 - `shopify-sync/shopify-sync.module.ts`: Module definition.
-- `shopify-sync/guards/shopify-hmac.guard.ts`: Verifies `X-Shopify-Hmac-SHA256` header using `HMAC-SHA256` + `crypto.timingSafeEqual`.
+- `common/guards/shopify-hmac.guard.ts`: Verifies `X-Shopify-Hmac-SHA256` header using `HMAC-SHA256` + `crypto.timingSafeEqual`.
 - `shopify-sync/processors/shopify-sync.processor.ts`: BullMQ `WorkerHost` that processes upsert/delete jobs from the `shopify-sync` queue.
 - `shopify-sync/constants/queues.constants.ts`: Queue name, job name constants, and default job options (3 retries, exponential backoff).
 - `shopify-sync/dto/shopify-product.dto.ts`: TypeScript interfaces for Shopify REST product payloads.

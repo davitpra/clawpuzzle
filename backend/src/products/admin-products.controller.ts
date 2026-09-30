@@ -233,8 +233,7 @@ export class AdminProductsController {
 
   @Patch('launch-product')
   @ApiOperation({
-    summary:
-      'Set the single launch product, usable with every active style',
+    summary: 'Set the single launch product, usable with every active style',
   })
   @ApiResponse({ status: 200, description: 'Launch product set' })
   @ApiResponse({ status: 404, description: 'Product not found' })
