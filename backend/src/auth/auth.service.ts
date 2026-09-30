@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreditsService } from '../credits/credits.service';
 import { AccountStatusService } from '../users/account-status.service';
 import * as bcrypt from 'bcrypt';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { LoginDto } from './dto/login.dto';
 import type { User } from '@prisma/client';
@@ -504,11 +504,17 @@ export class AuthService {
           'jwt.accessExpiresIn',
         ),
       }),
+      // jwtid aleatorio: sin él el token depende solo del payload y de `iat`
+      // (en segundos), así que un refresh en el mismo segundo que el login o
+      // que el refresh anterior producía el MISMO token, chocaba con el unique
+      // de RefreshToken.token y respondía 401 con el token viejo ya revocado:
+      // la sesión se perdía.
       this.jwtService.signAsync(payload, {
         secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
         expiresIn: this.configService.getOrThrow<ExpiresIn>(
           'jwt.refreshExpiresIn',
         ),
+        jwtid: randomUUID(),
       }),
     ]);
 
