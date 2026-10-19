@@ -19,6 +19,7 @@ import {
   TextField,
   Select,
   FormLayout,
+  Collapsible,
 } from "@shopify/polaris";
 import {
   DndContext,
@@ -94,6 +95,8 @@ export default function AdminStyleDetailPage() {
   const [promptTemplate, setPromptTemplate] = useState("");
   const [templateVarsText, setTemplateVarsText] = useState("");
   const [templateVarOptionsText, setTemplateVarOptionsText] = useState("");
+  // Sin uso en el lanzamiento: plegada salvo que el estilo ya tenga opciones.
+  const [templateVarsOpen, setTemplateVarsOpen] = useState(false);
   const [jsonPromptError, setJsonPromptError] = useState<string | null>(null);
   const [jsonOptionsError, setJsonOptionsError] = useState<string | null>(null);
 
@@ -181,6 +184,11 @@ export default function AdminStyleDetailPage() {
     setTemplateVarOptionsText(
       s.templateVarOptions ? JSON.stringify(s.templateVarOptions, null, 2) : "",
     );
+    const hasKeys = (v: unknown) =>
+      !!v && typeof v === "object" && Object.keys(v).length > 0;
+    if (hasKeys(s.templateVars) || hasKeys(s.templateVarOptions)) {
+      setTemplateVarsOpen(true);
+    }
   }, []);
 
   const reload = useCallback(async () => {
@@ -213,6 +221,8 @@ export default function AdminStyleDetailPage() {
       const pets = await adminApi.pets.list();
       setMyPets(pets);
       setSelectedPetId((prev) => (prev ? prev : (pets[0]?.id ?? "")));
+      // Preselecciona la primera foto de la mascota inicial, si tiene alguna.
+      setSelectedPhotoId((prev) => prev ?? pets[0]?.photos[0]?.id ?? null);
     } catch {
       // silent — pets not critical to page load
     } finally {
@@ -227,7 +237,18 @@ export default function AdminStyleDetailPage() {
   useEffect(() => {
     adminApi.formats
       .list()
-      .then((list) => setFormats(list.filter((f) => f.isActive)))
+      .then((list) => {
+        const active = list.filter((f) => f.isActive);
+        setFormats(active);
+        // Por defecto se prueba con el formato del puzzle de lanzamiento, salvo
+        // que el admin ya haya elegido otro mientras cargaba la lista.
+        const launchFormat = active.find((f) => f.name === "ratio_2_3");
+        if (launchFormat) {
+          setTestAspectRatio((prev) =>
+            prev === "4:5" ? `${FORMAT_PREFIX}${launchFormat.id}` : prev,
+          );
+        }
+      })
       .catch(() => {
         // silent — sin formatos quedan los aspect ratios fijos
       });
@@ -945,49 +966,62 @@ export default function AdminStyleDetailPage() {
             {/* Opciones seleccionables por el usuario */}
             <Card>
               <BlockStack gap="400">
-                <BlockStack gap="100">
+                <InlineStack align="space-between" blockAlign="center">
                   <Text variant="headingSm" as="h2">
                     Opciones de usuario
                   </Text>
-                  <Text as="p" tone="subdued" variant="bodySm">
-                    Variables que el usuario final podrá ajustar al generar la
-                    imagen (select / slider / color). Cada key se sustituye en{" "}
-                    <code>prompt_template</code> mediante{" "}
-                    <code>{"{{key}}"}</code>.
-                  </Text>
-                </BlockStack>
-                <FormLayout>
-                  <TextField
-                    label="template_vars (JSON)"
-                    value={templateVarsText}
-                    onChange={setTemplateVarsText}
-                    multiline={6}
-                    autoComplete="off"
-                    monospaced
-                    placeholder={EXAMPLE_TEMPLATE_VARS}
-                    helpText=" Posibles Variables custom"
-                  />
-                  <TextField
-                    label="template_var_options (JSON)"
-                    value={templateVarOptionsText}
-                    onChange={setTemplateVarOptionsText}
-                    multiline={10}
-                    autoComplete="off"
-                    monospaced
-                    placeholder={EXAMPLE_TEMPLATE_VAR_OPTIONS}
-                    helpText="Cada key define un control: { type: 'select'|'slider'|'color', label, default, ... }"
-                  />
-                </FormLayout>
-
-                <InlineStack align="end">
                   <Button
-                    variant="primary"
-                    loading={saving}
-                    onClick={handleSaveTemplateVars}
+                    variant="plain"
+                    disclosure={templateVarsOpen ? "up" : "down"}
+                    onClick={() => setTemplateVarsOpen((open) => !open)}
+                    ariaControls="style-template-vars"
+                    ariaExpanded={templateVarsOpen}
                   >
-                    Guardar cambios
+                    {templateVarsOpen ? "Ocultar" : "Mostrar"}
                   </Button>
                 </InlineStack>
+                <Collapsible open={templateVarsOpen} id="style-template-vars">
+                  <BlockStack gap="400">
+                    <Text as="p" tone="subdued" variant="bodySm">
+                      Variables que el usuario final podrá ajustar al generar la
+                      imagen (select / slider / color). Cada key se sustituye en{" "}
+                      <code>prompt_template</code> mediante{" "}
+                      <code>{"{{key}}"}</code>.
+                    </Text>
+                    <FormLayout>
+                      <TextField
+                        label="template_vars (JSON)"
+                        value={templateVarsText}
+                        onChange={setTemplateVarsText}
+                        multiline={6}
+                        autoComplete="off"
+                        monospaced
+                        placeholder={EXAMPLE_TEMPLATE_VARS}
+                        helpText=" Posibles Variables custom"
+                      />
+                      <TextField
+                        label="template_var_options (JSON)"
+                        value={templateVarOptionsText}
+                        onChange={setTemplateVarOptionsText}
+                        multiline={10}
+                        autoComplete="off"
+                        monospaced
+                        placeholder={EXAMPLE_TEMPLATE_VAR_OPTIONS}
+                        helpText="Cada key define un control: { type: 'select'|'slider'|'color', label, default, ... }"
+                      />
+                    </FormLayout>
+
+                    <InlineStack align="end">
+                      <Button
+                        variant="primary"
+                        loading={saving}
+                        onClick={handleSaveTemplateVars}
+                      >
+                        Guardar cambios
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </Collapsible>
               </BlockStack>
             </Card>
           </BlockStack>
