@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   Page,
   Layout,
@@ -47,6 +47,7 @@ import {
   AdminFormat,
 } from "@/entities/admin/api";
 import { useAdminGenerationStatus } from "@/hooks/useAdminGenerationStatus";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { hexToHsb, type HsbColor } from "@/lib/colorUtils";
 import {
   UNASSIGNED,
@@ -61,6 +62,7 @@ import {
 } from "./_components/StyleTestGenerationCard";
 import { StyleImageViewerModal } from "./_components/StyleImageViewerModal";
 import { SortableImageTile, UploadTile } from "./_components/StyleImageTiles";
+import { UnsavedChangesModal } from "./_components/UnsavedChangesModal";
 
 type StyleDifficulty = NonNullable<AdminStyle["difficulty"]>;
 
@@ -87,7 +89,6 @@ function formValuesFrom(s: AdminStyle) {
 
 export default function AdminStyleDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
 
   const [style, setStyle] = useState<AdminStyle | null>(null);
   const [visionConfigs, setVisionConfigs] = useState<AdminVisionConfig[]>([]);
@@ -188,6 +189,22 @@ export default function AdminStyleDetailPage() {
   const petPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const testGenStatus = useAdminGenerationStatus(testGenId);
+
+  const saved = style ? formValuesFrom(style) : null;
+  const isDirty =
+    !!saved &&
+    (name !== saved.name ||
+      displayName !== saved.displayName ||
+      category !== saved.category ||
+      difficulty !== saved.difficulty ||
+      strategyKey !== saved.strategyKey ||
+      visionConfigId !== saved.visionConfigId ||
+      imageGenConfigId !== saved.imageGenConfigId ||
+      promptTemplate !== saved.promptTemplate ||
+      templateVarsText !== saved.templateVarsText ||
+      templateVarOptionsText !== saved.templateVarOptionsText);
+
+  const leaveGuard = useUnsavedChangesGuard(isDirty);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor),
@@ -410,8 +427,9 @@ export default function AdminStyleDetailPage() {
     }
   };
 
-  const handleSave = async () => {
-    if (!style) return;
+  // Devuelve si se guardó, para que el aviso de salida sepa si puede navegar.
+  const handleSave = async (): Promise<boolean> => {
+    if (!style) return false;
     setSaveError(null);
     setNameError(null);
     setJsonPromptError(null);
@@ -421,15 +439,15 @@ export default function AdminStyleDetailPage() {
     const trimmedName = name.trim();
     if (!trimmedName) {
       setNameError("Requerido");
-      return;
+      return false;
     }
     if (!/^[a-z0-9_-]+$/.test(trimmedName)) {
       setNameError("Solo minúsculas, números, '-' y '_'");
-      return;
+      return false;
     }
     if (trimmedName.length > 100) {
       setNameError("Máximo 100 caracteres");
-      return;
+      return false;
     }
 
     let parsedTemplateVars: Record<string, unknown> | null = null;
@@ -439,7 +457,7 @@ export default function AdminStyleDetailPage() {
       } catch {
         setJsonPromptError("template_vars: JSON inválido");
         setTemplateVarsOpen(true);
-        return;
+        return false;
       }
     }
 
@@ -450,13 +468,13 @@ export default function AdminStyleDetailPage() {
       } catch {
         setJsonOptionsError("template_var_options: JSON inválido");
         setTemplateVarsOpen(true);
-        return;
+        return false;
       }
       const validationError = validateTemplateVarOptions(parsedOptions);
       if (validationError) {
         setJsonOptionsError(`template_var_options: ${validationError}`);
         setTemplateVarsOpen(true);
-        return;
+        return false;
       }
     }
 
@@ -469,7 +487,7 @@ export default function AdminStyleDetailPage() {
         );
         if (duplicate) {
           setNameError("Ya existe un estilo con ese slug");
-          return;
+          return false;
         }
       }
 
@@ -487,11 +505,19 @@ export default function AdminStyleDetailPage() {
       });
       setStyle(updated);
       hydrateForm(updated);
+      return true;
     } catch (e: unknown) {
       setSaveError((e as Error).message);
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveAndLeave = async () => {
+    if (await handleSave()) leaveGuard.confirmNavigation();
+    // Si falla, se cierra el aviso para que se vean los errores del formulario.
+    else leaveGuard.cancelNavigation();
   };
 
   const handleToggle = async () => {
@@ -537,7 +563,8 @@ export default function AdminStyleDetailPage() {
         imageGenConfigId: style.imageGenConfigId ?? undefined,
         isActive: false,
       });
-      router.push(`/admin/styles/${created.id}`);
+      leaveGuard.requestNavigation(`/admin/styles/${created.id}`);
+      setDuplicating(false);
     } catch (e: unknown) {
       setSaveError((e as Error).message ?? "Error al duplicar el estilo");
       setDuplicating(false);
@@ -754,19 +781,6 @@ export default function AdminStyleDetailPage() {
         value: c.id,
       })),
   ];
-
-  const saved = formValuesFrom(style);
-  const isDirty =
-    name !== saved.name ||
-    displayName !== saved.displayName ||
-    category !== saved.category ||
-    difficulty !== saved.difficulty ||
-    strategyKey !== saved.strategyKey ||
-    visionConfigId !== saved.visionConfigId ||
-    imageGenConfigId !== saved.imageGenConfigId ||
-    promptTemplate !== saved.promptTemplate ||
-    templateVarsText !== saved.templateVarsText ||
-    templateVarOptionsText !== saved.templateVarOptionsText;
 
   // Las estrategias style-transfer usan la imagen de referencia; el resto
   // (style-driven, y lo que el backend trate como tal por defecto) usa el VLM.
@@ -1287,6 +1301,14 @@ export default function AdminStyleDetailPage() {
         copiedFinalPrompt={copiedFinalPrompt}
         metadataOpen={metadataOpen}
         onToggleMetadata={() => setMetadataOpen((prev) => !prev)}
+      />
+
+      <UnsavedChangesModal
+        open={leaveGuard.pendingHref !== null}
+        saving={saving}
+        onSave={handleSaveAndLeave}
+        onDiscard={leaveGuard.confirmNavigation}
+        onCancel={leaveGuard.cancelNavigation}
       />
     </Page>
   );
