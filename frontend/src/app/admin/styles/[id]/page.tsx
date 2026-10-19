@@ -62,6 +62,29 @@ import {
 import { StyleImageViewerModal } from "./_components/StyleImageViewerModal";
 import { SortableImageTile, UploadTile } from "./_components/StyleImageTiles";
 
+type StyleDifficulty = NonNullable<AdminStyle["difficulty"]>;
+
+// Valores del formulario tal como los muestra la página para un estilo guardado.
+// Sirve para hidratar el formulario y para detectar cambios sin guardar.
+function formValuesFrom(s: AdminStyle) {
+  return {
+    name: s.name,
+    displayName: s.displayName,
+    category: s.category,
+    difficulty: (s.difficulty ?? "medium") as StyleDifficulty,
+    strategyKey: s.strategyKey ?? "",
+    visionConfigId: s.visionConfigId ?? UNASSIGNED,
+    imageGenConfigId: s.imageGenConfigId ?? UNASSIGNED,
+    promptTemplate: s.promptTemplate ?? "",
+    templateVarsText: s.templateVars
+      ? JSON.stringify(s.templateVars, null, 2)
+      : "",
+    templateVarOptionsText: s.templateVarOptions
+      ? JSON.stringify(s.templateVarOptions, null, 2)
+      : "",
+  };
+}
+
 export default function AdminStyleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -84,6 +107,7 @@ export default function AdminStyleDetailPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [category, setCategory] = useState("");
+  const [difficulty, setDifficulty] = useState<StyleDifficulty>("medium");
 
   // Pipeline form state
   const [strategyKey, setStrategyKey] = useState("");
@@ -170,20 +194,18 @@ export default function AdminStyleDetailPage() {
   );
 
   const hydrateForm = useCallback((s: AdminStyle) => {
-    setName(s.name);
+    const v = formValuesFrom(s);
+    setName(v.name);
     setNameError(null);
-    setDisplayName(s.displayName);
-    setCategory(s.category);
-    setStrategyKey(s.strategyKey ?? "");
-    setVisionConfigId(s.visionConfigId ?? UNASSIGNED);
-    setImageGenConfigId(s.imageGenConfigId ?? UNASSIGNED);
-    setPromptTemplate(s.promptTemplate ?? "");
-    setTemplateVarsText(
-      s.templateVars ? JSON.stringify(s.templateVars, null, 2) : "",
-    );
-    setTemplateVarOptionsText(
-      s.templateVarOptions ? JSON.stringify(s.templateVarOptions, null, 2) : "",
-    );
+    setDisplayName(v.displayName);
+    setCategory(v.category);
+    setDifficulty(v.difficulty);
+    setStrategyKey(v.strategyKey);
+    setVisionConfigId(v.visionConfigId);
+    setImageGenConfigId(v.imageGenConfigId);
+    setPromptTemplate(v.promptTemplate);
+    setTemplateVarsText(v.templateVarsText);
+    setTemplateVarOptionsText(v.templateVarOptionsText);
     const hasKeys = (v: unknown) =>
       !!v && typeof v === "object" && Object.keys(v).length > 0;
     if (hasKeys(s.templateVars) || hasKeys(s.templateVarOptions)) {
@@ -191,11 +213,12 @@ export default function AdminStyleDetailPage() {
     }
   }, []);
 
+  // Refresca el estilo guardado (imágenes, estado, referencia) sin tocar el
+  // formulario, para no pisar cambios que el admin aún no ha guardado.
   const reload = useCallback(async () => {
     const s = await adminApi.styles.getById(id);
     setStyle(s);
-    hydrateForm(s);
-  }, [id, hydrateForm]);
+  }, [id]);
 
   useEffect(() => {
     Promise.all([
@@ -364,10 +387,14 @@ export default function AdminStyleDetailPage() {
     }
   };
 
-  const handleSaveBasics = async () => {
+  const handleSave = async () => {
     if (!style) return;
     setSaveError(null);
+    setNameError(null);
+    setJsonPromptError(null);
+    setJsonOptionsError(null);
 
+    // Se valida todo antes de enviar: o se guarda el formulario entero o nada.
     const trimmedName = name.trim();
     if (!trimmedName) {
       setNameError("Requerido");
@@ -382,81 +409,13 @@ export default function AdminStyleDetailPage() {
       return;
     }
 
-    if (trimmedName !== style.name) {
-      const all = await adminApi.styles.list();
-      const duplicate = all.find(
-        (s) => s.name === trimmedName && s.id !== style.id,
-      );
-      if (duplicate) {
-        setNameError("Ya existe un estilo con ese slug");
-        return;
-      }
-    }
-
-    setSaving(true);
-    try {
-      const updated = await adminApi.styles.update(style.id, {
-        name: trimmedName !== style.name ? trimmedName : undefined,
-        displayName,
-        category,
-        difficulty: style.difficulty,
-      });
-      setStyle((prev) => (prev ? { ...prev, ...updated } : updated));
-    } catch (e: unknown) {
-      setSaveError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSavePipeline = async () => {
-    if (!style) return;
-    setSaveError(null);
-    setSaving(true);
-    try {
-      const updated = await adminApi.styles.update(style.id, {
-        strategyKey,
-        visionConfigId: visionConfigId || null,
-        imageGenConfigId: imageGenConfigId || null,
-      });
-      setStyle(updated);
-      hydrateForm(updated);
-    } catch (e: unknown) {
-      setSaveError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSavePrompt = async () => {
-    if (!style) return;
-    setSaveError(null);
-    setSaving(true);
-    try {
-      const updated = await adminApi.styles.update(style.id, {
-        promptTemplate,
-      });
-      setStyle(updated);
-      hydrateForm(updated);
-    } catch (e: unknown) {
-      setSaveError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveTemplateVars = async () => {
-    if (!style) return;
-    setJsonPromptError(null);
-    setJsonOptionsError(null);
-    setSaveError(null);
-
     let parsedTemplateVars: Record<string, unknown> | null = null;
     if (templateVarsText.trim()) {
       try {
         parsedTemplateVars = JSON.parse(templateVarsText);
       } catch {
         setJsonPromptError("template_vars: JSON inválido");
+        setTemplateVarsOpen(true);
         return;
       }
     }
@@ -467,18 +426,39 @@ export default function AdminStyleDetailPage() {
         parsedOptions = JSON.parse(templateVarOptionsText);
       } catch {
         setJsonOptionsError("template_var_options: JSON inválido");
+        setTemplateVarsOpen(true);
         return;
       }
       const validationError = validateTemplateVarOptions(parsedOptions);
       if (validationError) {
         setJsonOptionsError(`template_var_options: ${validationError}`);
+        setTemplateVarsOpen(true);
         return;
       }
     }
 
     setSaving(true);
     try {
+      if (trimmedName !== style.name) {
+        const all = await adminApi.styles.list();
+        const duplicate = all.find(
+          (s) => s.name === trimmedName && s.id !== style.id,
+        );
+        if (duplicate) {
+          setNameError("Ya existe un estilo con ese slug");
+          return;
+        }
+      }
+
       const updated = await adminApi.styles.update(style.id, {
+        name: trimmedName !== style.name ? trimmedName : undefined,
+        displayName,
+        category,
+        difficulty,
+        strategyKey,
+        visionConfigId: visionConfigId || null,
+        imageGenConfigId: imageGenConfigId || null,
+        promptTemplate,
         templateVars: parsedTemplateVars,
         templateVarOptions: parsedOptions,
       });
@@ -752,6 +732,19 @@ export default function AdminStyleDetailPage() {
       })),
   ];
 
+  const saved = formValuesFrom(style);
+  const isDirty =
+    name !== saved.name ||
+    displayName !== saved.displayName ||
+    category !== saved.category ||
+    difficulty !== saved.difficulty ||
+    strategyKey !== saved.strategyKey ||
+    visionConfigId !== saved.visionConfigId ||
+    imageGenConfigId !== saved.imageGenConfigId ||
+    promptTemplate !== saved.promptTemplate ||
+    templateVarsText !== saved.templateVarsText ||
+    templateVarOptionsText !== saved.templateVarOptionsText;
+
   const strategyOptions = [
     ...strategyKeys.map((k) => ({ label: k, value: k })),
     ...(strategyKey && !strategyKeys.includes(strategyKey)
@@ -769,17 +762,23 @@ export default function AdminStyleDetailPage() {
           {style.isActive ? "Activo" : "Inactivo"}
         </Badge>
       }
+      primaryAction={{
+        content: "Guardar",
+        loading: saving,
+        disabled: !isDirty || duplicating || toggling,
+        onAction: handleSave,
+      }}
       secondaryActions={[
         {
           content: "Duplicar",
           loading: duplicating,
-          disabled: toggling,
+          disabled: toggling || saving,
           onAction: handleDuplicate,
         },
         {
           content: style.isActive ? "Desactivar" : "Activar",
           loading: toggling,
-          disabled: duplicating,
+          disabled: duplicating || saving,
           onAction: handleToggle,
         },
       ]}
@@ -951,15 +950,6 @@ export default function AdminStyleDetailPage() {
                   />
                 </FormLayout>
 
-                <InlineStack align="end">
-                  <Button
-                    variant="primary"
-                    loading={saving}
-                    onClick={handleSavePrompt}
-                  >
-                    Guardar cambios
-                  </Button>
-                </InlineStack>
               </BlockStack>
             </Card>
 
@@ -1011,15 +1001,6 @@ export default function AdminStyleDetailPage() {
                       />
                     </FormLayout>
 
-                    <InlineStack align="end">
-                      <Button
-                        variant="primary"
-                        loading={saving}
-                        onClick={handleSaveTemplateVars}
-                      >
-                        Guardar cambios
-                      </Button>
-                    </InlineStack>
                   </BlockStack>
                 </Collapsible>
               </BlockStack>
@@ -1067,28 +1048,10 @@ export default function AdminStyleDetailPage() {
                       { label: "Media", value: "medium" },
                       { label: "Difícil", value: "challenging" },
                     ]}
-                    value={style.difficulty ?? "medium"}
-                    onChange={(v) => {
-                      setStyle((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              difficulty: v as AdminStyle["difficulty"],
-                            }
-                          : prev,
-                      );
-                    }}
+                    value={difficulty}
+                    onChange={(v) => setDifficulty(v as StyleDifficulty)}
                   />
                 </FormLayout>
-                <InlineStack align="end">
-                  <Button
-                    variant="primary"
-                    loading={saving}
-                    onClick={handleSaveBasics}
-                  >
-                    Guardar cambios
-                  </Button>
-                </InlineStack>
 
                 <Divider />
 
@@ -1238,15 +1201,6 @@ export default function AdminStyleDetailPage() {
                   </Button>
                 </FormLayout>
 
-                <InlineStack align="end">
-                  <Button
-                    variant="primary"
-                    loading={saving}
-                    onClick={handleSavePipeline}
-                  >
-                    Guardar cambios
-                  </Button>
-                </InlineStack>
               </BlockStack>
             </Card>
           </BlockStack>
