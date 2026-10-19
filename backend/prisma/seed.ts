@@ -198,6 +198,13 @@ async function main() {
       aspectRatio: '5:7',
       width: 848, height: 1200,
     },
+    // Formato del puzzle de lanzamiento (`claw-puzzle`, impreso a 20 × 30 cm).
+    {
+      name: 'ratio_2_3',
+      displayName: '2:3',
+      aspectRatio: '2:3',
+      width: 832, height: 1248,
+    },
   ];
 
   for (const fmt of formatsData) {

@@ -43,6 +43,11 @@ sube la foto de su mascota, genera arte con IA y lo compra impreso como puzzle.
     Al asignar A3 a un producto, sus variantes necesitan `printConfig`
     `{ widthCm: 29.7, heightCm: 42 }`; a 848×1200 px el A3 queda a ~73 DPI y
     el estudio de impresión pedirá upscale.
+  - Formato `ratio_2_3` (832×1248 px). Desde el 2026-10-19 sustituye al A3 en
+    `claw-puzzle`, que se imprime a 20 × 30 cm. La migración
+    `20261019120000_format_ratio_2_3` crea el formato y le pasa los productos
+    en A3 con sus variantes; el `printConfig` cambia a 20 × 30 cm y conserva
+    la sangre y el DPI. `a3_portrait` se queda por las generaciones antiguas.
   - `podConfig` → `printConfig` (`{widthCm, heightCm, bleedMm, safeMarginMm, minDpi}`).
   - `productionStatus` gana `packed` entre `printed` y `shipped`: troquelar,
     contar piezas y encajar es un paso físico real. Queda **una sola** máquina
@@ -161,12 +166,12 @@ runtime**, no en compilación:
           el admin y un job de BullMQ procesado (p. ej. un sync de productos).
 
 - [x] **3. El producto en Shopify.** `claw-puzzle` tiene una opción,
-      `Puzzle theme` (`Perro` | `Gato`), con formato A3 vertical
-      (`a3_portrait`). El sync (`product-sync.service.ts`) no mira las
+      `Puzzle theme` (`Perro` | `Gato`), con formato 2:3
+      (`ratio_2_3`). El sync (`product-sync.service.ts`) no mira las
       opciones: guarda cada variante por id y título, y todas heredan el
       formato del producto (`ProductReference.formatId`). El `printConfig` de
-      las dos variantes (29,7 × 42 cm, 300 DPI, 3 mm de sangre) está puesto
-      desde el admin; el seed no lo cubre (sigue apuntando a
+      las dos variantes (20 × 30 cm, 300 DPI, 3 mm de sangre) lo pone la
+      migración `20261019120000_format_ratio_2_3`; el seed no lo cubre (sigue apuntando a
       `custom-pet-puzzle`), así que en una BD nueva hay que ponerlo a mano.
 
 ### Necesario antes de abrir al público

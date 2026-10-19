@@ -23,7 +23,8 @@ product). What changed in the fork:
   variants. Careful: `Format.width`/`height` are *generation pixels*, not the
   physical size — they are sent to fal.ai as `image_size` (flux ignores
   `aspect_ratio`). Seeded formats: `ratio_4_3` (default for new products) and
-  `a3_portrait` (A3 vertical, 848×1200).
+  `a3_portrait` (A3 vertical, 848×1200, no longer assigned) and `ratio_2_3`
+  (832×1248, the launch product `claw-puzzle`, printed at 20 × 30 cm).
 
 Unchanged from ClawAndSoul: auth, credits, pets, styles, the fal.ai +
 OpenRouter generation pipeline, the Shopify sync and the order ingestion.
