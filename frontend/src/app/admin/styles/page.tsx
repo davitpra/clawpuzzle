@@ -38,7 +38,7 @@ export default function AdminStylesPage() {
       subtitle="Catálogo de estilos de IA disponibles"
       secondaryActions={[
         {
-          content: "Ordenar para la landing",
+          content: "Ordenar",
           icon: SortIcon,
           disabled: loading || reordering || styles.length < 2,
           onAction: () => setReordering(true),

@@ -22,20 +22,20 @@ api_version = "2026-07"
 # products/* y orders/* siguen registrados por REST en la tienda.
 [[webhooks.subscriptions]]
 topics = [ "fulfillment_orders/placed_on_hold" ]
-uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/placed_on_hold"
+uri = "https://api.clawpuzzle.com/api/webhooks/shopify/fulfillment_order/placed_on_hold"
 
 [[webhooks.subscriptions]]
 topics = [ "fulfillment_orders/hold_released" ]
-uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/hold_released"
+uri = "https://api.clawpuzzle.com/api/webhooks/shopify/fulfillment_order/hold_released"
 
 [[webhooks.subscriptions]]
 topics = [ "fulfillment_orders/fulfillment_request_submitted" ]
-uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/fulfillment_request_submitted"
+uri = "https://api.clawpuzzle.com/api/webhooks/shopify/fulfillment_order/fulfillment_request_submitted"
 
 [[webhooks.subscriptions]]
 topics = [ "fulfillment_orders/order_routing_complete" ]
-uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/order_routing_complete"
+uri = "https://api.clawpuzzle.com/api/webhooks/shopify/fulfillment_order/order_routing_complete"
 
 [[webhooks.subscriptions]]
 topics = [ "fulfillment_orders/scheduled_fulfillment_order_ready" ]
-uri = "https://bromic-premillennially-gwyn.ngrok-free.dev/api/webhooks/shopify/fulfillment_order/scheduled_fulfillment_order_ready"
+uri = "https://api.clawpuzzle.com/api/webhooks/shopify/fulfillment_order/scheduled_fulfillment_order_ready"
