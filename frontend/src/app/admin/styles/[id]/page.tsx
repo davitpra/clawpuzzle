@@ -745,6 +745,10 @@ export default function AdminStyleDetailPage() {
     templateVarsText !== saved.templateVarsText ||
     templateVarOptionsText !== saved.templateVarOptionsText;
 
+  // Las estrategias style-transfer usan la imagen de referencia; el resto
+  // (style-driven, y lo que el backend trate como tal por defecto) usa el VLM.
+  const usesReferenceImage = strategyKey.startsWith("style-transfer");
+
   const strategyOptions = [
     ...strategyKeys.map((k) => ({ label: k, value: k })),
     ...(strategyKey && !strategyKeys.includes(strategyKey)
@@ -949,7 +953,6 @@ export default function AdminStyleDetailPage() {
                     helpText="Prompt completo al VLM. Placeholders: {{petName}}, {{petSpecies}}, {{petBreed}}, {{maxPets}} y los de template_vars."
                   />
                 </FormLayout>
-
               </BlockStack>
             </Card>
 
@@ -1000,7 +1003,6 @@ export default function AdminStyleDetailPage() {
                         helpText="Cada key define un control: { type: 'select'|'slider'|'color', label, default, ... }"
                       />
                     </FormLayout>
-
                   </BlockStack>
                 </Collapsible>
               </BlockStack>
@@ -1034,14 +1036,14 @@ export default function AdminStyleDetailPage() {
                     maxLength={100}
                     helpText="Solo minúsculas, números, '-' y '_'. Ej: watercolor-classic"
                   />
-                  <TextField
+                  {/* <TextField
                     label="Categoría"
                     value={category}
                     onChange={setCategory}
                     autoComplete="off"
-                  />
+                  /> */}
                   {/* anade un select de dificultad: easy, medium, challenging */}
-                  <Select
+                  {/* <Select
                     label="Dificultad"
                     options={[
                       { label: "Fácil", value: "easy" },
@@ -1050,7 +1052,7 @@ export default function AdminStyleDetailPage() {
                     ]}
                     value={difficulty}
                     onChange={(v) => setDifficulty(v as StyleDifficulty)}
-                  />
+                  /> */}
                 </FormLayout>
 
                 <Divider />
@@ -1083,110 +1085,17 @@ export default function AdminStyleDetailPage() {
                 <Text variant="headingSm" as="h2">
                   Pipeline
                 </Text>
-                <BlockStack gap="200">
-                  <Text variant="bodySm" as="p" fontWeight="bold">
-                    Imagen de referencia (style-transfer)
-                  </Text>
-                  {style.styleReferenceUrl ? (
-                    <BlockStack gap="200">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={style.styleReferenceUrl}
-                        alt="Referencia de estilo"
-                        style={{
-                          maxWidth: 160,
-                          borderRadius: 8,
-                          border: "1px solid #ddd",
-                        }}
-                      />
-                      <InlineStack gap="200">
-                        <Button
-                          size="slim"
-                          loading={uploadingRefImage}
-                          onClick={() => refImageInputRef.current?.click()}
-                        >
-                          Cambiar
-                        </Button>
-                        <Button
-                          size="slim"
-                          tone="critical"
-                          loading={removingRefImage}
-                          onClick={async () => {
-                            setRemovingRefImage(true);
-                            try {
-                              await adminApi.styles.removeReferenceImage(id);
-                              await reload();
-                            } catch (e) {
-                              console.error(e);
-                            } finally {
-                              setRemovingRefImage(false);
-                            }
-                          }}
-                        >
-                          Eliminar
-                        </Button>
-                      </InlineStack>
-                    </BlockStack>
-                  ) : (
-                    <Button
-                      size="slim"
-                      loading={uploadingRefImage}
-                      onClick={() => refImageInputRef.current?.click()}
-                    >
-                      Subir imagen de referencia
-                    </Button>
-                  )}
-                  <Text variant="bodySm" as="p" tone="subdued">
-                    Requerida para estrategias de tipo style-transfer. Define el
-                    estilo visual, pose y composición.
-                  </Text>
-                  <input
-                    ref={refImageInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setUploadingRefImage(true);
-                      try {
-                        await adminApi.styles.uploadReferenceImage(id, file);
-                        await reload();
-                      } catch (err) {
-                        console.error(err);
-                      } finally {
-                        setUploadingRefImage(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                </BlockStack>
+
                 <FormLayout>
                   <Select
-                    label="strategy_key"
+                    label="Estrategia de generacion"
                     options={strategyOptions}
                     value={strategyKey}
                     onChange={setStrategyKey}
                     helpText="Estrategia de pipeline registrada en el backend"
                   />
-
                   <Select
-                    label="Vision config"
-                    options={visionOptions}
-                    value={visionConfigId}
-                    onChange={setVisionConfigId}
-                    helpText="Configuración del VLM (descripción de la imagen)"
-                  />
-                  <Button
-                    size="slim"
-                    variant="plain"
-                    url="/admin/vision-configs"
-                  >
-                    Gestionar vision models →
-                  </Button>
-
-                  <Select
-                    label="Image gen config"
+                    label="Modelos de generación de imagen"
                     options={imageGenOptions}
                     value={imageGenConfigId}
                     onChange={setImageGenConfigId}
@@ -1197,10 +1106,113 @@ export default function AdminStyleDetailPage() {
                     variant="plain"
                     url="/admin/image-gen-configs"
                   >
-                    Gestionar generation models →
+                    Gestionar modelos de imagenes →
                   </Button>
-                </FormLayout>
+                  {usesReferenceImage && (
+                    <BlockStack gap="200">
+                      <Text variant="bodySm" as="p" fontWeight="bold">
+                        Imagen de referencia (style-transfer)
+                      </Text>
+                      {style.styleReferenceUrl ? (
+                        <BlockStack gap="200">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={style.styleReferenceUrl}
+                            alt="Referencia de estilo"
+                            style={{
+                              maxWidth: 160,
+                              borderRadius: 8,
+                              border: "1px solid #ddd",
+                            }}
+                          />
+                          <InlineStack gap="200">
+                            <Button
+                              size="slim"
+                              loading={uploadingRefImage}
+                              onClick={() => refImageInputRef.current?.click()}
+                            >
+                              Cambiar
+                            </Button>
+                            <Button
+                              size="slim"
+                              tone="critical"
+                              loading={removingRefImage}
+                              onClick={async () => {
+                                setRemovingRefImage(true);
+                                try {
+                                  await adminApi.styles.removeReferenceImage(
+                                    id,
+                                  );
+                                  await reload();
+                                } catch (e) {
+                                  console.error(e);
+                                } finally {
+                                  setRemovingRefImage(false);
+                                }
+                              }}
+                            >
+                              Eliminar
+                            </Button>
+                          </InlineStack>
+                        </BlockStack>
+                      ) : (
+                        <Button
+                          size="slim"
+                          loading={uploadingRefImage}
+                          onClick={() => refImageInputRef.current?.click()}
+                        >
+                          Subir imagen de referencia
+                        </Button>
+                      )}
+                      <Text variant="bodySm" as="p" tone="subdued">
+                        Requerida para estrategias de tipo style-transfer.
+                        Define el estilo visual, pose y composición.
+                      </Text>
+                      <input
+                        ref={refImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingRefImage(true);
+                          try {
+                            await adminApi.styles.uploadReferenceImage(
+                              id,
+                              file,
+                            );
+                            await reload();
+                          } catch (err) {
+                            console.error(err);
+                          } finally {
+                            setUploadingRefImage(false);
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    </BlockStack>
+                  )}
 
+                  {!usesReferenceImage && (
+                    <Select
+                      label="Modelo de visión (VLM)"
+                      options={visionOptions}
+                      value={visionConfigId}
+                      onChange={setVisionConfigId}
+                      helpText="Modelos de analizis la imagen."
+                    />
+                  )}
+                  {!usesReferenceImage && (
+                    <Button
+                      size="slim"
+                      variant="plain"
+                      url="/admin/vision-configs"
+                    >
+                      Gestionar modelos de visión →
+                    </Button>
+                  )}
+                </FormLayout>
               </BlockStack>
             </Card>
           </BlockStack>
