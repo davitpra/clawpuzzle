@@ -1,4 +1,9 @@
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import {
+  useState,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction,
+} from "react";
 import {
   Card,
   Banner,
@@ -17,12 +22,8 @@ import {
   ColorPicker,
   Popover,
 } from "@shopify/polaris";
-import { PlusIcon } from "@shopify/polaris-icons";
-import type {
-  AdminStyle,
-  AdminPet,
-  AdminFormat,
-} from "@/entities/admin/api";
+import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import type { AdminStyle, AdminPet, AdminFormat } from "@/entities/admin/api";
 import { hexToHsb, hsbToHex, type HsbColor } from "@/lib/colorUtils";
 import type { TemplateVarOption } from "../templateVars";
 
@@ -51,6 +52,8 @@ export function StyleTestGenerationCard({
   petPhotoInputRef,
   uploadingPetPhoto,
   onUploadPetPhoto,
+  deletingPetPhotoId,
+  onDeletePetPhoto,
   testAspectRatio,
   setTestAspectRatio,
   formats,
@@ -90,6 +93,8 @@ export function StyleTestGenerationCard({
   petPhotoInputRef: RefObject<HTMLInputElement | null>;
   uploadingPetPhoto: boolean;
   onUploadPetPhoto: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  deletingPetPhotoId: string | null;
+  onDeletePetPhoto: (photoId: string) => Promise<void>;
   testAspectRatio: string;
   setTestAspectRatio: Dispatch<SetStateAction<string>>;
   formats: AdminFormat[];
@@ -111,6 +116,16 @@ export function StyleTestGenerationCard({
   setCreatePetError: Dispatch<SetStateAction<string | null>>;
   onCreatePet: () => void;
 }) {
+  const [confirmDeletePhotoId, setConfirmDeletePhotoId] = useState<
+    string | null
+  >(null);
+
+  const handleConfirmDeletePhoto = async () => {
+    if (!confirmDeletePhotoId) return;
+    await onDeletePetPhoto(confirmDeletePhotoId);
+    setConfirmDeletePhotoId(null);
+  };
+
   return (
     <>
       {/* Generar imagen de prueba */}
@@ -200,30 +215,77 @@ export function StyleTestGenerationCard({
                     </Text>
                     <InlineStack gap="200" wrap>
                       {pet.photos.map((photo) => (
-                        <button
-                          key={photo.id}
-                          type="button"
-                          onClick={() => setSelectedPhotoId(photo.id)}
-                          disabled={testGenRunning}
-                          style={{
-                            padding: 0,
-                            border:
-                              selectedPhotoId === photo.id
-                                ? "3px solid #448da6"
-                                : "3px solid transparent",
-                            borderRadius: 8,
-                            cursor: testGenRunning ? "not-allowed" : "pointer",
-                            background: "none",
-                            opacity: testGenRunning ? 0.6 : 1,
-                            lineHeight: 0,
-                          }}
-                        >
-                          <Thumbnail
-                            source={photo.photoUrl}
-                            alt={pet.name}
-                            size="large"
-                          />
-                        </button>
+                        <div key={photo.id} style={{ position: "relative" }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPhotoId(photo.id)}
+                            disabled={testGenRunning}
+                            style={{
+                              padding: 0,
+                              border:
+                                selectedPhotoId === photo.id
+                                  ? "3px solid #448da6"
+                                  : "3px solid transparent",
+                              borderRadius: 8,
+                              cursor: testGenRunning
+                                ? "not-allowed"
+                                : "pointer",
+                              background: "none",
+                              opacity: testGenRunning ? 0.6 : 1,
+                              lineHeight: 0,
+                            }}
+                          >
+                            <Thumbnail
+                              source={photo.photoUrl}
+                              alt={pet.name}
+                              size="large"
+                            />
+                          </button>
+
+                          {deletingPetPhotoId === photo.id && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "rgba(255,255,255,0.7)",
+                                borderRadius: 8,
+                              }}
+                            >
+                              <Spinner size="small" />
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            aria-label="Eliminar foto"
+                            onClick={() => setConfirmDeletePhotoId(photo.id)}
+                            disabled={
+                              testGenRunning || deletingPetPhotoId !== null
+                            }
+                            style={{
+                              position: "absolute",
+                              top: 6,
+                              right: 6,
+                              background: "rgba(255,255,255,0.9)",
+                              border: "1px solid var(--p-color-border)",
+                              borderRadius: 6,
+                              padding: "4px 6px",
+                              cursor:
+                                testGenRunning || deletingPetPhotoId !== null
+                                  ? "not-allowed"
+                                  : "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              lineHeight: 0,
+                            }}
+                          >
+                            <DeleteIcon width={16} height={16} />
+                          </button>
+                        </div>
                       ))}
                       <button
                         type="button"
@@ -244,7 +306,8 @@ export function StyleTestGenerationCard({
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 4,
-                          opacity: testGenRunning || uploadingPetPhoto ? 0.5 : 1,
+                          opacity:
+                            testGenRunning || uploadingPetPhoto ? 0.5 : 1,
                         }}
                       >
                         {uploadingPetPhoto ? (
@@ -332,7 +395,9 @@ export function StyleTestGenerationCard({
                               value: o.value,
                             })),
                           ]}
-                          value={String(userSelections[key] ?? opt.default ?? "")}
+                          value={String(
+                            userSelections[key] ?? opt.default ?? "",
+                          )}
                           onChange={(v) => updateSelection(key, v)}
                           disabled={testGenRunning}
                         />
@@ -444,6 +509,35 @@ export function StyleTestGenerationCard({
         </BlockStack>
       </Card>
 
+      {/* Modal confirmar borrado de foto */}
+      <Modal
+        open={confirmDeletePhotoId !== null}
+        onClose={() => {
+          if (!deletingPetPhotoId) setConfirmDeletePhotoId(null);
+        }}
+        title="¿Eliminar foto?"
+        primaryAction={{
+          content: "Eliminar",
+          destructive: true,
+          loading: deletingPetPhotoId !== null,
+          onAction: handleConfirmDeletePhoto,
+        }}
+        secondaryActions={[
+          {
+            content: "Cancelar",
+            disabled: deletingPetPhotoId !== null,
+            onAction: () => setConfirmDeletePhotoId(null),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <Text as="p">
+            La foto se eliminará de la mascota y del almacenamiento. Las
+            generaciones que ya la usaron se conservan.
+          </Text>
+        </Modal.Section>
+      </Modal>
+
       {/* Modal nueva mascota */}
       <Modal
         open={newPetModalOpen}
@@ -470,7 +564,9 @@ export function StyleTestGenerationCard({
       >
         <Modal.Section>
           <BlockStack gap="400">
-            {createPetError && <Banner tone="critical">{createPetError}</Banner>}
+            {createPetError && (
+              <Banner tone="critical">{createPetError}</Banner>
+            )}
             <FormLayout>
               <TextField
                 label="Nombre"

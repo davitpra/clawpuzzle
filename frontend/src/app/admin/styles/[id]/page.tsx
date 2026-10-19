@@ -182,6 +182,9 @@ export default function AdminStyleDetailPage() {
   const [creatingPet, setCreatingPet] = useState(false);
   const [createPetError, setCreatePetError] = useState<string | null>(null);
   const [uploadingPetPhoto, setUploadingPetPhoto] = useState(false);
+  const [deletingPetPhotoId, setDeletingPetPhotoId] = useState<string | null>(
+    null,
+  );
   const petPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const testGenStatus = useAdminGenerationStatus(testGenId);
@@ -360,6 +363,26 @@ export default function AdminStyleDetailPage() {
       setTestGenError((err as Error).message);
     } finally {
       setUploadingPetPhoto(false);
+    }
+  };
+
+  const handleDeletePetPhoto = async (photoId: string) => {
+    if (!selectedPetId) return;
+    setDeletingPetPhotoId(photoId);
+    try {
+      await adminApi.pets.deletePhoto(selectedPetId, photoId);
+      setMyPets((prev) =>
+        prev.map((p) =>
+          p.id === selectedPetId
+            ? { ...p, photos: p.photos.filter((ph) => ph.id !== photoId) }
+            : p,
+        ),
+      );
+      if (selectedPhotoId === photoId) setSelectedPhotoId(null);
+    } catch (err: unknown) {
+      setTestGenError((err as Error).message);
+    } finally {
+      setDeletingPetPhotoId(null);
     }
   };
 
@@ -832,6 +855,8 @@ export default function AdminStyleDetailPage() {
               petPhotoInputRef={petPhotoInputRef}
               uploadingPetPhoto={uploadingPetPhoto}
               onUploadPetPhoto={handleUploadPetPhoto}
+              deletingPetPhotoId={deletingPetPhotoId}
+              onDeletePetPhoto={handleDeletePetPhoto}
               testAspectRatio={testAspectRatio}
               formats={formats}
               setTestAspectRatio={setTestAspectRatio}
@@ -870,9 +895,7 @@ export default function AdminStyleDetailPage() {
                 </InlineStack>
 
                 <Text as="p" tone="subdued" variant="bodySm">
-                  Orden para la landing: 1) arte terminado (imagen principal),
-                  2) versión PBN numerada del mismo ejemplo. Arrastra las
-                  imágenes para corregir el orden.
+                  Orden para la landing: 1) Imagen de Gato, 2) Imagen de Perro.
                 </Text>
 
                 <input
