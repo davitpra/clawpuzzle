@@ -18,6 +18,7 @@ export function useStylesList() {
   const [forceConfirm, setForceConfirm] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   // Las generaciones del estilo que está por borrarse: decide si hace falta la
   // confirmación extra y cuántas se pierden.
@@ -86,6 +87,33 @@ export function useStylesList() {
     }
   };
 
+  // Crea un borrador inactivo con un slug libre y devuelve su id; el resto se
+  // completa en el editor, igual que al duplicar.
+  const createDraft = async (): Promise<string | null> => {
+    setCreating(true);
+    try {
+      const taken = new Set(styles.map((s) => s.name));
+      const base = "nuevo-estilo";
+      let candidate = base;
+      let n = 2;
+      while (taken.has(candidate)) {
+        candidate = `${base}-${n}`;
+        n++;
+      }
+      const created = await adminApi.styles.create({
+        name: candidate,
+        displayName: "Nuevo estilo",
+        category: "general",
+        isActive: false,
+      });
+      return created.id;
+    } catch (e: unknown) {
+      setError((e as Error).message);
+      setCreating(false);
+      return null;
+    }
+  };
+
   return {
     // data
     styles,
@@ -99,6 +127,7 @@ export function useStylesList() {
     forceConfirm,
     reordering,
     savingOrder,
+    creating,
     // setters
     setError,
     setReordering,
@@ -109,5 +138,6 @@ export function useStylesList() {
     handleToggle,
     handleDelete,
     saveOrder,
+    createDraft,
   };
 }

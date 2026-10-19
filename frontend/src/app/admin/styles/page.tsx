@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Page, Card, Banner, BlockStack } from "@shopify/polaris";
-import { SortIcon } from "@shopify/polaris-icons";
+import { PlusIcon, SortIcon } from "@shopify/polaris-icons";
 import { LoadingCard } from "@/app/admin/_components/LoadingCard";
 import { DeleteStyleModal } from "./_components/DeleteStyleModal";
 import { StylesOrderList } from "./_components/StylesOrderList";
@@ -22,6 +22,7 @@ export default function AdminStylesPage() {
     forceConfirm,
     reordering,
     savingOrder,
+    creating,
     setError,
     setReordering,
     setDeletingTarget,
@@ -30,7 +31,13 @@ export default function AdminStylesPage() {
     handleToggle,
     handleDelete,
     saveOrder,
+    createDraft,
   } = useStylesList();
+
+  const handleCreate = async () => {
+    const id = await createDraft();
+    if (id) router.push(`/admin/styles/${id}`);
+  };
 
   return (
     <Page
@@ -42,6 +49,13 @@ export default function AdminStylesPage() {
           icon: SortIcon,
           disabled: loading || reordering || styles.length < 2,
           onAction: () => setReordering(true),
+        },
+        {
+          content: "Nuevo estilo",
+          icon: PlusIcon,
+          loading: creating,
+          disabled: loading || reordering,
+          onAction: handleCreate,
         },
       ]}
     >
