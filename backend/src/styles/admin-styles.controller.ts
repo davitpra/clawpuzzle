@@ -26,6 +26,7 @@ import { StylesService } from './styles.service';
 import { CreateStyleDto } from './dto/create-style.dto';
 import { UpdateStyleDto } from './dto/update-style.dto';
 import { UpdateStyleImageDto } from './dto/update-style-image.dto';
+import { ReorderStylesDto } from './dto/reorder-styles.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -66,6 +67,15 @@ export class AdminStylesController {
   @ApiResponse({ status: 201, description: 'Style created successfully' })
   create(@Body() dto: CreateStyleDto) {
     return this.stylesService.create(dto);
+  }
+
+  // Declarada antes de `:styleId` para que esa ruta no capture "reorder".
+  @Patch('reorder')
+  @ApiOperation({ summary: 'Set the display order of styles (landing)' })
+  @ApiResponse({ status: 200, description: 'Styles reordered' })
+  @ApiResponse({ status: 400, description: 'Unknown style id' })
+  reorder(@Body() dto: ReorderStylesDto) {
+    return this.stylesService.reorder(dto.ids);
   }
 
   @Patch(':styleId')

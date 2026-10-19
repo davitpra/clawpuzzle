@@ -16,6 +16,7 @@ import { SortColumn, useTableSort } from "@/hooks/useTableSort";
 import { ActiveToggleBadge } from "@/app/admin/_components/ActiveToggleBadge";
 
 const COLUMNS: SortColumn<AdminStyle>[] = [
+  { title: "Orden", sortBy: (s) => s.sortOrder },
   { title: "Vista previa" },
   { title: "Nombre", sortBy: (s) => s.displayName },
   { title: "Categoría", sortBy: (s) => s.category },
@@ -78,6 +79,11 @@ export function StylesTable({
           tone={s.isActive ? undefined : "subdued"}
           onClick={() => onRowClick(s.id)}
         >
+          <IndexTable.Cell>
+            <Text as="span" tone="subdued">
+              {s.sortOrder + 1}
+            </Text>
+          </IndexTable.Cell>
           <IndexTable.Cell>
             <Thumbnail
               source={s.previewUrl ?? ImageIcon}

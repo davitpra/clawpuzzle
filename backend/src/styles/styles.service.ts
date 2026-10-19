@@ -29,6 +29,12 @@ const PUBLIC_STYLE_QUERY = {
   },
 } satisfies { select: Prisma.StyleSelect };
 
+// Orden manual del admin; el nombre desempata estilos con la misma posición.
+const STYLE_LIST_ORDER: Prisma.StyleOrderByWithRelationInput[] = [
+  { sortOrder: 'asc' },
+  { displayName: 'asc' },
+];
+
 @Injectable()
 export class StylesService {
   constructor(
@@ -43,7 +49,7 @@ export class StylesService {
 
     const styles = await this.prisma.style.findMany({
       where,
-      orderBy: [{ category: 'asc' }, { displayName: 'asc' }],
+      orderBy: STYLE_LIST_ORDER,
       ...PUBLIC_STYLE_QUERY,
     });
 
@@ -87,7 +93,7 @@ export class StylesService {
   async findByCategory(category: string) {
     const styles = await this.prisma.style.findMany({
       where: { category, isActive: true },
-      orderBy: { displayName: 'asc' },
+      orderBy: STYLE_LIST_ORDER,
       ...PUBLIC_STYLE_QUERY,
     });
 
@@ -115,7 +121,7 @@ export class StylesService {
 
   async findAllForAdmin() {
     const styles = await this.prisma.style.findMany({
-      orderBy: [{ category: 'asc' }, { displayName: 'asc' }],
+      orderBy: STYLE_LIST_ORDER,
       include: {
         images: { orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }] },
         visionConfig: true,
@@ -130,10 +136,15 @@ export class StylesService {
   }
 
   async create(dto: CreateStyleDto) {
+    // Un estilo nuevo entra al final del carrusel.
+    const { _max } = await this.prisma.style.aggregate({
+      _max: { sortOrder: true },
+    });
     try {
       return await this.prisma.style.create({
         data: {
           ...dto,
+          sortOrder: (_max.sortOrder ?? -1) + 1,
           promptTemplate: dto.promptTemplate ?? DEFAULT_PROMPT_TEMPLATE,
         },
       });
@@ -145,6 +156,23 @@ export class StylesService {
       }
       throw e;
     }
+  }
+
+  /** Reescribe sortOrder según la posición de cada id en `ids`. */
+  async reorder(ids: string[]) {
+    const found = await this.prisma.style.count({ where: { id: { in: ids } } });
+    if (found !== ids.length) {
+      throw new BadRequestException('Some style ids do not exist');
+    }
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.style.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+    return this.findAllForAdmin();
   }
 
   async update(id: string, dto: UpdateStyleDto) {

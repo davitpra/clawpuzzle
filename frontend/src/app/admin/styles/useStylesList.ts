@@ -16,6 +16,8 @@ export function useStylesList() {
   const [deletingTarget, setDeletingTarget] = useState<AdminStyle | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [forceConfirm, setForceConfirm] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   // Las generaciones del estilo que está por borrarse: decide si hace falta la
   // confirmación extra y cuántas se pierden.
@@ -71,6 +73,19 @@ export function useStylesList() {
     }
   };
 
+  // Guarda el orden de la landing en una sola llamada y sale del modo ordenar.
+  const saveOrder = async (ids: string[]) => {
+    setSavingOrder(true);
+    try {
+      setStyles(await adminApi.styles.reorder(ids));
+      setReordering(false);
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   return {
     // data
     styles,
@@ -82,13 +97,17 @@ export function useStylesList() {
     deletingTarget,
     deleting,
     forceConfirm,
+    reordering,
+    savingOrder,
     // setters
     setError,
+    setReordering,
     setDeletingTarget,
     setForceConfirm,
     // actions
     closeDeleteModal,
     handleToggle,
     handleDelete,
+    saveOrder,
   };
 }

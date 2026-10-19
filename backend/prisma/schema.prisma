@@ -257,6 +257,8 @@ model Style {
   styleReferenceUrl        String?  @map("style_reference_url")
   styleReferenceStorageKey String?  @map("style_reference_storage_key")
   isActive                 Boolean  @default(true) @map("is_active")
+  // Posición en el carrusel de la landing y del paso de estilo (asc)
+  sortOrder                Int      @default(0) @map("sort_order")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -280,6 +282,7 @@ model Style {
   @@index([category])
   @@index([isActive])
   @@index([category, isActive])
+  @@index([sortOrder])
   @@index([visionConfigId])
   @@index([imageGenConfigId])
   @@map("styles")

@@ -720,6 +720,8 @@ export interface AdminStyle {
   category: string;
   difficulty: "easy" | "medium" | "challenging" | null;
   isActive: boolean;
+  /** Posición en el carrusel de la landing (asc). */
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
   strategyKey: string;
@@ -1009,6 +1011,12 @@ export const adminApi = {
       adminFetch<AdminStyle>(`/admin/styles/${id}`, {
         method: "PATCH",
         body: JSON.stringify(body),
+      }),
+    /** Guarda el orden de la landing: el índice de cada id es su posición. */
+    reorder: (ids: string[]) =>
+      adminFetch<AdminStyle[]>("/admin/styles/reorder", {
+        method: "PATCH",
+        body: JSON.stringify({ ids }),
       }),
     deactivate: (id: string) =>
       adminFetch(`/admin/styles/${id}`, { method: "DELETE" }),
