@@ -1,5 +1,5 @@
-// Modo lanzamiento: el sitio se reduce al embudo landing → arte IA → studio →
-// PBN → canvas. Con el flag activo, `src/proxy.ts` redirige a `/` las rutas de
+// Modo lanzamiento: el sitio se reduce al embudo landing → arte IA → oferta
+// del rompecabezas. Con el flag activo, `src/proxy.ts` redirige a `/` las rutas de
 // tienda (`/catalog`, `/product/*`, `/cart`), `app/page.tsx` sirve la landing
 // del studio y `shared/config/navigation.ts` expone una navegación reducida.
 // Apagarlo devuelve la tienda completa: nada se ha borrado.

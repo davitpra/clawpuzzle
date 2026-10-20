@@ -1,11 +1,9 @@
 import { CatalogProduct } from "./types";
 
 // Secciones del catálogo en el orden en que se muestran. La `key` es el `productType`
-// (template del backend = formato de entrega; "Digital" son las descargas del
-// coloreable de la mascota); el `title` es el encabezado visible y el `short` el
-// label del chip en la barra. Ver los valores canónicos en admin `ProductsTable`
-// (TEMPLATE_OPTIONS) y `ProductPageTemplate`. El contenido (coloreable PBN vs arte
-// terminado) es un eje aparte: ver `intents.ts`.
+// (template del backend = formato de entrega); el `title` es el encabezado
+// visible y el `short` el label del chip en la barra. Ver los valores canónicos
+// en admin `ProductsTable` (TEMPLATE_OPTIONS) y `ProductPageTemplate`.
 export const CATALOG_SECTIONS = [
   { key: "Canvas", title: "Canvas", short: "Canvas" },
   { key: "Poster", title: "Posters", short: "Poster" },

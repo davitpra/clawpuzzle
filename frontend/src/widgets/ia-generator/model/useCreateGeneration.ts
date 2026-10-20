@@ -180,7 +180,7 @@ export function useCreateGeneration() {
         // La generación consumió 1 crédito: refrescamos el saldo del badge.
         void refreshCredits();
 
-        // Digital (descarga gratuita; "PBN" legacy) no va al carrito: no se cobra
+        // Digital (descarga gratuita) no va al carrito: no se cobra
         // ni debe disparar el order_bonus de +3 créditos en checkout.
         const isDigital = normalizeTemplate(productInfo?.template) === "Digital";
         if (productInfo && !isDigital) {

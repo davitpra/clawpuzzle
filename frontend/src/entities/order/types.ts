@@ -130,7 +130,6 @@ export interface UserGenerationDetail extends UserGeneration {
   style: { id: string; displayName?: string; category?: string } | null;
 }
 
-// Respuesta de GET /paint-by-numbers/:id (user-scoped). El backend proyecta con
 export interface UserPetPhoto {
   id: string;
   photoUrl: string;

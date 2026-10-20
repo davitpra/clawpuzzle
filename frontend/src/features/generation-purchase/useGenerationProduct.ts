@@ -29,7 +29,7 @@ export interface UseGenerationProductResult {
   /** GID de la variante que corresponde a `formatId`; null si no mapea. */
   preselectedVariantId: string | null;
   loading: boolean;
-  /** true cuando no hay producto de origen utilizable y hay que caer al kit PBN. */
+  /** true cuando no hay producto de origen utilizable. */
   unavailable: boolean;
 }
 
@@ -45,9 +45,6 @@ interface ResolvedRef {
  * producto Shopify (variantes, precios, imágenes) y cruza el `formatId` de la
  * generación con el mapeo formato→variante del backend para abrir la card en la
  * talla con la que se generó la obra.
- *
- * Mismo contrato que {@link usePbnProduct} — product/variants/defaultImage/
- * loading/unavailable — más la variante preseleccionada.
  */
 export function useGenerationProduct({
   productRefId,

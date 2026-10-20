@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client';
 // material de referencia del negocio; solo se sirve bajo `@Roles('admin')`.
 //
 // `templateVarOptions` sí se queda: es el contrato del formulario de opciones
-// del storefront. `pbnConfig` también, lo consume el estudio PBN.
+// del storefront.
 export const PUBLIC_STYLE_SELECT = {
   id: true,
   name: true,

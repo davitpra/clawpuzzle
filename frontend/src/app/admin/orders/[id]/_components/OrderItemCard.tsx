@@ -3,10 +3,8 @@
 import { useRef, useState } from "react";
 import {
   Card,
-  Badge,
   Banner,
   Text,
-  InlineStack,
   BlockStack,
   Divider,
   Button,
@@ -63,11 +61,8 @@ export function OrderItemCard({
   // (live desde Shopify) → preview del estilo. No cae al arte del cliente.
   const productImage =
     shopifyImageUrl ?? item.productRef?.style?.images?.[0]?.imageUrl ?? null;
-  // IA art original. Los pedidos PBN no siempre conservan la relación Generation,
-  // pero sí su imagen fuente. Nunca usamos previewUrl ni outlineSvgUrl, que son
-  // artefactos PBN procesados.
-  const generatedSource =
-    item.generation?.resultUrl ?? item.paintByNumbers?.sourceImageUrl ?? null;
+  // IA art original.
+  const generatedSource = item.generation?.resultUrl ?? null;
   const generatedThumb = item.generation?.thumbnailUrl ?? generatedSource;
   const generatedFull =
     generatedSource ?? item.generation?.thumbnailUrl ?? null;
@@ -299,41 +294,6 @@ export function OrderItemCard({
             </BlockStack>
           </ItemMediaRow>
 
-          {item.paintByNumbers && (
-            <>
-              <Divider />
-              <ItemMediaRow
-                image={item.paintByNumbers.previewUrl}
-                alt="Paint by Numbers"
-                onZoom={
-                  item.paintByNumbers.previewUrl
-                    ? () => setPreviewSrc(item.paintByNumbers!.previewUrl)
-                    : undefined
-                }
-              >
-                <BlockStack gap="050">
-                  <InlineStack gap="150" blockAlign="center">
-                    <Text variant="bodySm" tone="subdued" as="span">
-                      Paint by Numbers
-                    </Text>
-                    <Badge tone="success">Guardado</Badge>
-                  </InlineStack>
-                  {item.paintByNumbers.outlineSvgUrl && (
-                    <a
-                      href={item.paintByNumbers.outlineSvgUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Text variant="bodyMd" fontWeight="semibold" as="span">
-                        Descargar SVG con números
-                      </Text>
-                    </a>
-                  )}
-                </BlockStack>
-              </ItemMediaRow>
-            </>
-          )}
-
           <Divider />
           <ItemActionsBar
             hasPrintImage={!!item.printImageUrl}
@@ -341,7 +301,6 @@ export function OrderItemCard({
             fileInputRef={fileInputRef}
             onUploadClick={() => fileInputRef.current?.click()}
             onUploadChange={handleUploadImage}
-            pbnStudioUrl={`/admin/orders/${orderId}/items/${item.id}/pbn-studio`}
           />
 
           <ItemProductPreview

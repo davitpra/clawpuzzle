@@ -9,7 +9,6 @@ interface ProductInfoProps {
   selectedVariant: ShopifyVariant | undefined;
   /** Formato de entrega normalizado (Digital | Canvas | Poster…). */
   template?: string;
-  /** Contenido de la obra: "pbn" | "print"; undefined si no está asignado. */
 }
 
 export default function ProductInfo({
@@ -17,8 +16,8 @@ export default function ProductInfo({
   selectedVariant,
   template,
 }: ProductInfoProps) {
-  // Tipo de producto de cara al cliente: formato + contenido, ej.
-  // "Canvas Print · Paint by Numbers". Cae a "Personalized" si no hay nada.
+  // Tipo de producto de cara al cliente según el formato. Cae a "Personalized"
+  // si no hay nada.
   const typeLabel =
     [templateLabel(template)]
       .filter(Boolean)

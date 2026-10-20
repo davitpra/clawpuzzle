@@ -19,7 +19,7 @@
 
 /* En Polaris v13 `size="fullScreen"` solo es pantalla completa en móvil; en
    desktop cae a un ancho default más angosto que `large`. Lo forzamos a ocupar
-   casi toda la pantalla en desktop para modales con editores (p.ej. PBN). */
+   casi toda la pantalla en desktop para modales con editores. */
 @media (min-width: 48em) {
   .Polaris-Modal-Dialog--sizeFullScreen {
     max-width: calc(100% - var(--p-space-1600)) !important;

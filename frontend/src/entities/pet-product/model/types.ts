@@ -15,6 +15,6 @@ export interface Product {
   label?: string;
   /** Formato de entrega del storefront configurado en el admin (Digital, Canvas, Poster…). */
   template?: string | null;
-  /** Dificultad del estilo (easy/medium/challenging); solo se muestra en PBN. */
+  /** Dificultad del estilo (easy/medium/challenging). */
   difficulty?: string;
 }

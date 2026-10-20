@@ -308,42 +308,42 @@ summary {
 }
 
 /* Rich product description (Shopify descriptionHtml) — light prose styles */
-.pbn-desc > *:first-child {
+.product-desc > *:first-child {
   margin-top: 0;
 }
-.pbn-desc > *:last-child {
+.product-desc > *:last-child {
   margin-bottom: 0;
 }
-.pbn-desc p {
+.product-desc p {
   margin: 0 0 0.5rem;
 }
-.pbn-desc ul,
-.pbn-desc ol {
+.product-desc ul,
+.product-desc ol {
   margin: 0 0 0.5rem;
   padding-left: 1.25rem;
 }
-.pbn-desc ul {
+.product-desc ul {
   list-style: disc;
 }
-.pbn-desc ol {
+.product-desc ol {
   list-style: decimal;
 }
-.pbn-desc li {
+.product-desc li {
   margin: 0.15rem 0;
 }
-.pbn-desc strong,
-.pbn-desc b {
+.product-desc strong,
+.product-desc b {
   font-weight: 700;
   color: var(--color-slate-dark, inherit);
 }
-.pbn-desc a {
+.product-desc a {
   color: var(--color-primary, #292c40);
   text-decoration: underline;
 }
-.pbn-desc h1,
-.pbn-desc h2,
-.pbn-desc h3,
-.pbn-desc h4 {
+.product-desc h1,
+.product-desc h2,
+.product-desc h3,
+.product-desc h4 {
   font-family: var(--font-display);
   font-weight: 900;
   color: var(--color-slate-dark, inherit);

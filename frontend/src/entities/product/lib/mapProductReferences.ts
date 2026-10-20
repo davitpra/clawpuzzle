@@ -32,8 +32,6 @@ export function mapProductReferences(
         shopifyHandle: node.handle,
         productRefId: node.id,
         template: node.productType,
-        // El label crudo de Shopify se normaliza acá, en el borde, para que el
-        // resto del front vea siempre la forma del backend ("pbn" | "print").
       } satisfies Product;
     });
 }

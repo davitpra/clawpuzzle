@@ -17,7 +17,7 @@ interface CatalogSectionProps {
   id?: string;
   title: string;
   products: CatalogProduct[];
-  /** Resuelve el href de cada card (kit PBN → /studio, etc.). */
+  /** Resuelve el href de cada card. */
   productHref: (product: CatalogProduct) => string | undefined;
 }
 

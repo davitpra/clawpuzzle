@@ -71,7 +71,6 @@ function CohortBody({ cohort }: { cohort: ActivationCohort }) {
   const steps = [
     { label: "Registraron una mascota", value: cohort.withPet },
     { label: "…y completaron una generación", value: cohort.withGeneration },
-    { label: "…y guardaron un PBN", value: cohort.withPbn },
     { label: "…y pagaron un pedido", value: cohort.withPaidOrder },
   ];
 

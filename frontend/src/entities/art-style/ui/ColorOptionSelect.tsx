@@ -25,7 +25,7 @@ function ColorDot({ value }: { value: string }) {
  * Selector desplegable para opciones de color (fondo, líneas...): cada fila
  * muestra el color real a la izquierda, el nombre al lado y un check en la
  * seleccionada. Sigue el mismo patrón de apertura + click fuera + Escape que
- * PbnPostMenu y UserMenu.
+ * UserMenu.
  */
 export default function ColorOptionSelect({
   label,

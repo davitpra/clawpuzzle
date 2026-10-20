@@ -20,7 +20,7 @@ interface PurchaseSizePickerProps {
 }
 
 /**
- * Selector de talla de las cards de compra (kit PBN y producto de origen).
+ * Selector de talla de las cards de compra.
  * Responde al ancho de la card, no al del viewport: en una card ancha es un
  * `select` compacto y en la columna estrecha del detalle de la obra son fichas
  * pulsables con su precio. Las variantes `@2xl:` se resuelven contra el

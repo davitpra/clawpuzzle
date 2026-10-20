@@ -67,7 +67,6 @@ export class AdminUsersController {
       'credits',
       'pets',
       'generations',
-      'pbn',
       'orders',
       'lastActivity',
     ],
@@ -294,7 +293,7 @@ export class AdminUsersController {
   @ApiOperation({
     summary: 'Soft-delete a user account',
     description:
-      'Bloquea el acceso y arranca la ventana de 30 días tras la cual se anonimiza el PII. No borra generaciones, PBN ni pedidos.',
+      'Bloquea el acceso y arranca la ventana de 30 días tras la cual se anonimiza el PII. No borra generaciones ni pedidos.',
   })
   @ApiResponse({ status: 200, description: 'Account deleted' })
   @ApiResponse({ status: 400, description: 'Account already deleted' })

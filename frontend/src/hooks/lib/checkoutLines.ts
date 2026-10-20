@@ -30,9 +30,6 @@ export function buildCheckoutLines(
         ...(userId ? [{ key: "_user_id", value: userId }] : []),
         // Los ids y la URL de la obra también llevan "_": el webhook los
         // necesita, pero al cliente no le dicen nada en el checkout.
-        ...(item.paintByNumbersId
-          ? [{ key: "_paint_by_numbers_id", value: item.paintByNumbersId }]
-          : []),
         ...(item.generationId
           ? [{ key: "_generation_id", value: item.generationId }]
           : []),

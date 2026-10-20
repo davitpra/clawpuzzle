@@ -98,7 +98,7 @@ describe('ImageEnhancementService generation source', () => {
 
   it('returns no source when no original IA art exists', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(
-      item({ generationId: null, generation: null, paintByNumbers: null }),
+      item({ generationId: null, generation: null }),
     );
 
     const result = await service.getEnhanceInfo('order-1', 'item-1');
@@ -109,7 +109,7 @@ describe('ImageEnhancementService generation source', () => {
 
   it('rejects saving when no original IA art exists', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(
-      item({ generationId: null, generation: null, paintByNumbers: null }),
+      item({ generationId: null, generation: null }),
     );
 
     await expect(

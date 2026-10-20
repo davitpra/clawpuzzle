@@ -67,7 +67,7 @@ export function IAThanksStep({
 
   // Los CTAs de compra esperan a que la imagen generada aparezca en pantalla
   // (imageUrl del polling).
-  const pbnReady = !!imageUrl;
+  const artReady = !!imageUrl;
 
   // El arte no-Digital ya se agregó al carrito en el paso de upload; solo
   // ofrecemos checkout cuando el carrito tiene items.
@@ -75,11 +75,11 @@ export function IAThanksStep({
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   // Solo ofrecemos checkout/carrito cuando la imagen generada ya está lista
-  // (pbnReady) y hay algo en el carrito.
+  // (artReady) y hay algo en el carrito.
   // En lanzamiento no se ofrece checkout aquí: la única venta es la de canvas al
   // descargar, y el "View Cart" de este bloque apunta a /cart, que el gate de
   // `proxy.ts` rebota a `/`.
-  const showCheckout = !LAUNCH_MODE && !isArt && cartCount > 0 && pbnReady;
+  const showCheckout = !LAUNCH_MODE && !isArt && cartCount > 0 && artReady;
 
   const handleCheckout = async () => {
     setCheckoutError(null);

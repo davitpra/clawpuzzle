@@ -17,7 +17,7 @@ interface ProductsTableCardProps extends ComponentProps<typeof ProductsTable> {
 
 /**
  * Card con encabezado + tabla de productos. La página lista varias categorías
- * (Paint by Numbers, Print Art, sin clasificar, accesorios) con la misma
+ * (rompecabezas, sin clasificar) con la misma
  * estructura, así que el encabezado y el estado vacío viven acá.
  */
 export function ProductsTableCard({

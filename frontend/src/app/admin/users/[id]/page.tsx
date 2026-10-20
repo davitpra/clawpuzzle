@@ -30,7 +30,6 @@ import { useUserCreditEconomics } from "./useUserCreditEconomics";
 import { AuditLogPanel } from "./_components/AuditLogPanel";
 import { CreditsPanel } from "./_components/CreditsPanel";
 import { GenerationsPanel } from "./_components/GenerationsPanel";
-import { PbnPanel } from "./_components/PbnPanel";
 import { PetsPanel } from "./_components/PetsPanel";
 import { SessionsPanel } from "./_components/SessionsPanel";
 import { UserAddressCard } from "./_components/UserAddressCard";
@@ -46,7 +45,6 @@ import { UserStatusModal } from "./_components/UserStatusModal";
 const TABS = [
   { id: "mascotas", content: "Mascotas", panelID: "panel-mascotas" },
   { id: "ia", content: "Arte IA", panelID: "panel-ia" },
-  { id: "pbn", content: "Paint by Numbers", panelID: "panel-pbn" },
   { id: "creditos", content: "Créditos", panelID: "panel-creditos" },
   { id: "pedidos", content: "Pedidos", panelID: "panel-pedidos" },
   { id: "gastos", content: "Gastos", panelID: "panel-gastos" },
@@ -243,8 +241,7 @@ export default function AdminUserDetailPage() {
                       onPageChange={setGenPage}
                     />
                   )}
-                  {selectedTab === 2 && <PbnPanel userId={id} />}
-                  {selectedTab === 3 && (
+                  {selectedTab === 2 && (
                     <CreditsPanel
                       userId={id}
                       balance={user.generationCredits}
@@ -257,8 +254,8 @@ export default function AdminUserDetailPage() {
                       baseCurrency={economics?.baseCurrency ?? "CAD"}
                     />
                   )}
-                  {selectedTab === 4 && <UserOrdersPanel userId={id} />}
-                  {selectedTab === 5 && (
+                  {selectedTab === 3 && <UserOrdersPanel userId={id} />}
+                  {selectedTab === 4 && (
                     <UserExpensesPanel
                       userId={id}
                       expenses={expenses}

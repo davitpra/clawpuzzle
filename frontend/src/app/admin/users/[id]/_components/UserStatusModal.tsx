@@ -56,7 +56,7 @@ const COPY: Record<
     warning:
       "Dentro de 30 días se borrarán su email, su nombre, su avatar y las fotos de sus mascotas. A partir de ese momento la baja ya no se puede deshacer.",
     body: (name) =>
-      `${name} pierde el acceso ahora mismo. Sus pedidos, generaciones y paint-by-numbers se conservan intactos por trazabilidad contable.`,
+      `${name} pierde el acceso ahora mismo. Sus pedidos y generaciones se conservan intactos por trazabilidad contable.`,
   },
   restore: {
     title: "¿Restaurar esta cuenta?",

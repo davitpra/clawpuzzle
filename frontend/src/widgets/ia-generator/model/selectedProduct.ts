@@ -8,7 +8,7 @@ export type SelectedProductInfo = {
   productTitle: string;
   productImage: string;
   formatLabel: string;
-  // Formato de entrega del backend (Digital | Canvas | Poster…); "PBN" legacy.
+  // Formato de entrega del backend (Digital | Canvas | Poster…).
   // Digital es gratuito: el flujo de generación lo usa para omitir el carrito.
   template: string | null;
   // Dimensiones físicas del formato elegido, en cm (leídas del valor de la

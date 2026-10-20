@@ -55,8 +55,7 @@ export function GenerationDetail({ id }: Props) {
   } = useGenerationDetail(id);
 
   // Producto para el que se pidió la obra. Con formato digital ya se entregó el
-  // archivo, así que la card de compra sigue siendo el kit PBN y ni se resuelve
-  // el producto; con formato físico se vende ese producto con la obra impresa.
+  // archivo, así que ni se resuelve el producto; con formato físico se vende ese producto con la obra impresa.
   // Va antes de los early returns por las reglas de hooks.
   const isDigital =
     normalizeTemplate(generation?.productRef?.template) === "Digital";
@@ -148,8 +147,8 @@ export function GenerationDetail({ id }: Props) {
     generation.pet?.name,
     imageUrl,
   );
-  // Tipo de producto de cara al cliente: formato + contenido, ej. "Canvas Print ·
-  // Paint by Numbers". Mismo criterio que la ficha de producto (ProductInfo).
+  // Tipo de producto de cara al cliente según el formato. Mismo criterio que la
+  // ficha de producto (ProductInfo).
   const productLabel =
     [
       templateLabel(generation.productRef?.template),
@@ -158,7 +157,7 @@ export function GenerationDetail({ id }: Props) {
       .join(" · ") || "Personalizado";
 
   // Card principal del carrusel: el producto de origen si es físico y se pudo
-  // resolver, y si no el kit PBN (obra digital, generación legacy sin
+  // resolver; si no, no hay card (obra digital, generación legacy sin
   // productRef, producto desactivado o handle que ya no existe en Shopify).
   const showProductCard = !sourceProduct.unavailable && !!sourceProduct.product;
 

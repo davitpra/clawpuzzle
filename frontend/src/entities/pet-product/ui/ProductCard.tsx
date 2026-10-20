@@ -27,8 +27,6 @@ interface ProductCardProps {
   product: Product;
   /** Texto del badge superpuesto. Si no se resuelve un valor, no se muestra badge. */
   label?: string;
-  /** Badge del contenido de la obra ("Paint by Numbers" / "Print Art"). Se apila sobre el resto. */
-  artKindBadge?: string;
   /** Muestra el precio del producto debajo del nombre. */
   showPrice?: boolean;
   /** CTA opcional renderizado bajo el precio (p. ej. "Personalize with AI"). */
@@ -56,7 +54,6 @@ interface ProductCardProps {
 export function ProductCard({
   product,
   label,
-  artKindBadge,
   showPrice,
   cta,
   showBadge = true,
@@ -88,11 +85,6 @@ export function ProductCard({
       className={`${hoverClasses} ${FRAME_CLASS[frameStyle]}`}
     >
       <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
-        {artKindBadge && (
-          <span className="bg-white text-slate-dark text-[10px] font-bold uppercase px-4 py-1 rounded-full tracking-wider">
-            {artKindBadge}
-          </span>
-        )}
         {difficultyLabel ? (
           <span className="flex items-center gap-1 bg-primary text-white text-[10px] font-bold uppercase px-4 py-1 rounded-full tracking-wider">
             <span className="material-symbols-outlined text-[14px]">brush</span>

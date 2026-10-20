@@ -222,7 +222,7 @@ export class AccountStatusService {
    * Purga el PII de una cuenta ya dada de baja. Irreversible.
    *
    * Deliberadamente **no** toca generaciones, pedidos ni gastos:
-   * los `OrderItem` apuntan a generaciones y PBN, y borrarlas rompería la
+   * los `OrderItem` apuntan a generaciones, y borrarlas rompería la
    * trazabilidad de pedidos ya pagados. Los pedidos guardan su propio
    * `customerEmail`/`customerName`, que la contabilidad necesita conservar.
    */

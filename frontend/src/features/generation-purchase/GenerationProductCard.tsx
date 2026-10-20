@@ -225,7 +225,7 @@ export function GenerationProductCard({
           {product.descriptionHtml ? (
             <div>
               <div
-                className={`pbn-desc text-[13px] leading-relaxed text-text-muted ${
+                className={`product-desc text-[13px] leading-relaxed text-text-muted ${
                   descExpanded ? "" : "line-clamp-4"
                 }`}
                 dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}

@@ -177,12 +177,7 @@ export class StylesService {
 
   async update(id: string, dto: UpdateStyleDto) {
     await this.findOne(id);
-    // Prisma no acepta `null` JS en columnas Json: un pbnConfig null explícito
-    // (borrar la config del estilo) se traduce a DbNull.
-    const data: Prisma.StyleUpdateInput = {
-      ...dto,
-      ...(dto.pbnConfig === null ? { pbnConfig: Prisma.DbNull } : {}),
-    };
+    const data: Prisma.StyleUpdateInput = { ...dto };
     try {
       await this.prisma.style.update({ where: { id }, data });
     } catch (e: any) {

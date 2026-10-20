@@ -113,9 +113,6 @@ export function UsersTable({
             <CountCell value={u._count.generations} />
           </IndexTable.Cell>
           <IndexTable.Cell>
-            <CountCell value={u._count.paintByNumbers} />
-          </IndexTable.Cell>
-          <IndexTable.Cell>
             <CountCell value={u._count.orders} />
           </IndexTable.Cell>
           <IndexTable.Cell>

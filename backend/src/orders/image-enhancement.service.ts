@@ -371,7 +371,7 @@ export class ImageEnhancementService {
       printImageStorageKey: masterKey,
     };
     dbData.printSourceUrl = original.url;
-    // Generation o PBN son dueños del asset. No copiar su key al pedido: la
+    // La Generation es dueña del asset. No copiar su key al pedido: la
     // sustitución manual elimina printSourceStorageKey y borraría el original.
     dbData.printSourceStorageKey = null;
     if (newUpscaledKey !== null) {

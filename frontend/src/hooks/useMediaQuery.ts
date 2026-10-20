@@ -22,8 +22,7 @@ export function useMediaQuery(query: string): boolean {
 }
 
 /**
- * True below Tailwind's `md` breakpoint (768px) — the same breakpoint that
- * governs the Paint by Numbers sidebar layout, so JS and CSS stay in sync.
+ * True below Tailwind's `md` breakpoint (768px), so JS and CSS stay in sync.
  */
 export const useIsMobile = () => useMediaQuery("(max-width: 767.98px)");
 

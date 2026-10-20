@@ -8,7 +8,7 @@ const ABANDONED_AFTER_DAYS = 3;
 
 /**
  * Bloque de crecimiento: base de usuarios, altas, actividad y el embudo
- * mascota → generación → PBN guardado → pedido pagado.
+ * mascota → generación → pedido pagado.
  *
  * El embudo cuenta hechos ocurridos DENTRO de la ventana, no cohortes: no
  * persigue al mismo usuario de un escalón al siguiente. Sirve para ver la forma

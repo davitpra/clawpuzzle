@@ -32,12 +32,6 @@ const COLUMNS: ServerSortColumn[] = [
     alignment: "end",
   },
   {
-    title: "PBN",
-    sortKey: "pbn",
-    defaultSortDirection: "descending",
-    alignment: "end",
-  },
-  {
     title: "Pedidos",
     sortKey: "orders",
     defaultSortDirection: "descending",

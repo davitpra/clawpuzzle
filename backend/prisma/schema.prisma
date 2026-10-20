@@ -267,8 +267,6 @@ model Style {
   promptTemplate     String  @map("prompt_template") @db.Text
   templateVars       Json?   @map("template_vars")
   templateVarOptions Json?   @map("template_var_options")
-  // Default del estudio PBN para este estilo ({ input, render }); lo persiste
-  // el admin desde AdminPbnStudio y seedea el estudio público vía deep link.
   visionConfigId     String? @map("vision_config_id")
   imageGenConfigId   String? @map("image_gen_config_id")
 
@@ -461,11 +459,6 @@ model Generation {
   @@index([styleId, isAdminTest])
   @@map("generations")
 }
-
-// ============================================
-// PAINT BY NUMBERS
-// ============================================
-
 
 // ============================================
 // AUDIT LOGS

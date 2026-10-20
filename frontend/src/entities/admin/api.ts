@@ -59,7 +59,6 @@ export interface AdminUserListItem {
   _count: {
     pets: number;
     generations: number;
-    paintByNumbers: number;
     /** Solo pedidos enlazados a la cuenta: los de invitado no se atribuyen. */
     orders: number;
   };
@@ -202,7 +201,6 @@ export interface AdminUserCartItem {
   quantity: number;
   imageUrl: string;
   generationId: string | null;
-  paintByNumbersId: string | null;
   createdAt: string;
 }
 
@@ -298,12 +296,6 @@ export interface AdminOrderItem {
     pet: { id: string; name: string; species: string } | null;
     style: { id: string; displayName: string } | null;
   } | null;
-  paintByNumbers: {
-    id: string;
-    outlineSvgUrl: string | null;
-    previewUrl: string | null;
-    sourceImageUrl: string | null;
-  } | null;
 }
 
 export interface AdminOrderEvent {
@@ -369,32 +361,6 @@ export interface AdminUserOrderListItem {
   financialStatus: string | null;
   shopifyCreatedAt: string;
   items: AdminUserOrderItem[];
-}
-
-/**
- * PBN guardado del usuario, tal como lo lista
- * `GET /admin/users/:id/paint-by-numbers`. El backend proyecta con
- * `USER_PBN_LIST_SELECT`: sin `config` (pesado) ni las claves de storage.
- */
-export interface AdminUserPbn {
-  id: string;
-  sourceImageUrl: string | null;
-  previewUrl: string | null;
-  outlineSvgUrl: string | null;
-  paletteUrl: string | null;
-  colorCount: number | null;
-  /** saved | ordered */
-  status: string;
-  /** customer | admin */
-  origin: string;
-  createdAt: string;
-  /** Casi siempre null: al guardar un PBN no se manda `petId`. Ver `generation.pet`. */
-  pet: { id: string; name: string } | null;
-  generation: {
-    id: string;
-    pet: { id: string; name: string } | null;
-    style: { displayName?: string | null; category?: string | null } | null;
-  } | null;
 }
 
 export interface AdminCreditTransaction {
@@ -495,7 +461,6 @@ export interface OverviewGrowth {
   funnel: {
     pets: number;
     generations: number;
-    pbnSaved: number;
     ordersPaid: number;
   };
   conversionRate: number | null;
@@ -552,7 +517,6 @@ export interface ActivationCohort {
   /** ACUMULATIVOS: cada escalón exige todos los anteriores. */
   withPet: number;
   withGeneration: number;
-  withPbn: number;
   withPaidOrder: number;
   /** Dio señales de vida más de 24 h después del alta. */
   returned: number;
@@ -1322,10 +1286,6 @@ export const adminApi = {
       adminFetch<AdminUserShippingAddress | null>(
         `/admin/users/${id}/shipping-address`,
       ),
-    paintByNumbers: (id: string, page = 1): Promise<Paginated<AdminUserPbn>> =>
-      adminFetch<Paginated<AdminUserPbn>>(
-        `/admin/users/${id}/paint-by-numbers?page=${page}&limit=24`,
-      ),
     creditTransactions: (
       id: string,
       page = 1,
@@ -1521,13 +1481,6 @@ export const adminApi = {
         { method: "POST", body: form },
       );
     },
-    // Guarda un PBN renderizado en el estudio y lo enlaza al item. El estudio
-    // arma el FormData (svg/preview/palette/source + config).
-    savePbnForItem: (orderId: string, itemId: string, form: FormData) =>
-      adminFetch<{ id: string }>(
-        `/admin/orders/${orderId}/items/${itemId}/paint-by-numbers`,
-        { method: "POST", body: form },
-      ),
     linkGeneration: (orderId: string, itemId: string, generationId: string) =>
       adminFetch(`/admin/orders/${orderId}/items/${itemId}/link-generation`, {
         method: "POST",
