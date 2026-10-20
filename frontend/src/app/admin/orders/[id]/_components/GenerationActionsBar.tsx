@@ -45,7 +45,7 @@ export function GenerationActionsBar({
         loading={replacing}
         onClick={onReplaceClick}
       >
-        {hasGeneration ? "Reemplazar" : "Subir imagen"}
+        {hasGeneration ? "Reemplazar arte" : "Subir arte"}
       </Button>
       <Button
         size="micro"

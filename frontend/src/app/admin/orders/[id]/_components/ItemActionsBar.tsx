@@ -35,7 +35,7 @@ export function ItemActionsBar({
         loading={uploading}
         onClick={onUploadClick}
       >
-        {hasPrintImage ? "Reemplazar" : "Subir imagen"}
+        {hasPrintImage ? "Reemplazar imagen final" : "Subir imagen final"}
       </Button>
     </InlineStack>
   );
