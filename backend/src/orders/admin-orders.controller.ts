@@ -33,6 +33,7 @@ import {
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AdminOrdersService } from './admin-orders.service';
 import { OrdersService } from './orders.service';
 import { OrdersSyncService } from './orders-sync.service';
@@ -147,14 +148,14 @@ export class AdminOrdersController {
     @Param('itemId') itemId: string,
     @Body('toStatus') toStatus: string,
     @Body('notes') notes?: string,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     return this.ordersService.transitionItemStatus(
       orderId,
       itemId,
       toStatus,
       notes,
-      user?.id,
+      user?.sub,
     );
   }
 
@@ -189,14 +190,14 @@ export class AdminOrdersController {
     @Body('reason') reason?: string,
     @Body('refund') refund?: boolean,
     @Body('restock') restock?: boolean,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     return this.ordersService.cancelOrderItems(orderId, {
       itemIds,
       reason,
       refund,
       restock,
-      adminUserId: user?.id,
+      adminUserId: user?.sub,
     });
   }
 
@@ -212,13 +213,13 @@ export class AdminOrdersController {
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
     @Body('generationId') generationId: string,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     return this.ordersService.linkGenerationToItem(
       orderId,
       itemId,
       generationId,
-      user?.id,
+      user?.sub,
     );
   }
 
@@ -231,12 +232,12 @@ export class AdminOrdersController {
   unlinkGeneration(
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     return this.ordersService.unlinkGenerationFromItem(
       orderId,
       itemId,
-      user?.id,
+      user?.sub,
     );
   }
 
@@ -268,7 +269,7 @@ export class AdminOrdersController {
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     if (!file) throw new BadRequestException('No file provided');
     if (!file.mimetype.startsWith('image/'))
@@ -287,7 +288,7 @@ export class AdminOrdersController {
       orderId,
       itemId,
       file,
-      user?.id,
+      user?.sub,
     );
   }
 
@@ -309,7 +310,7 @@ export class AdminOrdersController {
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     if (!file) throw new BadRequestException('No file provided');
     if (!file.mimetype.startsWith('image/'))
@@ -328,7 +329,7 @@ export class AdminOrdersController {
       orderId,
       itemId,
       file,
-      user?.id,
+      user?.sub,
     );
   }
 
@@ -371,13 +372,13 @@ export class AdminOrdersController {
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
     @Body() options: EnhanceDto,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     return this.imageEnhancementService.applyEnhance(
       orderId,
       itemId,
       options,
-      user?.id,
+      user?.sub,
     );
   }
 
@@ -389,12 +390,12 @@ export class AdminOrdersController {
   enhanceRevert(
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
-    @CurrentUser() user?: { id: string },
+    @CurrentUser() user?: JwtPayload,
   ) {
     return this.imageEnhancementService.revertEnhance(
       orderId,
       itemId,
-      user?.id,
+      user?.sub,
     );
   }
 }
