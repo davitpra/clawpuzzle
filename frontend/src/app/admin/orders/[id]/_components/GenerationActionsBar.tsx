@@ -17,7 +17,8 @@ type GenerationActionsBarProps = {
 };
 
 // Barra de acciones de la fila "Imagen generada": reemplazar el archivo de la
-// generación del cliente, re-vincular a otra generación o desvincular del item.
+// generación del cliente (o subir uno si el item no tiene), re-vincular a otra
+// generación o desvincular del item.
 export function GenerationActionsBar({
   hasGeneration,
   canPickGeneration,
@@ -42,10 +43,9 @@ export function GenerationActionsBar({
         size="micro"
         icon={ImageIcon}
         loading={replacing}
-        disabled={!hasGeneration}
         onClick={onReplaceClick}
       >
-        Reemplazar
+        {hasGeneration ? "Reemplazar" : "Subir imagen"}
       </Button>
       <Button
         size="micro"

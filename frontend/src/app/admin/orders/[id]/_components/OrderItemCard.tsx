@@ -103,8 +103,10 @@ export function OrderItemCard({
     }
   }
 
-  // La subida sobrescribe la generación del cliente, así que pedimos confirmación
-  // antes de hacerlo: guardamos el archivo elegido y mostramos el diálogo.
+  // Si hay generación, la subida la sobrescribe, así que pedimos confirmación
+  // antes: guardamos el archivo elegido y mostramos el diálogo. Sin generación
+  // (pedidos comprados directo en Shopify) no hay nada que perder: el backend
+  // crea una y subimos directo.
   function handleGenerationFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,19 +115,18 @@ export function OrderItemCard({
       setErr("El archivo debe ser una imagen");
       return;
     }
-    setPendingGenFile(file);
+    if (item.generation) {
+      setPendingGenFile(file);
+    } else {
+      uploadGeneration(file);
+    }
   }
 
-  async function handleConfirmReplaceGeneration() {
-    if (!pendingGenFile) return;
+  async function uploadGeneration(file: File) {
     setReplacingGeneration(true);
     setErr(null);
     try {
-      await adminApi.orders.uploadGenerationImage(
-        orderId,
-        item.id,
-        pendingGenFile,
-      );
+      await adminApi.orders.uploadGenerationImage(orderId, item.id, file);
       setPendingGenFile(null);
       onUpdate();
     } catch (e) {
@@ -133,6 +134,10 @@ export function OrderItemCard({
     } finally {
       setReplacingGeneration(false);
     }
+  }
+
+  function handleConfirmReplaceGeneration() {
+    if (pendingGenFile) uploadGeneration(pendingGenFile);
   }
 
   async function handleUnlinkGeneration() {

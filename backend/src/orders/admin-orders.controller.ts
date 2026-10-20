@@ -303,7 +303,8 @@ export class AdminOrdersController {
     },
   })
   @ApiOperation({
-    summary: "Overwrite the linked customer generation's image for an item",
+    summary:
+      "Overwrite the linked generation's image, or create one if the item has none",
   })
   @ApiResponse({ status: 201, description: 'Generation image replaced' })
   uploadGenerationImage(

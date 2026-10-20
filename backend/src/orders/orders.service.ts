@@ -1106,10 +1106,15 @@ export class OrdersService {
       include: { generation: true },
     });
     if (!item) throw new NotFoundException('Order item not found');
+    // Pedidos comprados directo en Shopify llegan sin generación: la subida
+    // crea una generación manual y la vincula, para que el Print Studio tenga
+    // una fuente igual que con el arte del cliente.
     if (!item.generationId || !item.generation) {
-      throw new BadRequestException(
-        'Este item no tiene una generación vinculada. Vincula una generación ' +
-          'antes de reemplazar su imagen.',
+      return this.createItemGenerationFromUpload(
+        orderId,
+        itemId,
+        file,
+        adminUserId,
       );
     }
 
@@ -1146,6 +1151,112 @@ export class OrdersService {
         } as unknown as Prisma.InputJsonValue,
       },
     });
+
+    return { resultUrl: url, thumbnailUrl: url };
+  }
+
+  private async createItemGenerationFromUpload(
+    orderId: string,
+    itemId: string,
+    file: Express.Multer.File,
+    adminUserId?: string,
+  ): Promise<{ resultUrl: string; thumbnailUrl: string }> {
+    const item = await this.prisma.orderItem.findFirstOrThrow({
+      where: { id: itemId, orderId },
+      select: {
+        style: true,
+        productRefId: true,
+        productRef: { select: { styleId: true, formatId: true } },
+        order: { select: { userId: true } },
+      },
+    });
+
+    // Sin cliente vinculado, la generación queda a nombre del admin.
+    const userId = item.order.userId ?? adminUserId;
+    if (!userId) {
+      throw new BadRequestException(
+        'No hay usuario al que asignar la generación',
+      );
+    }
+
+    // styleId es obligatorio: estilo del producto → el del line item → el
+    // estilo "uncategorized", que se crea inactivo la primera vez para que no
+    // aparezca en el storefront.
+    const style =
+      (item.productRef?.styleId ? { id: item.productRef.styleId } : null) ??
+      (item.style
+        ? await this.prisma.style.findFirst({
+            where: {
+              OR: [
+                { name: { equals: item.style, mode: 'insensitive' } },
+                { displayName: { equals: item.style, mode: 'insensitive' } },
+              ],
+            },
+            select: { id: true },
+          })
+        : null) ??
+      (await this.prisma.style.upsert({
+        where: { name: 'uncategorized' },
+        update: {},
+        create: {
+          name: 'uncategorized',
+          displayName: 'Sin categoría',
+          category: 'uncategorized',
+          promptTemplate: '',
+          isActive: false,
+        },
+        select: { id: true },
+      }));
+
+    // Subir PRIMERO: si falla, no queda una generación sin imagen.
+    const generationId = uuidv4();
+    const key = `generations/${generationId}/admin-upload/${uuidv4()}`;
+    const url = await this.storageService.upload(
+      key,
+      file.buffer,
+      file.mimetype,
+    );
+
+    // isAdminTest la deja fuera de las métricas de negocio: no es una
+    // generación del pipeline.
+    await this.prisma.$transaction([
+      this.prisma.generation.create({
+        data: {
+          id: generationId,
+          userId,
+          styleId: style.id,
+          formatId: item.productRef?.formatId ?? null,
+          productRefId: item.productRefId,
+          type: 'image',
+          status: 'completed',
+          prompt: 'Subida manual por admin',
+          provider: 'manual',
+          resultUrl: url,
+          thumbnailUrl: url,
+          resultStorageKey: key,
+          isAdminTest: true,
+          completedAt: new Date(),
+        },
+      }),
+      this.prisma.orderItem.update({
+        where: { id: itemId },
+        data: { generationId },
+      }),
+      this.prisma.orderEvent.create({
+        data: {
+          orderId,
+          orderItemId: itemId,
+          eventType: 'generation_image_uploaded',
+          source: 'admin',
+          userId: adminUserId ?? null,
+          payload: {
+            generationId,
+            resultUrl: url,
+            created: true,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      }),
+    ]);
 
     return { resultUrl: url, thumbnailUrl: url };
   }
