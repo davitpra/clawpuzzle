@@ -1316,4 +1316,53 @@ export class OrdersService {
 
     return { printImageUrl: url };
   }
+
+  async removeItemPrintImage(
+    orderId: string,
+    itemId: string,
+    adminUserId?: string,
+  ): Promise<void> {
+    const item = await this.prisma.orderItem.findFirst({
+      where: { id: itemId, orderId },
+    });
+    if (!item) throw new NotFoundException('Order item not found');
+
+    // Quitar la imagen final borra todo lo derivado (subida manual, master y
+    // base reescalada): el item vuelve a la imagen generada como fuente. Solo
+    // borramos assets del pedido; la Generation es dueña de los suyos.
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: {
+        printImageUrl: null,
+        printImageStorageKey: null,
+        printSourceUrl: null,
+        printSourceStorageKey: null,
+        printUpscaledUrl: null,
+        printUpscaledStorageKey: null,
+      },
+    });
+
+    const ownPrefix = `orders/${orderId}/items/${itemId}/`;
+    const oldKeys = [
+      item.printImageStorageKey,
+      item.printSourceStorageKey,
+      item.printUpscaledStorageKey,
+    ].filter((k): k is string => !!k && k.startsWith(ownPrefix));
+    for (const oldKey of new Set(oldKeys)) {
+      await this.storageService.delete(oldKey).catch(() => null);
+    }
+
+    await this.prisma.orderEvent.create({
+      data: {
+        orderId,
+        orderItemId: itemId,
+        eventType: 'print_image_removed',
+        source: 'admin',
+        userId: adminUserId ?? null,
+        payload: {
+          previousPrintImageUrl: item.printImageUrl,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+  }
 }

@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -290,6 +291,20 @@ export class AdminOrdersController {
       file,
       user?.sub,
     );
+  }
+
+  @Delete(':id/items/:itemId/print-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Remove the print image (falls back to the generation/Shopify image)',
+  })
+  removePrintImage(
+    @Param('id') orderId: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.ordersService.removeItemPrintImage(orderId, itemId, user?.sub);
   }
 
   @Post(':id/items/:itemId/generation-image')

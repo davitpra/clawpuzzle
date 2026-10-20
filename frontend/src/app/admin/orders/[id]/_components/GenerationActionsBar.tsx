@@ -63,7 +63,7 @@ export function GenerationActionsBar({
         disabled={!hasGeneration}
         onClick={onUnlinkClick}
       >
-        Quitar
+        Borrar
       </Button>
     </InlineStack>
   );

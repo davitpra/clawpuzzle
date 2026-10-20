@@ -49,6 +49,8 @@ export function OrderItemCard({
   >(item.fulfillmentMethod as "in_house" | "pod");
   const [savingFulfillment, setSavingFulfillment] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [removingImage, setRemovingImage] = useState(false);
+  const [confirmRemoveImage, setConfirmRemoveImage] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +99,22 @@ export function OrderItemCard({
       setErr((e as Error).message);
     } finally {
       setUploadingImage(false);
+    }
+  }
+
+  // Borrar la imagen final elimina el master procesado; el item vuelve a mostrar
+  // la imagen generada como vista previa.
+  async function handleRemoveImage() {
+    setRemovingImage(true);
+    setErr(null);
+    try {
+      await adminApi.orders.removePrintImage(orderId, item.id);
+      setConfirmRemoveImage(false);
+      onUpdate();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setRemovingImage(false);
     }
   }
 
@@ -234,6 +252,34 @@ export function OrderItemCard({
         </Modal>
       )}
 
+      {confirmRemoveImage && (
+        <Modal
+          open
+          onClose={() => setConfirmRemoveImage(false)}
+          title="Borrar imagen final"
+          primaryAction={{
+            content: "Borrar",
+            destructive: true,
+            loading: removingImage,
+            onAction: handleRemoveImage,
+          }}
+          secondaryActions={[
+            {
+              content: "Cancelar",
+              onAction: () => setConfirmRemoveImage(false),
+              disabled: removingImage,
+            },
+          ]}
+        >
+          <Modal.Section>
+            <Text as="p">
+              Esto borra la imagen para impresión, incluido lo procesado en el
+              Print Studio. El item vuelve a usar la imagen generada. ¿Continuar?
+            </Text>
+          </Modal.Section>
+        </Modal>
+      )}
+
       <ItemFulfillmentControl
         value={fulfillmentMethod}
         disabled={savingFulfillment}
@@ -312,9 +358,11 @@ export function OrderItemCard({
                 <ItemActionsBar
                   hasPrintImage={!!item.printImageUrl}
                   uploading={uploadingImage}
+                  removing={removingImage}
                   fileInputRef={fileInputRef}
                   onUploadClick={() => fileInputRef.current?.click()}
                   onUploadChange={handleUploadImage}
+                  onRemoveClick={() => setConfirmRemoveImage(true)}
                 />
               </InlineStack>
               <ItemProductPreview

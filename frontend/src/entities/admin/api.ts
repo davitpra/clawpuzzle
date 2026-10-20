@@ -1472,6 +1472,10 @@ export const adminApi = {
         { method: "POST", body: form },
       );
     },
+    removePrintImage: (orderId: string, itemId: string) =>
+      adminFetch(`/admin/orders/${orderId}/items/${itemId}/print-image`, {
+        method: "DELETE",
+      }),
     // Imagen generada del item: sobrescribe la Generation del cliente.
     uploadGenerationImage: (orderId: string, itemId: string, file: File) => {
       const form = new FormData();
