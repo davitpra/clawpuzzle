@@ -8,6 +8,8 @@ import {
   BlockStack,
   Divider,
   Button,
+  Box,
+  InlineStack,
 } from "@shopify/polaris";
 import { adminApi, AdminOrderItem } from "@/entities/admin/api";
 import { VALID_TRANSITIONS } from "@/entities/admin/lib/order-transitions";
@@ -294,23 +296,36 @@ export function OrderItemCard({
             </BlockStack>
           </ItemMediaRow>
 
-          <Divider />
-          <ItemActionsBar
-            hasPrintImage={!!item.printImageUrl}
-            uploading={uploadingImage}
-            fileInputRef={fileInputRef}
-            onUploadClick={() => fileInputRef.current?.click()}
-            onUploadChange={handleUploadImage}
-          />
-
-          <ItemProductPreview
-            image={printThumb}
-            alt={item.title}
-            label="Imagen para impresión"
-            size={item.size}
-            preliminary={printIsPreliminary}
-            onZoom={printFull ? () => setPreviewSrc(printFull) : undefined}
-          />
+          {/* Carta del producto final para imprimir, separada visualmente del resto. */}
+          <Box
+            background="bg-surface-secondary"
+            borderColor="border"
+            borderWidth="025"
+            borderRadius="300"
+            padding="400"
+          >
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text variant="headingSm" as="h3">
+                  Imagen para impresión
+                </Text>
+                <ItemActionsBar
+                  hasPrintImage={!!item.printImageUrl}
+                  uploading={uploadingImage}
+                  fileInputRef={fileInputRef}
+                  onUploadClick={() => fileInputRef.current?.click()}
+                  onUploadChange={handleUploadImage}
+                />
+              </InlineStack>
+              <ItemProductPreview
+                image={printThumb}
+                alt={item.title}
+                size={item.size}
+                preliminary={printIsPreliminary}
+                onZoom={printFull ? () => setPreviewSrc(printFull) : undefined}
+              />
+            </BlockStack>
+          </Box>
 
           {err && (
             <Banner tone="critical" onDismiss={() => setErr(null)}>
