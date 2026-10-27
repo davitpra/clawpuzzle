@@ -14,6 +14,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { FalService } from '../generations/providers/fal/fal.service';
 import { EnhanceDto } from './dto/enhance.dto';
+import { PrintConfigDto } from '../products/dto/print-config.dto';
 import { ExpensesService } from '../expenses/expenses.service';
 
 /** Resolución objetivo de impresión (DPI) del máster que se manda a imprimir. */
@@ -35,12 +36,10 @@ const UPSCALE_MODEL = 'fal-ai/seedvr/upscale/image';
 const MAX_UPSCALE_FACTOR = 8;
 
 /**
- * Sangre por lado, en mm. ClawAndSoul usaba 3 mm, suficiente para papel
- * guillotinado. Un troquel de puzzle tiene una tolerancia de registro de
- * ±2–3 mm, así que el defecto sube a 5 y cada variante puede subirlo más
- * desde su `printConfig.bleedMm`.
+ * Sangre por lado, en mm. Fija para todos los productos: el `bleedMm` que
+ * pueda traer un printConfig antiguo se ignora.
  */
-const DEFAULT_BLEED_MM = 5;
+const BLEED_MM = 3;
 
 /**
  * Conservative output ceiling (~30 mebipixels, px / 1024²). seedvr can produce
@@ -49,12 +48,20 @@ const DEFAULT_BLEED_MM = 5;
  */
 const MAX_UPSCALE_OUTPUT_PX = 30 * 1024 * 1024;
 
-interface PrintConfigShape {
+export interface PrintConfigShape {
   widthCm?: number;
   heightCm?: number;
-  bleedMm?: number;
   safeMarginMm?: number;
   minDpi?: number;
+}
+
+/** De dónde sale el tamaño de impresión efectivo de una línea. */
+export type PrintConfigSource = 'item' | 'variant' | 'title';
+
+/** Un tamaño ya configurado en el catálogo, ofrecido como opción en el Print Studio. */
+export interface PrintSizePreset {
+  widthCm: number;
+  heightCm: number;
 }
 
 export interface EnhanceInfo {
@@ -74,6 +81,11 @@ export interface EnhanceInfo {
   printImageUrl: string | null;
   /** Detected dominant colour of the source image border — used as bleed default. */
   bleedColor: string;
+  /** printConfig efectivo (item → variante); null si el tamaño sale del título o no hay. */
+  printConfig: PrintConfigShape | null;
+  printConfigSource: PrintConfigSource | null;
+  /** Tamaños distintos configurados en las variantes del catálogo. */
+  printSizePresets: PrintSizePreset[];
   recommendedUpscale: 0 | 2 | 4;
   alreadyEnhanced: boolean;
   /** True when a raw AI-upscaled base exists — "Guardar" will re-apply adjustments from it. */
@@ -107,6 +119,12 @@ export class ImageEnhancementService {
     const bleedColor = original
       ? await this.detectBorderColor(original.url)
       : '#ffffff';
+    const resolved = this.resolvePrintConfig(item);
+    const printConfigSource: PrintConfigSource | null = resolved
+      ? resolved.source
+      : printInches
+        ? 'title'
+        : null;
 
     return {
       sourceUrl: original?.url ?? null,
@@ -115,6 +133,9 @@ export class ImageEnhancementService {
       sourceDpi,
       printImageUrl: sourceMatchesPrint ? item.printImageUrl : null,
       bleedColor,
+      printConfig: resolved?.cfg ?? null,
+      printConfigSource,
+      printSizePresets: await this.loadPrintSizePresets(),
       recommendedUpscale: this.recommendUpscale(sourceDpi),
       alreadyEnhanced:
         sourceMatchesPrint &&
@@ -122,6 +143,41 @@ export class ImageEnhancementService {
         item.printImageUrl !== item.printSourceUrl,
       hasUpscaledBase: sourceMatchesPrint && Boolean(item.printUpscaledUrl),
     };
+  }
+
+  /**
+   * Fija (o borra, con `cfg = null`) el tamaño de impresión de una sola línea.
+   * Anula el printConfig de la variante sin tocar el catálogo. Devuelve el
+   * EnhanceInfo recalculado para que el estudio se refresque de una vez.
+   */
+  async setItemPrintConfig(
+    orderId: string,
+    itemId: string,
+    cfg: PrintConfigDto | null,
+    adminUserId?: string,
+  ): Promise<EnhanceInfo> {
+    if (cfg && (cfg.widthCm == null || cfg.heightCm == null)) {
+      throw new BadRequestException(
+        'El tamaño de impresión necesita ancho y alto',
+      );
+    }
+    await this.loadItem(orderId, itemId);
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: {
+        printConfig: cfg
+          ? ({ ...cfg } as unknown as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+      },
+    });
+    await this.recordEvent(
+      orderId,
+      itemId,
+      'print_config_updated',
+      adminUserId,
+      { printConfig: cfg ? { ...cfg } : null },
+    );
+    return this.getEnhanceInfo(orderId, itemId);
   }
 
   /** DPI of an image at a given print size (limited by the tighter edge). */
@@ -230,6 +286,13 @@ export class ImageEnhancementService {
     }
     const sourceMatchesPrint = this.sourceMatchesPrint(item, original);
     const printInches = this.resolvePrintInches(item);
+    // Sin tamaño de impresión no hay DPI con el que medir la sangre: antes se
+    // omitía en silencio y el máster salía sin bleed.
+    if (options.bleed && !printInches) {
+      throw new BadRequestException(
+        'La variante no tiene tamaño de impresión: no se puede añadir bleed',
+      );
+    }
     const ext = options.format === 'png' ? 'png' : 'jpg';
     const masterKey = `orders/${orderId}/items/${itemId}/print/${uuidv4()}.${ext}`;
 
@@ -325,15 +388,10 @@ export class ImageEnhancementService {
     }
 
     // Build the print master (colour/bleed adjustments applied on the base).
-    // La sangre sale de la variante: cada troquel tiene su tolerancia.
-    const printCfg = item.productVariant
-      ?.printConfig as PrintConfigShape | null;
     const outputBuffer = await this.buildPrintImage(
       baseBytes,
       printInches,
       options,
-      undefined,
-      printCfg?.bleedMm ?? DEFAULT_BLEED_MM,
     );
     const contentType = options.format === 'png' ? 'image/png' : 'image/jpeg';
     const printImageUrl = await this.storageService.upload(
@@ -552,7 +610,6 @@ export class ImageEnhancementService {
     printInches: { width: number; height: number } | null,
     options: EnhanceDto,
     capEdge?: number,
-    bleedMm: number = DEFAULT_BLEED_MM,
   ): Promise<Buffer> {
     // Cap output at PRINT_DPI (or targetDpi) at the print size. The AI upscale is
     // sized to reach this DPI; capping here keeps both the stored base and the
@@ -607,7 +664,7 @@ export class ImageEnhancementService {
 
     // Bleed extension — only on actual saves, not on previews (capEdge is undefined).
     if (options.bleed && printInches && !capEdge) {
-      const bleedPx = Math.round((bleedMm / 25.4) * effectiveDpi);
+      const bleedPx = Math.round((BLEED_MM / 25.4) * effectiveDpi);
       const bg = this.hexToRgb(options.bleedColor ?? '#ffffff');
       pipe = pipe.extend({
         top: bleedPx,
@@ -771,20 +828,82 @@ export class ImageEnhancementService {
    */
   private resolvePrintInches(item: {
     variantTitle?: string | null;
+    printConfig?: Prisma.JsonValue | null;
     productVariant: {
       printConfig: Prisma.JsonValue | null;
     } | null;
   }): { width: number; height: number } | null {
-    const cfg = item.productVariant?.printConfig as PrintConfigShape | null;
-    if (
-      cfg &&
-      typeof cfg.widthCm === 'number' &&
-      typeof cfg.heightCm === 'number'
-    ) {
-      return { width: cfg.widthCm / 2.54, height: cfg.heightCm / 2.54 };
+    const resolved = this.resolvePrintConfig(item);
+    if (resolved) {
+      return {
+        width: resolved.cfg.widthCm / 2.54,
+        height: resolved.cfg.heightCm / 2.54,
+      };
     }
 
     return this.parseInchesFromTitle(item.variantTitle ?? null);
+  }
+
+  /**
+   * printConfig efectivo de la línea: el elegido en el Print Studio para este
+   * item manda sobre el de la variante. Solo cuenta si trae ancho y alto.
+   */
+  private resolvePrintConfig(item: {
+    printConfig?: Prisma.JsonValue | null;
+    productVariant: {
+      printConfig: Prisma.JsonValue | null;
+    } | null;
+  }): {
+    cfg: PrintConfigShape & { widthCm: number; heightCm: number };
+    source: 'item' | 'variant';
+  } | null {
+    const candidates: [
+      Prisma.JsonValue | null | undefined,
+      'item' | 'variant',
+    ][] = [
+      [item.printConfig, 'item'],
+      [item.productVariant?.printConfig, 'variant'],
+    ];
+    for (const [raw, source] of candidates) {
+      const cfg = raw as PrintConfigShape | null | undefined;
+      if (
+        cfg &&
+        typeof cfg.widthCm === 'number' &&
+        typeof cfg.heightCm === 'number'
+      ) {
+        return {
+          cfg: cfg as PrintConfigShape & { widthCm: number; heightCm: number },
+          source,
+        };
+      }
+    }
+    return null;
+  }
+
+  /** Tamaños distintos (ancho × alto) configurados en el catálogo. */
+  private async loadPrintSizePresets(): Promise<PrintSizePreset[]> {
+    const variants = await this.prisma.productFormatVariant.findMany({
+      where: { printConfig: { not: Prisma.DbNull } },
+      select: { printConfig: true },
+    });
+    const byKey = new Map<string, PrintSizePreset>();
+    for (const v of variants) {
+      const cfg = v.printConfig as PrintConfigShape | null;
+      if (
+        !cfg ||
+        typeof cfg.widthCm !== 'number' ||
+        typeof cfg.heightCm !== 'number'
+      ) {
+        continue;
+      }
+      byKey.set(`${cfg.widthCm}x${cfg.heightCm}`, {
+        widthCm: cfg.widthCm,
+        heightCm: cfg.heightCm,
+      });
+    }
+    return [...byKey.values()].sort(
+      (a, b) => a.widthCm - b.widthCm || a.heightCm - b.heightCm,
+    );
   }
 
   /**

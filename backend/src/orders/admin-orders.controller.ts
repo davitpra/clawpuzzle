@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Post,
+  Put,
   Param,
   Query,
   Body,
@@ -41,6 +42,7 @@ import { OrdersSyncService } from './orders-sync.service';
 import { ShopifyApiService } from '../shopify-sync/shopify-api.service';
 import { ImageEnhancementService } from './image-enhancement.service';
 import { EnhanceDto } from './dto/enhance.dto';
+import { PrintConfigDto } from '../products/dto/print-config.dto';
 
 @ApiTags('admin-orders')
 @ApiBearerAuth()
@@ -359,6 +361,42 @@ export class AdminOrdersController {
     @Param('itemId') itemId: string,
   ) {
     return this.imageEnhancementService.getEnhanceInfo(orderId, itemId);
+  }
+
+  @Put(':id/items/:itemId/print-config')
+  @ApiOperation({
+    summary:
+      'Set the print size for this item only (overrides the variant printConfig)',
+  })
+  setItemPrintConfig(
+    @Param('id') orderId: string,
+    @Param('itemId') itemId: string,
+    @Body() cfg: PrintConfigDto,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.imageEnhancementService.setItemPrintConfig(
+      orderId,
+      itemId,
+      cfg,
+      user?.sub,
+    );
+  }
+
+  @Delete(':id/items/:itemId/print-config')
+  @ApiOperation({
+    summary: 'Drop the item print size and fall back to the variant/title',
+  })
+  clearItemPrintConfig(
+    @Param('id') orderId: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.imageEnhancementService.setItemPrintConfig(
+      orderId,
+      itemId,
+      null,
+      user?.sub,
+    );
   }
 
   @Post(':id/items/:itemId/enhance-preview')

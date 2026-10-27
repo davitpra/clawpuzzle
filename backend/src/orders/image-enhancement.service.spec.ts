@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import sharp from 'sharp';
 import { ImageEnhancementService } from './image-enhancement.service';
 
 jest.mock('uuid', () => ({ v4: () => 'test-uuid' }));
@@ -13,6 +14,7 @@ describe('ImageEnhancementService generation source', () => {
       update: jest.fn<Promise<unknown>, [unknown]>(),
     },
     order: { findUnique: jest.fn() },
+    productFormatVariant: { findMany: jest.fn() },
     orderEvent: { create: jest.fn() },
   };
   const storage = {
@@ -48,6 +50,7 @@ describe('ImageEnhancementService generation source', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.productFormatVariant.findMany.mockResolvedValue([]);
     service = new ImageEnhancementService(
       prisma as never,
       storage as never,
@@ -115,6 +118,84 @@ describe('ImageEnhancementService generation source', () => {
     await expect(
       service.applyEnhance('order-1', 'item-1', { format: 'jpeg' }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  // Sin tamaño de impresión la sangre no se puede medir. Antes se omitía en
+  // silencio y el máster salía sin bleed aunque el admin lo pidiera.
+  it('rejects bleed when the variant has no print size', async () => {
+    prisma.orderItem.findFirst.mockResolvedValue(
+      item({ variantTitle: 'Perro', productVariant: { printConfig: null } }),
+    );
+
+    await expect(
+      service.applyEnhance('order-1', 'item-1', {
+        format: 'jpeg',
+        bleed: true,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  // El tamaño elegido en el Print Studio para la línea manda sobre el de la
+  // variante, sin tocar el catálogo.
+  it('prefers the item print size over the variant', async () => {
+    prisma.orderItem.findFirst.mockResolvedValue(
+      item({ printConfig: { widthCm: 20, heightCm: 30 } }),
+    );
+
+    const result = await service.getEnhanceInfo('order-1', 'item-1');
+
+    expect(result.printInches?.width).toBeCloseTo(20 / 2.54, 2);
+    expect(result.printConfigSource).toBe('item');
+  });
+
+  it('offers distinct catalogue sizes as presets', async () => {
+    prisma.orderItem.findFirst.mockResolvedValue(item());
+    prisma.productFormatVariant.findMany.mockResolvedValue([
+      { printConfig: { widthCm: 20, heightCm: 30, bleedMm: 3, minDpi: 300 } },
+      { printConfig: { widthCm: 20, heightCm: 30, bleedMm: 3 } },
+      { printConfig: { widthCm: 20, heightCm: 30 } },
+      { printConfig: { minDpi: 300 } },
+    ]);
+
+    const result = await service.getEnhanceInfo('order-1', 'item-1');
+
+    expect(result.printSizePresets).toEqual([{ widthCm: 20, heightCm: 30 }]);
+  });
+
+  it('rejects an item print size without width and height', async () => {
+    await expect(
+      service.setItemPrintConfig('order-1', 'item-1', { widthCm: 20 }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.orderItem.update).not.toHaveBeenCalled();
+  });
+
+  // La sangre es fija de 3 mm, aunque la variante guarde otro bleedMm.
+  it('extends the master by a fixed 3 mm bleed per side', async () => {
+    const source = await sharp({
+      create: { width: 100, height: 150, channels: 3, background: '#ff0000' },
+    })
+      .jpeg()
+      .toBuffer();
+    const buildPrintImage = (
+      service as unknown as {
+        buildPrintImage: (
+          b: Buffer,
+          i: { width: number; height: number },
+          o: object,
+        ) => Promise<Buffer>;
+      }
+    ).buildPrintImage.bind(service);
+
+    const out = await buildPrintImage(
+      source,
+      { width: 20 / 2.54, height: 30 / 2.54 },
+      { bleed: true, bleedColor: '#000000', format: 'jpeg' },
+    );
+
+    // 3 mm a 300 DPI = 35 px por lado.
+    const meta = await sharp(out).metadata();
+    expect(meta.width).toBe(100 + 2 * 35);
+    expect(meta.height).toBe(150 + 2 * 35);
   });
 
   it('drops a stale base and saves the generation as the print source', async () => {

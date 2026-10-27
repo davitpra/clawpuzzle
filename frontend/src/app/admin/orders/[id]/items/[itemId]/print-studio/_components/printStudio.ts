@@ -7,6 +7,10 @@ export const LOW_DPI = 200;
 // Resolution the backend caps the saved print master at (matches PRINT_DPI server-side).
 export const PRINT_DPI = 300;
 export const DEFAULT_UPSCALE_FACTOR = 2;
+// Sangre fija por lado; coincide con BLEED_MM del backend.
+export const BLEED_MM = 3;
+// Margen de seguridad dentro de la línea de corte.
+const SAFE_MARGIN_MM = 10;
 
 export function dpiTone(
   dpi: number | null,
@@ -68,19 +72,20 @@ export function computePrintGeometry(
   const theoreticalDpi = rawDpi !== null ? Math.min(rawDpi, PRINT_DPI) : null;
 
   // ── Print guide geometry ────────────────────────────────────────────────
-  // The stage container always includes the 3mm bleed on each side.
-  // Total size in mm = printMm + 6; guide positions expressed as % of total.
+  // The stage container always includes the bleed on each side.
+  // Total size in mm = printMm + 2·bleed; guide positions expressed as % of total.
   const printMmW = printInches ? printInches.width * 25.4 : null;
   const printMmH = printInches ? printInches.height * 25.4 : null;
-  const totalMmW = printMmW !== null ? printMmW + 6 : null;
-  const totalMmH = printMmH !== null ? printMmH + 6 : null;
+  const totalMmW = printMmW !== null ? printMmW + 2 * BLEED_MM : null;
+  const totalMmH = printMmH !== null ? printMmH + 2 * BLEED_MM : null;
 
-  // Cut line = 3mm from the outer edge
-  const cutInsetW = totalMmW ? (3 / totalMmW) * 100 : 0;
-  const cutInsetH = totalMmH ? (3 / totalMmH) * 100 : 0;
-  // Safe zone = 13mm from outer edge (3mm bleed + 10mm safety margin)
-  const safeInsetW = totalMmW ? (13 / totalMmW) * 100 : 0;
-  const safeInsetH = totalMmH ? (13 / totalMmH) * 100 : 0;
+  // Cut line = bleed from the outer edge
+  const cutInsetW = totalMmW ? (BLEED_MM / totalMmW) * 100 : 0;
+  const cutInsetH = totalMmH ? (BLEED_MM / totalMmH) * 100 : 0;
+  // Safe zone = bleed + safety margin from the outer edge
+  const safeMm = BLEED_MM + SAFE_MARGIN_MM;
+  const safeInsetW = totalMmW ? (safeMm / totalMmW) * 100 : 0;
+  const safeInsetH = totalMmH ? (safeMm / totalMmH) * 100 : 0;
 
   // Stage aspect ratio: total including bleed
   const stageAspect =

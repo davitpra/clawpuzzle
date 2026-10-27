@@ -1,4 +1,9 @@
-import type { Dispatch, SetStateAction } from "react";
+import {
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import {
   BlockStack,
   InlineStack,
@@ -12,13 +17,14 @@ import {
   Divider,
   Badge,
   ColorPicker,
+  Collapsible,
 } from "@shopify/polaris";
 import type { EnhanceInfo } from "@/entities/admin/api";
 import type { HsbColor } from "@/lib/colorUtils";
-import { GOOD_DPI, dpiTone } from "./printStudio";
+import { BLEED_MM, GOOD_DPI, dpiTone } from "./printStudio";
 
 // Panel de controles del estudio de impresión: upscale IA, ajustes de imagen,
-// bleed y opciones de salida.
+// tamaño de impresión, bleed y opciones de salida.
 export function PrintStudioControls({
   err,
   setErr,
@@ -49,6 +55,7 @@ export function PrintStudioControls({
   setFitToFormat,
   previewing,
   onPreview,
+  printSizeControl,
   bleedEnabled,
   setBleedEnabled,
   bleedHsb,
@@ -92,6 +99,7 @@ export function PrintStudioControls({
   setFitToFormat: Dispatch<SetStateAction<boolean>>;
   previewing: boolean;
   onPreview: () => void;
+  printSizeControl: ReactNode;
   bleedEnabled: boolean;
   setBleedEnabled: Dispatch<SetStateAction<boolean>>;
   bleedHsb: HsbColor;
@@ -106,6 +114,8 @@ export function PrintStudioControls({
   onRevert: () => void;
   invalidatePreview: () => void;
 }) {
+  const [adjustOpen, setAdjustOpen] = useState(false);
+
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
       <BlockStack gap="400">
@@ -211,93 +221,123 @@ export function PrintStudioControls({
 
         {/* Sharp adjustments */}
         <BlockStack gap="300">
-          <Text as="p" variant="headingSm">
-            Ajustes de imagen
-          </Text>
-          <RangeSlider
-            label="Brillo"
-            min={-50}
-            max={100}
-            value={brightness}
-            onChange={(v) => {
-              setBrightness(v as number);
-              invalidatePreview();
-            }}
-            output
-          />
-          <RangeSlider
-            label="Contraste"
-            min={-50}
-            max={100}
-            value={contrast}
-            onChange={(v) => {
-              setContrast(v as number);
-              invalidatePreview();
-            }}
-            output
-          />
-          <RangeSlider
-            label="Saturación"
-            min={-50}
-            max={100}
-            value={saturation}
-            onChange={(v) => {
-              setSaturation(v as number);
-              invalidatePreview();
-            }}
-            output
-          />
-          <RangeSlider
-            label="Nitidez"
-            min={0}
-            max={200}
-            step={10}
-            value={sharpen}
-            onChange={(v) => {
-              setSharpen(v as number);
-              invalidatePreview();
-            }}
-            output
-          />
-          <Checkbox
-            label="Mejora automática"
-            helpText="Auto-niveles: normaliza el rango tonal."
-            checked={improve}
-            onChange={(v) => {
-              setImprove(v);
-              invalidatePreview();
-            }}
-          />
-          <Checkbox
-            label="Ajustar al formato (recorte centrado)"
-            helpText="Recorta al ratio exacto del producto para evitar recortes de Pictorem."
-            checked={fitToFormat}
-            onChange={(v) => {
-              setFitToFormat(v);
-              invalidatePreview();
-            }}
-          />
-          <Box>
-            <Button loading={previewing} disabled={!canAct} onClick={onPreview}>
-              Previsualizar exacto
+          <InlineStack align="space-between" blockAlign="center">
+            <Text as="p" variant="headingSm">
+              Ajustes de imagen
+            </Text>
+            <Button
+              variant="plain"
+              size="slim"
+              disclosure={adjustOpen ? "up" : "down"}
+              onClick={() => setAdjustOpen((value) => !value)}
+              ariaExpanded={adjustOpen}
+              ariaControls="print-studio-adjustments"
+            >
+              {adjustOpen ? "Ocultar" : "Mostrar"}
             </Button>
-          </Box>
+          </InlineStack>
+          <Collapsible open={adjustOpen} id="print-studio-adjustments">
+            <BlockStack gap="300">
+              <RangeSlider
+                label="Brillo"
+                min={-50}
+                max={100}
+                value={brightness}
+                onChange={(v) => {
+                  setBrightness(v as number);
+                  invalidatePreview();
+                }}
+                output
+              />
+              <RangeSlider
+                label="Contraste"
+                min={-50}
+                max={100}
+                value={contrast}
+                onChange={(v) => {
+                  setContrast(v as number);
+                  invalidatePreview();
+                }}
+                output
+              />
+              <RangeSlider
+                label="Saturación"
+                min={-50}
+                max={100}
+                value={saturation}
+                onChange={(v) => {
+                  setSaturation(v as number);
+                  invalidatePreview();
+                }}
+                output
+              />
+              <RangeSlider
+                label="Nitidez"
+                min={0}
+                max={200}
+                step={10}
+                value={sharpen}
+                onChange={(v) => {
+                  setSharpen(v as number);
+                  invalidatePreview();
+                }}
+                output
+              />
+              <Checkbox
+                label="Mejora automática"
+                helpText="Auto-niveles: normaliza el rango tonal."
+                checked={improve}
+                onChange={(v) => {
+                  setImprove(v);
+                  invalidatePreview();
+                }}
+              />
+              <Checkbox
+                label="Ajustar al formato (recorte centrado)"
+                helpText="Recorta al ratio exacto del producto para evitar recortes de Pictorem."
+                checked={fitToFormat}
+                onChange={(v) => {
+                  setFitToFormat(v);
+                  invalidatePreview();
+                }}
+              />
+              <Box>
+                <Button
+                  loading={previewing}
+                  disabled={!canAct}
+                  onClick={onPreview}
+                >
+                  Previsualizar exacto
+                </Button>
+              </Box>
+            </BlockStack>
+          </Collapsible>
         </BlockStack>
 
         <Divider />
 
-        {/* Bleed */}
+        {/* Tamaño de impresión del item */}
+        {printSizeControl}
+
+        <Divider />
+
+        {/* Bleed — sin tamaño de impresión el backend no puede medirlo. */}
         <BlockStack gap="300">
           <Checkbox
-            label="Añadir bleed 3 mm"
-            helpText="Extiende el fondo 3 mm en cada lado para sangrado POD."
-            checked={bleedEnabled}
+            label={`Añadir bleed ${BLEED_MM} mm`}
+            helpText={
+              printInches
+                ? `Extiende el fondo ${BLEED_MM} mm en cada lado para el sangrado del troquel.`
+                : "Elige un tamaño de impresión arriba para poder añadir bleed."
+            }
+            disabled={!printInches}
+            checked={bleedEnabled && Boolean(printInches)}
             onChange={(v) => {
               setBleedEnabled(v);
               invalidatePreview();
             }}
           />
-          {bleedEnabled && (
+          {bleedEnabled && printInches && (
             <BlockStack gap="200">
               <Text as="span" variant="bodySm">
                 Color de fondo del bleed

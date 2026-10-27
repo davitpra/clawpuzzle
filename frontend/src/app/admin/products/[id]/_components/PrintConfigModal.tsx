@@ -101,15 +101,8 @@ export function PrintConfigModal({
               />
             </FormLayout.Group>
 
+            {/* La sangre no se configura: es fija de 3 mm en el Print Studio. */}
             <FormLayout.Group>
-              <TextField
-                label="Sangre (mm)"
-                type="number"
-                autoComplete="off"
-                helpText="Tolerancia del troquel. 5 mm si no se indica."
-                value={cfg.bleedMm?.toString() ?? ""}
-                onChange={(v) => setCfg((c) => ({ ...c, bleedMm: num(v) }))}
-              />
               <TextField
                 label="Margen de seguridad (mm)"
                 type="number"

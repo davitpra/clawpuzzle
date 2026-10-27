@@ -23,10 +23,13 @@ export class PrintConfigDto {
   heightCm?: number;
 
   /**
-   * Sangre para el troquelado. Mayor que la de un póster guillotinado: la
-   * tolerancia de registro de un troquel de puzzle es de ±2–3 mm.
+   * Obsoleto: la sangre es fija (3 mm) y este valor se ignora. Se acepta
+   * porque hay variantes que ya lo tienen guardado y el admin lo reenvía.
    */
-  @ApiPropertyOptional({ example: 5, description: 'Sangre en mm' })
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'Obsoleto: se ignora, la sangre es fija de 3 mm',
+  })
   @IsNumber()
   @Min(0)
   @IsOptional()

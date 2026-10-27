@@ -27,6 +27,7 @@ import {
 } from "./printStudio";
 import { PrintStudioStage } from "./PrintStudioStage";
 import { PrintStudioControls } from "./PrintStudioControls";
+import { PrintSizeSelect } from "./PrintSizeSelect";
 
 export default function PrintStudioWorkspace({
   orderId,
@@ -160,6 +161,8 @@ export default function PrintStudioWorkspace({
     targetPx,
     theoreticalDpi,
   } = computePrintGeometry(info, upscaleFactor);
+  // Sin tamaño de impresión el backend rechaza el bleed: no se envía.
+  const applyBleed = bleedEnabled && printInches !== null;
 
   // DPI of the current print image as measured client-side from the delivered URL.
   const currentDpi =
@@ -208,8 +211,8 @@ export default function PrintStudioWorkspace({
         saturation: saturation || undefined,
         improve: improve || undefined,
         fitToFormat: fitToFormat || undefined,
-        bleed: bleedEnabled || undefined,
-        bleedColor: bleedEnabled ? bleedColor : undefined,
+        bleed: applyBleed || undefined,
+        bleedColor: applyBleed ? bleedColor : undefined,
         format,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
@@ -250,8 +253,8 @@ export default function PrintStudioWorkspace({
         saturation: saturation || undefined,
         improve: improve || undefined,
         fitToFormat: fitToFormat || undefined,
-        bleed: bleedEnabled || undefined,
-        bleedColor: bleedEnabled ? bleedColor : undefined,
+        bleed: applyBleed || undefined,
+        bleedColor: applyBleed ? bleedColor : undefined,
         format,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
@@ -373,7 +376,7 @@ export default function PrintStudioWorkspace({
                   onMeasure={setMeasuredPx}
                   displayUrl={displayUrl}
                   stageAspect={stageAspect}
-                  bleedEnabled={bleedEnabled}
+                  bleedEnabled={applyBleed}
                   bleedColor={bleedColor}
                   cutInsetW={cutInsetW}
                   cutInsetH={cutInsetH}
@@ -423,6 +426,15 @@ export default function PrintStudioWorkspace({
                   previewing={previewing}
                   onPreview={handlePreviewExact}
                   bleedEnabled={bleedEnabled}
+                  printSizeControl={
+                    <PrintSizeSelect
+                      orderId={orderId}
+                      itemId={itemId}
+                      info={info}
+                      onInfoChange={setInfo}
+                      invalidatePreview={invalidatePreview}
+                    />
+                  }
                   setBleedEnabled={setBleedEnabled}
                   bleedHsb={bleedHsb}
                   bleedColor={bleedColor}

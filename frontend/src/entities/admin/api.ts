@@ -757,6 +757,7 @@ export interface AdminCreditPackVariants {
 export interface PrintConfig {
   widthCm?: number;
   heightCm?: number;
+  /** Obsoleto: se ignora, la sangre es fija de 3 mm. */
   bleedMm?: number;
   safeMarginMm?: number;
   minDpi?: number;
@@ -1498,6 +1499,17 @@ export const adminApi = {
       adminFetch<EnhanceInfo>(
         `/admin/orders/${orderId}/items/${itemId}/enhance-info`,
       ),
+    // Tamaño de impresión solo de esta línea (anula el de la variante).
+    setItemPrintConfig: (orderId: string, itemId: string, cfg: PrintConfig) =>
+      adminFetch<EnhanceInfo>(
+        `/admin/orders/${orderId}/items/${itemId}/print-config`,
+        { method: "PUT", body: JSON.stringify(cfg) },
+      ),
+    clearItemPrintConfig: (orderId: string, itemId: string) =>
+      adminFetch<EnhanceInfo>(
+        `/admin/orders/${orderId}/items/${itemId}/print-config`,
+        { method: "DELETE" },
+      ),
     enhancePreview: (
       orderId: string,
       itemId: string,
@@ -1584,6 +1596,12 @@ export interface EnhanceOptions {
   previewUpscale?: boolean;
 }
 
+/** Un tamaño ya configurado en el catálogo, ofrecido en el Print Studio. */
+export interface PrintSizePreset {
+  widthCm: number;
+  heightCm: number;
+}
+
 export interface EnhanceInfo {
   isPod: boolean;
   sourceUrl: string | null;
@@ -1592,6 +1610,11 @@ export interface EnhanceInfo {
   sourceDpi: number | null;
   printImageUrl: string | null;
   bleedColor: string;
+  /** printConfig efectivo (item → variante); null si el tamaño sale del título o no hay. */
+  printConfig: PrintConfig | null;
+  printConfigSource: "item" | "variant" | "title" | null;
+  /** Tamaños distintos configurados en las variantes del catálogo. */
+  printSizePresets: PrintSizePreset[];
   recommendedUpscale: 0 | 2 | 4;
   alreadyEnhanced: boolean;
   hasUpscaledBase: boolean;
