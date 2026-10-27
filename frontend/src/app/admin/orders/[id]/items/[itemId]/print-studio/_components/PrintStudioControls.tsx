@@ -174,7 +174,9 @@ export function PrintStudioControls({
           </Banner>
         )}
 
-        {currentDpi !== null && printInches && (
+        {/* El DPI y su veredicto ya están en la leyenda de la vista; aquí solo
+            se avisa cuando no llega al mínimo. */}
+        {currentDpi !== null && currentDpi < GOOD_DPI && printInches && (
           <Banner tone={dpiTone(currentDpi)}>
             {currentLabel}: <strong>{currentDpi} DPI</strong> para{" "}
             {formatPrintSize(printInches)}

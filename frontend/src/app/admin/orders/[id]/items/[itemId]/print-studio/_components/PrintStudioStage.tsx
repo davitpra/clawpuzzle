@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   BlockStack,
   InlineStack,
@@ -16,8 +16,23 @@ import {
   clampCrop,
   cropRect,
   dpiTone,
+  dpiVerdict,
   formatPrintSize,
 } from "./printStudio";
+
+// Fila etiqueta/valor de la ficha de la imagen, con el valor a la derecha.
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <InlineStack align="space-between" blockAlign="center" wrap={false}>
+      <Text as="span" variant="bodySm" tone="subdued">
+        {label}
+      </Text>
+      <Text as="span" variant="bodySm">
+        {children}
+      </Text>
+    </InlineStack>
+  );
+}
 
 const CROP_SHADE = "rgba(0,0,0,0.5)";
 // Paso de los botones de zoom de la barra junto a la vista.
@@ -455,7 +470,7 @@ export function PrintStudioStage({
               </div>
             </div>
 
-            {/* Leyenda de guías e info (px · DPI · tamaño), a la derecha de la vista */}
+            {/* Info de la imagen (px · tamaño · DPI) y leyenda de guías, a la derecha de la vista */}
             <div
               style={{
                 width: 190,
@@ -467,6 +482,68 @@ export function PrintStudioStage({
               }}
             >
               <BlockStack gap="300">
+                {/* Ficha de la imagen: px y tamaño de impresión, y el DPI que
+                    resulta de ambos al final. */}
+                <BlockStack gap="200">
+                  <BlockStack gap="050">
+                    <Text as="h3" variant="headingXs" tone="subdued">
+                      IMAGEN ACTUAL
+                    </Text>
+                    <Text as="span" variant="bodySm" fontWeight="semibold">
+                      {currentKind === "saved"
+                        ? "Máster guardado"
+                        : "Original de IA"}
+                    </Text>
+                  </BlockStack>
+                  <InfoRow label="Píxeles">
+                    {measuredPx
+                      ? `${measuredPx.w} × ${measuredPx.h}`
+                      : info?.sourcePx
+                        ? `${info.sourcePx.width} × ${info.sourcePx.height}`
+                        : "— × —"}
+                  </InfoRow>
+                  {measuredPx &&
+                    info?.sourcePx &&
+                    (measuredPx.w !== info.sourcePx.width ||
+                      measuredPx.h !== info.sourcePx.height) && (
+                      <InfoRow label="Origen">
+                        {info.sourcePx.width} × {info.sourcePx.height}
+                      </InfoRow>
+                    )}
+                  <InfoRow label="Impresión">
+                    {printInches ? formatPrintSize(printInches) : "—"}
+                  </InfoRow>
+                  {currentDpi !== null && (
+                    <BlockStack gap="050">
+                      <InfoRow label="Resolución">
+                        <Badge tone={dpiTone(currentDpi)}>
+                          {`${currentDpi} DPI`}
+                        </Badge>
+                      </InfoRow>
+                      <InlineStack align="end">
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          {dpiVerdict(currentDpi)}
+                        </Text>
+                      </InlineStack>
+                    </BlockStack>
+                  )}
+                  {info?.printImageUrl && (
+                    <Button
+                      variant="plain"
+                      onClick={() =>
+                        onZoom({
+                          src: info.printImageUrl!,
+                          title: "Imagen guardada",
+                        })
+                      }
+                    >
+                      Abrir máster guardado →
+                    </Button>
+                  )}
+                </BlockStack>
+
+                <div style={{ borderTop: "1px solid #e3e3e3" }} />
+
                 <Checkbox
                   label="Mostrar guías"
                   helpText={
@@ -537,60 +614,8 @@ export function PrintStudioStage({
                         </Text>
                       </InlineStack>
                     )}
-                    <div style={{ borderTop: "1px solid #e3e3e3" }} />
                   </BlockStack>
                 )}
-
-                <BlockStack gap="200" inlineAlign="start">
-                  {measuredPx ? (
-                    <>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {currentKind === "saved"
-                          ? "Guardada"
-                          : "Original (sin guardar)"}
-                        : {measuredPx.w} × {measuredPx.h} px
-                      </Text>
-                      {currentDpi !== null && (
-                        <Badge
-                          tone={dpiTone(currentDpi)}
-                        >{`${currentDpi} DPI`}</Badge>
-                      )}
-                    </>
-                  ) : (
-                    <Text as="span" variant="bodySm" tone="subdued">
-                      {info?.sourcePx
-                        ? `${info.sourcePx.width} × ${info.sourcePx.height} px`
-                        : "— × — px"}
-                    </Text>
-                  )}
-                  {printInches && (
-                    <Text as="span" variant="bodySm" tone="subdued">
-                      {formatPrintSize(printInches)}
-                    </Text>
-                  )}
-                  {measuredPx &&
-                    info?.sourcePx &&
-                    (measuredPx.w !== info.sourcePx.width ||
-                      measuredPx.h !== info.sourcePx.height) && (
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        Origen: {info.sourcePx.width} × {info.sourcePx.height}{" "}
-                        px
-                      </Text>
-                    )}
-                  {info?.printImageUrl && (
-                    <Button
-                      variant="plain"
-                      onClick={() =>
-                        onZoom({
-                          src: info.printImageUrl!,
-                          title: "Imagen guardada",
-                        })
-                      }
-                    >
-                      Abrir original →
-                    </Button>
-                  )}
-                </BlockStack>
               </BlockStack>
             </div>
           </div>

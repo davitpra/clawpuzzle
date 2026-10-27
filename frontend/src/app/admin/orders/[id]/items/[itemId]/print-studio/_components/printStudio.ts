@@ -69,6 +69,13 @@ export function dpiTone(
   return "success";
 }
 
+// El veredicto de dpiTone en palabras, para no depender solo del color.
+export function dpiVerdict(dpi: number | null): string {
+  if (dpi === null || dpi < LOW_DPI) return "Baja: haz upscale";
+  if (dpi < GOOD_DPI) return `Aceptable (óptima ≥${GOOD_DPI})`;
+  return `Óptima (≥${GOOD_DPI})`;
+}
+
 export const inchesToCm = (inches: number) =>
   Math.round(inches * 2.54 * 10) / 10;
 
