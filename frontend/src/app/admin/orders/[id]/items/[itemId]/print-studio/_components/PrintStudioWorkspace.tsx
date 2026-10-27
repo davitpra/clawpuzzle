@@ -425,6 +425,7 @@ export default function PrintStudioWorkspace({
                   safeInsetW={safeInsetW}
                   safeInsetH={safeInsetH}
                   showGuides={showGuides}
+                  onShowGuidesChange={setShowGuides}
                   printInches={printInches}
                   cssFilter={cssFilter}
                   previewUrl={previewUrl}
@@ -456,8 +457,6 @@ export default function PrintStudioWorkspace({
                   upscaleResultDpi={upscaleResultDpi}
                   upscaleUseful={upscaleUseful}
                   framedDpi={framedDpi}
-                  crop={crop}
-                  onCropChange={updateCrop}
                   canAct={canAct}
                   upscaling={upscaling}
                   onUpscale={handleUpscale}
@@ -489,8 +488,6 @@ export default function PrintStudioWorkspace({
                   bleedHsb={bleedHsb}
                   bleedColor={bleedColor}
                   onBleedColorChange={updateBleedColor}
-                  showGuides={showGuides}
-                  setShowGuides={setShowGuides}
                   format={format}
                   setFormat={setFormat}
                   reverting={reverting}

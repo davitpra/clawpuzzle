@@ -1,5 +1,12 @@
 import { useRef, useState } from "react";
-import { BlockStack, InlineStack, Text, Button, Badge } from "@shopify/polaris";
+import {
+  BlockStack,
+  InlineStack,
+  Text,
+  Button,
+  Badge,
+  Checkbox,
+} from "@shopify/polaris";
 import { MinusIcon, PlusIcon, TargetIcon } from "@shopify/polaris-icons";
 import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
 import {
@@ -16,13 +23,15 @@ const CROP_SHADE = "rgba(0,0,0,0.5)";
 // Paso de los botones de zoom de la barra junto a la vista.
 const ZOOM_STEP = 0.1;
 // Alto máximo de la vista: la ventana menos la cabecera de la página, el
-// padding de la tarjeta y la leyenda, para que el encuadre se vea entero.
+// padding de la tarjeta y la nota de vista previa, para que el encuadre se vea
+// entero.
 const STAGE_MAX_H = "(100dvh - 280px)";
 // Margen máximo por lado alrededor de la vista para ver lo que se recorta.
 const MAX_PAD = 0.06;
 
 // Panel izquierdo del estudio de impresión: la previsualización ("stage") con
-// las guías de corte/bleed/zona segura y la barra de info (px · DPI · tamaño).
+// las guías de corte/bleed/zona segura y, a su derecha, la leyenda y la info
+// (px · DPI · tamaño).
 export function PrintStudioStage({
   currentImageUrl,
   onMeasure,
@@ -38,6 +47,7 @@ export function PrintStudioStage({
   safeInsetW,
   safeInsetH,
   showGuides,
+  onShowGuidesChange,
   printInches,
   cssFilter,
   previewUrl,
@@ -62,6 +72,7 @@ export function PrintStudioStage({
   safeInsetW: number;
   safeInsetH: number;
   showGuides: boolean;
+  onShowGuidesChange: (checked: boolean) => void;
   printInches: { width: number; height: number } | null;
   cssFilter: string | undefined;
   previewUrl: string | null;
@@ -443,124 +454,152 @@ export function PrintStudioStage({
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Guide legend */}
-          {withGuides && (
-            <InlineStack gap="300" align="center" wrap>
-              {bleedEnabled ? (
-                <InlineStack gap="100" blockAlign="center">
-                  <div
-                    style={{
-                      width: 18,
-                      height: 10,
-                      background: bleedColor,
-                      border: "1px solid #c9cccf",
-                    }}
-                  />
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    Bleed {BLEED_MM} mm
-                  </Text>
-                </InlineStack>
-              ) : (
-                <Text as="span" variant="bodySm" tone="subdued">
-                  Sin bleed: se corta al borde
-                </Text>
-              )}
-              <InlineStack gap="100" blockAlign="center">
-                <div
-                  style={{
-                    width: 18,
-                    height: 0,
-                    borderTop: "1.5px dashed rgba(220,38,38,0.9)",
-                  }}
+            {/* Leyenda de guías e info (px · DPI · tamaño), a la derecha de la vista */}
+            <div
+              style={{
+                width: 190,
+                flexShrink: 0,
+                padding: 12,
+                background: "#fff",
+                border: "1px solid #c9cccf",
+                borderRadius: 8,
+              }}
+            >
+              <BlockStack gap="300">
+                <Checkbox
+                  label="Mostrar guías"
+                  helpText={
+                    printInches ? undefined : "Elige un tamaño de impresión"
+                  }
+                  disabled={!printInches}
+                  checked={withGuides}
+                  onChange={onShowGuidesChange}
                 />
-                <Text as="span" variant="bodySm" tone="subdued">
-                  Corte
-                </Text>
-              </InlineStack>
-              <InlineStack gap="100" blockAlign="center">
-                <div
-                  style={{
-                    width: 18,
-                    height: 0,
-                    borderTop: "1.5px dashed rgba(37,99,235,0.85)",
-                  }}
-                />
-                <Text as="span" variant="bodySm" tone="subdued">
-                  Zona segura
-                </Text>
-              </InlineStack>
-              {cropsImage && (
-                <InlineStack gap="100" blockAlign="center">
-                  <div
-                    style={{ width: 18, height: 10, background: CROP_SHADE }}
-                  />
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    Se recorta
-                  </Text>
-                </InlineStack>
-              )}
-            </InlineStack>
-          )}
+                {withGuides && (
+                  <BlockStack gap="200">
+                    <InlineStack gap="200" blockAlign="center" wrap={false}>
+                      <div
+                        style={{
+                          width: 18,
+                          height: 0,
+                          flexShrink: 0,
+                          borderTop: "1.5px dashed rgba(220,38,38,0.9)",
+                        }}
+                      />
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        Corte
+                      </Text>
+                    </InlineStack>
+                    <InlineStack gap="200" blockAlign="center" wrap={false}>
+                      <div
+                        style={{
+                          width: 18,
+                          height: 0,
+                          flexShrink: 0,
+                          borderTop: "1.5px dashed rgba(37,99,235,0.85)",
+                        }}
+                      />
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        Zona segura
+                      </Text>
+                    </InlineStack>
+                    {bleedEnabled ? (
+                      <InlineStack gap="200" blockAlign="center" wrap={false}>
+                        <div
+                          style={{
+                            width: 18,
+                            height: 10,
+                            flexShrink: 0,
+                            background: bleedColor,
+                            border: "1px solid #c9cccf",
+                          }}
+                        />
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          Bleed {BLEED_MM} mm
+                        </Text>
+                      </InlineStack>
+                    ) : (
+                      <> </>
+                    )}
+                    {cropsImage && (
+                      <InlineStack gap="200" blockAlign="center" wrap={false}>
+                        <div
+                          style={{
+                            width: 18,
+                            height: 10,
+                            flexShrink: 0,
+                            background: CROP_SHADE,
+                          }}
+                        />
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          Se recorta
+                        </Text>
+                      </InlineStack>
+                    )}
+                    <div style={{ borderTop: "1px solid #e3e3e3" }} />
+                  </BlockStack>
+                )}
+
+                <BlockStack gap="200" inlineAlign="start">
+                  {measuredPx ? (
+                    <>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {currentKind === "saved"
+                          ? "Guardada"
+                          : "Original (sin guardar)"}
+                        : {measuredPx.w} × {measuredPx.h} px
+                      </Text>
+                      {currentDpi !== null && (
+                        <Badge
+                          tone={dpiTone(currentDpi)}
+                        >{`${currentDpi} DPI`}</Badge>
+                      )}
+                    </>
+                  ) : (
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      {info?.sourcePx
+                        ? `${info.sourcePx.width} × ${info.sourcePx.height} px`
+                        : "— × — px"}
+                    </Text>
+                  )}
+                  {printInches && (
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      {formatPrintSize(printInches)}
+                    </Text>
+                  )}
+                  {measuredPx &&
+                    info?.sourcePx &&
+                    (measuredPx.w !== info.sourcePx.width ||
+                      measuredPx.h !== info.sourcePx.height) && (
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        Origen: {info.sourcePx.width} × {info.sourcePx.height}{" "}
+                        px
+                      </Text>
+                    )}
+                  {info?.printImageUrl && (
+                    <Button
+                      variant="plain"
+                      onClick={() =>
+                        onZoom({
+                          src: info.printImageUrl!,
+                          title: "Imagen guardada",
+                        })
+                      }
+                    >
+                      Abrir original →
+                    </Button>
+                  )}
+                </BlockStack>
+              </BlockStack>
+            </div>
+          </div>
 
           {previewUrl && (
             <Text as="span" variant="bodySm" tone="subdued">
               Vista previa (aprox.) — el archivo guardado no cambia hasta pulsar
               Guardar.
             </Text>
-          )}
-
-          {/* Info bar — current print image dimensions + DPI + print size */}
-          <InlineStack gap="300" blockAlign="center" wrap>
-            {measuredPx ? (
-              <>
-                <Text as="span" variant="bodySm" tone="subdued">
-                  {currentKind === "saved"
-                    ? "Guardada"
-                    : "Original (sin guardar)"}
-                  : {measuredPx.w} × {measuredPx.h} px
-                </Text>
-                {currentDpi !== null && (
-                  <Badge
-                    tone={dpiTone(currentDpi)}
-                  >{`${currentDpi} DPI`}</Badge>
-                )}
-              </>
-            ) : (
-              <Text as="span" variant="bodySm" tone="subdued">
-                {info?.sourcePx
-                  ? `${info.sourcePx.width} × ${info.sourcePx.height} px`
-                  : "— × — px"}
-              </Text>
-            )}
-            {printInches && (
-              <Text as="span" variant="bodySm" tone="subdued">
-                {formatPrintSize(printInches)}
-              </Text>
-            )}
-          </InlineStack>
-          {measuredPx &&
-            info?.sourcePx &&
-            (measuredPx.w !== info.sourcePx.width ||
-              measuredPx.h !== info.sourcePx.height) && (
-              <Text as="span" variant="bodySm" tone="subdued">
-                Origen: {info.sourcePx.width} × {info.sourcePx.height} px
-              </Text>
-            )}
-
-          {info?.printImageUrl && (
-            <Button
-              variant="plain"
-              onClick={() =>
-                onZoom({
-                  src: info.printImageUrl!,
-                  title: "Imagen guardada",
-                })
-              }
-            >
-              Abrir original →
-            </Button>
           )}
         </BlockStack>
       </div>

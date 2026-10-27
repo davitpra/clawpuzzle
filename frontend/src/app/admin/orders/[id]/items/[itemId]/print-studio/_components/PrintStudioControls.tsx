@@ -91,8 +91,6 @@ export function PrintStudioControls({
   bleedHsb,
   bleedColor,
   onBleedColorChange,
-  showGuides,
-  setShowGuides,
   format,
   setFormat,
   reverting,
@@ -140,8 +138,6 @@ export function PrintStudioControls({
   bleedHsb: HsbColor;
   bleedColor: string;
   onBleedColorChange: (hsb: HsbColor) => void;
-  showGuides: boolean;
-  setShowGuides: Dispatch<SetStateAction<boolean>>;
   format: "jpeg" | "png";
   setFormat: Dispatch<SetStateAction<"jpeg" | "png">>;
   reverting: boolean;
@@ -433,17 +429,6 @@ export function PrintStudioControls({
 
         {/* Output options */}
         <BlockStack gap="200">
-          <Checkbox
-            label="Mostrar guías de impresión"
-            helpText={
-              printInches
-                ? undefined
-                : "Elige un tamaño de impresión arriba para ver el corte y la zona segura."
-            }
-            disabled={!printInches}
-            checked={showGuides && Boolean(printInches)}
-            onChange={setShowGuides}
-          />
           <Select
             label="Formato de salida"
             options={[
