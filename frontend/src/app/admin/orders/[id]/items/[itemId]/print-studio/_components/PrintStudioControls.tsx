@@ -10,7 +10,6 @@ import {
   Text,
   Banner,
   Button,
-  Select,
   RangeSlider,
   Checkbox,
   Box,
@@ -91,8 +90,6 @@ export function PrintStudioControls({
   bleedHsb,
   bleedColor,
   onBleedColorChange,
-  format,
-  setFormat,
   reverting,
   busy,
   onRevert,
@@ -138,8 +135,6 @@ export function PrintStudioControls({
   bleedHsb: HsbColor;
   bleedColor: string;
   onBleedColorChange: (hsb: HsbColor) => void;
-  format: "jpeg" | "png";
-  setFormat: Dispatch<SetStateAction<"jpeg" | "png">>;
   reverting: boolean;
   busy: boolean;
   onRevert: () => void;
@@ -427,23 +422,6 @@ export function PrintStudioControls({
           )}
         </BlockStack>
 
-        <Divider />
-
-        {/* Output options */}
-        <BlockStack gap="200">
-          <Select
-            label="Formato de salida"
-            options={[
-              { label: "JPEG (recomendado)", value: "jpeg" },
-              { label: "PNG (sin pérdida)", value: "png" },
-            ]}
-            value={format}
-            onChange={(v) => {
-              setFormat(v as "jpeg" | "png");
-              invalidatePreview();
-            }}
-          />
-        </BlockStack>
 
         {info?.alreadyEnhanced && (
           <>

@@ -17,10 +17,7 @@ import {
   EnhanceOptions,
   PrintCrop,
 } from "@/entities/admin/api";
-import {
-  cloudinaryDownloadUrl,
-  type DownloadFormat,
-} from "@/shared/lib/cloudinary";
+import { cloudinaryDownloadUrl } from "@/shared/lib/cloudinary";
 import { hexToHsb, hsbToHex, HsbColor } from "@/lib/colorUtils";
 import ImagePreviewModal from "@/app/admin/_components/ImagePreviewModal";
 import {
@@ -60,7 +57,6 @@ export default function PrintStudioWorkspace({
   // Controls
   const [upscaleFactor, setUpscaleFactor] = useState(DEFAULT_UPSCALE_FACTOR);
   const [upscaling, setUpscaling] = useState(false);
-  const [format, setFormat] = useState<"jpeg" | "png">("jpeg");
   const [sharpen, setSharpen] = useState(0);
   const [contrast, setContrast] = useState(0);
   const [brightness, setBrightness] = useState(0);
@@ -234,7 +230,6 @@ export default function PrintStudioWorkspace({
         improve: improve || undefined,
         fitToFormat: fitToFormat || undefined,
         crop: fitToFormat ? crop : undefined,
-        format,
       };
       const res = await adminApi.orders.enhancePreview(orderId, itemId, opts);
       setPreviewUrl(res.previewUrl);
@@ -260,7 +255,6 @@ export default function PrintStudioWorkspace({
         crop: fitToFormat ? crop : undefined,
         bleed: applyBleed || undefined,
         bleedColor: applyBleed ? bleedColor : undefined,
-        format,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
@@ -303,7 +297,6 @@ export default function PrintStudioWorkspace({
         crop: fitToFormat ? crop : undefined,
         bleed: applyBleed || undefined,
         bleedColor: applyBleed ? bleedColor : undefined,
-        format,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
@@ -339,11 +332,11 @@ export default function PrintStudioWorkspace({
     }
   }
 
-  function handleDownload(fmt: DownloadFormat) {
+  function handleDownload() {
     if (!currentImageUrl) return;
     const href = cloudinaryDownloadUrl(
       currentImageUrl,
-      fmt,
+      "jpg",
       `impresion-${itemId}`,
     );
     const a = document.createElement("a");
@@ -368,22 +361,11 @@ export default function PrintStudioWorkspace({
         disabled: !canAct,
         onAction: handleSave,
       }}
-      actionGroups={[
+      secondaryActions={[
         {
-          title: "Exportar Imagen",
+          content: "Exportar Imagen",
           disabled: !currentImageUrl || loadingInfo,
-          actions: [
-            {
-              content: "PNG (alta calidad)",
-              onAction: () => handleDownload("png"),
-            },
-            {
-              content: "JPG (alta calidad)",
-              onAction: () => handleDownload("jpg"),
-            },
-            { content: "WEBP", onAction: () => handleDownload("webp") },
-            { content: "PDF", onAction: () => handleDownload("pdf") },
-          ],
+          onAction: handleDownload,
         },
       ]}
     >
@@ -488,8 +470,6 @@ export default function PrintStudioWorkspace({
                   bleedHsb={bleedHsb}
                   bleedColor={bleedColor}
                   onBleedColorChange={updateBleedColor}
-                  format={format}
-                  setFormat={setFormat}
                   reverting={reverting}
                   busy={busy}
                   onRevert={handleRevert}
