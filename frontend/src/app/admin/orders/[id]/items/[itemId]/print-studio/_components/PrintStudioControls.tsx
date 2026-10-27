@@ -49,8 +49,9 @@ function ratioLabel(w: number, h: number): string {
   return match ? `${match[0]}:${match[1]}` : (w / h).toFixed(2);
 }
 
-// Panel de controles del estudio de impresión: upscale IA, ajustes de imagen,
-// tamaño de impresión, bleed y opciones de salida.
+// Panel de controles del estudio de impresión: tamaño de impresión (va primero:
+// sin él no hay DPI, guías ni bleed), upscale IA, ajustes de imagen, bleed y
+// opciones de salida.
 export function PrintStudioControls({
   err,
   setErr,
@@ -202,6 +203,71 @@ export function PrintStudioControls({
                 ` — bajo el mínimo. Se recomienda upscale.`}
             </Banner>
           )}
+
+        {/* Tamaño de impresión del item */}
+        {printSizeControl}
+
+        {/* Proporción: decisión de formato, no de color */}
+        {printInches && (
+          <BlockStack gap="200">
+            {aspectCrop && currentPx && (
+              <Banner tone="warning">
+                {`La imagen es ${ratioLabel(currentPx.w, currentPx.h)} y el formato ${ratioLabel(printInches.width, printInches.height)}: se pierde ~${Math.round(aspectCrop.perSide * 200)} % del ${aspectCrop.axis === "w" ? "ancho" : "alto"}. `}
+                {fitToFormat
+                  ? "Arrastra la imagen para elegir qué parte queda."
+                  : "El archivo guardado mantendrá la proporción original y el recorte se hará al troquelar."}
+              </Banner>
+            )}
+            <Checkbox
+              label="Ajustar al formato"
+              helpText="Recorta el archivo a la proporción exacta del tamaño de impresión. La zona sombreada es lo que se pierde."
+              checked={fitToFormat}
+              onChange={(v) => {
+                setFitToFormat(v);
+                invalidatePreview();
+              }}
+            />
+            {fitToFormat && (
+              <BlockStack gap="200">
+                <Text as="span" variant="bodySm" tone="subdued">
+                  Arrastra la imagen en la vista para encuadrarla dentro del
+                  corte.
+                </Text>
+                <RangeSlider
+                  label="Zoom"
+                  min={100}
+                  max={MAX_CROP_ZOOM * 100}
+                  step={5}
+                  value={Math.round(crop.zoom * 100)}
+                  onChange={(v) =>
+                    onCropChange({ ...crop, zoom: (v as number) / 100 })
+                  }
+                  suffix={`${Math.round(crop.zoom * 100)} %`}
+                />
+                <InlineStack gap="300" blockAlign="center" wrap>
+                  {framedDpi !== null && (
+                    <Badge tone={dpiTone(framedDpi)}>
+                      {`Al guardar: ${framedDpi} DPI`}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="plain"
+                    disabled={
+                      crop.x === CENTER_CROP.x &&
+                      crop.y === CENTER_CROP.y &&
+                      crop.zoom === CENTER_CROP.zoom
+                    }
+                    onClick={() => onCropChange(CENTER_CROP)}
+                  >
+                    Centrar
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            )}
+          </BlockStack>
+        )}
+
+        <Divider />
 
         {/* Upscale section */}
         <BlockStack gap="200">
@@ -355,71 +421,6 @@ export function PrintStudioControls({
             </BlockStack>
           </Collapsible>
         </BlockStack>
-
-        <Divider />
-
-        {/* Tamaño de impresión del item */}
-        {printSizeControl}
-
-        {/* Proporción: decisión de formato, no de color */}
-        {printInches && (
-          <BlockStack gap="200">
-            {aspectCrop && currentPx && (
-              <Banner tone="warning">
-                {`La imagen es ${ratioLabel(currentPx.w, currentPx.h)} y el formato ${ratioLabel(printInches.width, printInches.height)}: se pierde ~${Math.round(aspectCrop.perSide * 200)} % del ${aspectCrop.axis === "w" ? "ancho" : "alto"}. `}
-                {fitToFormat
-                  ? "Arrastra la imagen para elegir qué parte queda."
-                  : "El archivo guardado mantendrá la proporción original y el recorte se hará al troquelar."}
-              </Banner>
-            )}
-            <Checkbox
-              label="Ajustar al formato"
-              helpText="Recorta el archivo a la proporción exacta del tamaño de impresión. La zona sombreada es lo que se pierde."
-              checked={fitToFormat}
-              onChange={(v) => {
-                setFitToFormat(v);
-                invalidatePreview();
-              }}
-            />
-            {fitToFormat && (
-              <BlockStack gap="200">
-                <Text as="span" variant="bodySm" tone="subdued">
-                  Arrastra la imagen en la vista para encuadrarla dentro del
-                  corte.
-                </Text>
-                <RangeSlider
-                  label="Zoom"
-                  min={100}
-                  max={MAX_CROP_ZOOM * 100}
-                  step={5}
-                  value={Math.round(crop.zoom * 100)}
-                  onChange={(v) =>
-                    onCropChange({ ...crop, zoom: (v as number) / 100 })
-                  }
-                  suffix={`${Math.round(crop.zoom * 100)} %`}
-                />
-                <InlineStack gap="300" blockAlign="center" wrap>
-                  {framedDpi !== null && (
-                    <Badge tone={dpiTone(framedDpi)}>
-                      {`Al guardar: ${framedDpi} DPI`}
-                    </Badge>
-                  )}
-                  <Button
-                    variant="plain"
-                    disabled={
-                      crop.x === CENTER_CROP.x &&
-                      crop.y === CENTER_CROP.y &&
-                      crop.zoom === CENTER_CROP.zoom
-                    }
-                    onClick={() => onCropChange(CENTER_CROP)}
-                  >
-                    Centrar
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            )}
-          </BlockStack>
-        )}
 
         <Divider />
 

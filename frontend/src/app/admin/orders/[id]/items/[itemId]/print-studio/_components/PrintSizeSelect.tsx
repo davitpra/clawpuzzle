@@ -7,6 +7,7 @@ import {
   TextField,
   Button,
   Banner,
+  Badge,
 } from "@shopify/polaris";
 import {
   adminApi,
@@ -150,8 +151,15 @@ export function PrintSizeSelect({
 
   return (
     <BlockStack gap="200">
+      <InlineStack gap="200" blockAlign="center">
+        <Text as="h2" variant="headingMd">
+          Tamaño de impresión
+        </Text>
+        {!source && <Badge tone="attention">Requerido</Badge>}
+      </InlineStack>
       <Select
         label="Tamaño de impresión"
+        labelHidden
         options={options}
         value={customOpen ? CUSTOM : current}
         onChange={onSelect}
