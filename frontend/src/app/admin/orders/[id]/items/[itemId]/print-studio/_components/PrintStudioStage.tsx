@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   BlockStack,
   InlineStack,
@@ -37,10 +37,15 @@ function InfoRow({ label, children }: { label: string; children: ReactNode }) {
 const CROP_SHADE = "rgba(0,0,0,0.5)";
 // Paso de los botones de zoom de la barra junto a la vista.
 const ZOOM_STEP = 0.1;
-// Alto máximo de la vista: la ventana menos la cabecera de la página, el
-// padding de la tarjeta y la nota de vista previa, para que el encuadre se vea
-// entero.
-const STAGE_MAX_H = "(100dvh - 280px)";
+// Alto máximo de la vista hasta medir dónde empieza: la ventana menos una
+// estimación de la cabecera, el padding de la tarjeta y la nota.
+const STAGE_FALLBACK_MAX_H = "calc(100dvh - 280px)";
+// Lo que queda bajo la vista: padding inferior de la tarjeta y de la página.
+const BOTTOM_GAP = 40;
+// Alto de la nota de vista previa que se pinta bajo la vista.
+const PREVIEW_NOTE_H = 28;
+// Alto mínimo de la vista en ventanas muy bajas.
+const MIN_STAGE_H = 320;
 // Margen máximo por lado alrededor de la vista para ver lo que se recorta.
 const MAX_PAD = 0.06;
 
@@ -110,6 +115,24 @@ export function PrintStudioStage({
     null,
   );
   const [dragging, setDragging] = useState(false);
+
+  // Alto máximo de la vista: desde donde empieza hasta el pie de la ventana, para
+  // que ocupe todo el alto disponible sin hacer scroll.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [maxH, setMaxH] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    function measure() {
+      const el = stageRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const gap = BOTTOM_GAP + (previewUrl ? PREVIEW_NOTE_H : 0);
+      setMaxH(Math.max(MIN_STAGE_H, window.innerHeight - top - gap));
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [previewUrl]);
+  const stageMaxH = maxH !== null ? `${maxH}px` : STAGE_FALLBACK_MAX_H;
 
   const withGuides = showGuides && printInches !== null;
   const shownPx =
@@ -291,6 +314,7 @@ export function PrintStudioStage({
               </div>
             )}
             <div
+              ref={stageRef}
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -306,7 +330,7 @@ export function PrintStudioStage({
                   withGuides
                     ? {
                         position: "relative",
-                        width: `min(100%, calc(${STAGE_MAX_H} * ${frameW / frameH}))`,
+                        width: `min(100%, calc(${stageMaxH} * ${frameW / frameH}))`,
                         aspectRatio: `${frameW} / ${frameH}`,
                         overflow: "hidden",
                         borderRadius: 6,
@@ -385,7 +409,7 @@ export function PrintStudioStage({
                               display: "block",
                               width: "auto",
                               maxWidth: "100%",
-                              maxHeight: `calc${STAGE_MAX_H}`,
+                              maxHeight: stageMaxH,
                               margin: "0 auto",
                               borderRadius: 6,
                               filter: cssFilter,
