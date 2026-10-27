@@ -9,9 +9,7 @@ import {
   InlineStack,
   Text,
   Spinner,
-  Button,
-  Popover,
-  ActionList,
+  Page,
 } from "@shopify/polaris";
 import {
   adminApi,
@@ -58,7 +56,6 @@ export default function PrintStudioWorkspace({
   const [measuredPx, setMeasuredPx] = useState<{ w: number; h: number } | null>(
     null,
   );
-  const [dlOpen, setDlOpen] = useState(false);
 
   // Controls
   const [upscaleFactor, setUpscaleFactor] = useState(DEFAULT_UPSCALE_FACTOR);
@@ -355,11 +352,41 @@ export default function PrintStudioWorkspace({
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setDlOpen(false);
   }
 
+  // El Page vive aquí y no en page.tsx para que Guardar/Descargar, que dependen
+  // del estado del estudio, se rendericen en la misma línea que el título.
   return (
-    <>
+    <Page
+      backAction={{ url: `/admin/orders/${orderId}`, content: "Pedido" }}
+      title="Estudio de impresión"
+      subtitle="Imagen generada"
+      fullWidth
+      primaryAction={{
+        content: "Guardar imagen",
+        loading: applying,
+        disabled: !canAct,
+        onAction: handleSave,
+      }}
+      actionGroups={[
+        {
+          title: "Descargar",
+          disabled: !currentImageUrl || loadingInfo,
+          actions: [
+            {
+              content: "PNG (alta calidad)",
+              onAction: () => handleDownload("png"),
+            },
+            {
+              content: "JPG (alta calidad)",
+              onAction: () => handleDownload("jpg"),
+            },
+            { content: "WEBP", onAction: () => handleDownload("webp") },
+            { content: "PDF", onAction: () => handleDownload("pdf") },
+          ],
+        },
+      ]}
+    >
       {zoom && (
         <ImagePreviewModal
           src={zoom.src}
@@ -368,45 +395,6 @@ export default function PrintStudioWorkspace({
         />
       )}
       <BlockStack gap="400">
-        <InlineStack align="end" gap="200">
-          <Popover
-            active={dlOpen}
-            onClose={() => setDlOpen(false)}
-            activator={
-              <Button
-                disclosure
-                disabled={!currentImageUrl || loadingInfo}
-                onClick={() => setDlOpen((v) => !v)}
-              >
-                Descargar
-              </Button>
-            }
-          >
-            <ActionList
-              items={[
-                {
-                  content: "PNG (alta calidad)",
-                  onAction: () => handleDownload("png"),
-                },
-                {
-                  content: "JPG (alta calidad)",
-                  onAction: () => handleDownload("jpg"),
-                },
-                { content: "WEBP", onAction: () => handleDownload("webp") },
-                { content: "PDF", onAction: () => handleDownload("pdf") },
-              ]}
-            />
-          </Popover>
-          <Button
-            variant="primary"
-            loading={applying}
-            disabled={!canAct}
-            onClick={handleSave}
-          >
-            Guardar imagen
-          </Button>
-        </InlineStack>
-
         {loadingInfo ? (
           <Card>
             <Box padding="600">
@@ -515,6 +503,6 @@ export default function PrintStudioWorkspace({
           </Layout>
         )}
       </BlockStack>
-    </>
+    </Page>
   );
 }

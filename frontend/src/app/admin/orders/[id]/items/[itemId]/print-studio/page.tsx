@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Page } from "@shopify/polaris";
 import PrintStudioWorkspace from "./_components/PrintStudioWorkspace";
 
 export default function PrintStudioPage() {
@@ -10,14 +9,5 @@ export default function PrintStudioPage() {
     itemId: string;
   }>();
 
-  return (
-    <Page
-      backAction={{ url: `/admin/orders/${orderId}`, content: "Pedido" }}
-      title="Estudio de impresión"
-      subtitle="Imagen generada"
-      fullWidth
-    >
-      <PrintStudioWorkspace orderId={orderId} itemId={itemId} />
-    </Page>
-  );
+  return <PrintStudioWorkspace orderId={orderId} itemId={itemId} />;
 }
