@@ -567,6 +567,10 @@ model OrderItem {
   // ({ widthCm, heightCm, bleedMm }). Anula el printConfig de la variante sin
   // tocar el catálogo, y sirve para items sin variante o sin tamaño.
   printConfig             Json?     @map("print_config")
+  // Encuadre elegido en el Print Studio con "Ajustar al formato"
+  // ({ x, y, zoom }: centro del recorte en fracción de la imagen y acercamiento
+  // sobre "cubrir"). Null = recorte centrado.
+  printCrop               Json?     @map("print_crop")
   style                   String?
   size                    String?
   productionStatus        String    @default("draft") @map("production_status") // pending | generating | art_failed | draft | pre_production | in_production | printed | packed | shipped | delivered | on_hold | cancelled | refunded | restocked

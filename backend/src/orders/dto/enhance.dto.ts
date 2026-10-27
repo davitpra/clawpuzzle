@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
@@ -9,7 +10,34 @@ import {
   Matches,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { MAX_CROP_ZOOM } from '../print-crop.util';
+
+/** Encuadre del recorte al formato (ver print-crop.util.ts). */
+export class PrintCropDto {
+  @ApiProperty({ description: 'Centro horizontal (fracción 0–1)' })
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  x: number;
+
+  @ApiProperty({ description: 'Centro vertical (fracción 0–1)' })
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  y: number;
+
+  @ApiProperty({
+    description: 'Acercamiento sobre "cubrir" (1 = el recorte más grande)',
+    minimum: 1,
+    maximum: MAX_CROP_ZOOM,
+  })
+  @IsNumber()
+  @Min(1)
+  @Max(MAX_CROP_ZOOM)
+  zoom: number;
+}
 
 /**
  * Options for the image-enhancement pipeline applied to an order item's print
@@ -102,13 +130,25 @@ export class EnhanceDto {
 
   @ApiProperty({
     description:
-      'Crop the image to the exact product print aspect ratio (centered) so ' +
-      'Producción propia: garantiza centrado y escala.',
+      'Crop the image to the exact print aspect ratio, framed by `crop` ' +
+      '(centered when omitted).',
     required: false,
   })
   @IsOptional()
   @IsBoolean()
   fitToFormat?: boolean;
+
+  @ApiProperty({
+    description:
+      'Framing for fitToFormat: crop centre and zoom. Stored on the item so ' +
+      'later saves keep it.',
+    type: PrintCropDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PrintCropDto)
+  crop?: PrintCropDto;
 
   @ApiProperty({
     description:

@@ -16,6 +16,7 @@ import { FalService } from '../generations/providers/fal/fal.service';
 import { EnhanceDto } from './dto/enhance.dto';
 import { PrintConfigDto } from '../products/dto/print-config.dto';
 import { ExpensesService } from '../expenses/expenses.service';
+import { cropRect, parsePrintCrop, type PrintCrop } from './print-crop.util';
 
 /** Resolución objetivo de impresión (DPI) del máster que se manda a imprimir. */
 const TARGET_DPI = 300;
@@ -90,6 +91,8 @@ export interface EnhanceInfo {
   alreadyEnhanced: boolean;
   /** True when a raw AI-upscaled base exists — "Guardar" will re-apply adjustments from it. */
   hasUpscaledBase: boolean;
+  /** Encuadre guardado para "Ajustar al formato"; null = centrado. */
+  printCrop: PrintCrop | null;
 }
 
 @Injectable()
@@ -142,6 +145,7 @@ export class ImageEnhancementService {
         Boolean(item.printImageUrl) &&
         item.printImageUrl !== item.printSourceUrl,
       hasUpscaledBase: sourceMatchesPrint && Boolean(item.printUpscaledUrl),
+      printCrop: sourceMatchesPrint ? parsePrintCrop(item.printCrop) : null,
     };
   }
 
@@ -432,6 +436,11 @@ export class ImageEnhancementService {
     // La Generation es dueña del asset. No copiar su key al pedido: la
     // sustitución manual elimina printSourceStorageKey y borraría el original.
     dbData.printSourceStorageKey = null;
+    // El encuadre se recuerda para que los guardados siguientes lo mantengan.
+    dbData.printCrop =
+      options.fitToFormat && options.crop
+        ? ({ ...options.crop } as unknown as Prisma.InputJsonValue)
+        : Prisma.DbNull;
     if (newUpscaledKey !== null) {
       dbData.printUpscaledUrl = newUpscaledUrl;
       dbData.printUpscaledStorageKey = newUpscaledKey;
@@ -508,6 +517,7 @@ export class ImageEnhancementService {
         printImageStorageKey: item.printSourceStorageKey,
         printUpscaledUrl: null,
         printUpscaledStorageKey: null,
+        printCrop: Prisma.DbNull,
       },
     });
 
@@ -601,7 +611,8 @@ export class ImageEnhancementService {
   /**
    * Re-encode a buffer to a print-ready image, applying the sharp adjustments.
    * - Caps resolution to the print size at targetDpi/PRINT_DPI (or MAX_EDGE),
-   *   never enlarges.
+   *   never enlarges. The cap covers the print area (`outside`), so a source
+   *   whose ratio differs from the format still has targetDpi after the crop.
    * - Applies bleed extension unless `capEdge` is set (preview mode).
    * - Outputs JPEG or PNG per options.format.
    */
@@ -617,12 +628,14 @@ export class ImageEnhancementService {
     // leaves lower-res sources untouched (no fake upscaling).
     const effectiveDpi = options.targetDpi ?? PRINT_DPI;
 
-    let resizeOpts: sharp.ResizeOptions;
-    if (options.fitToFormat && printInches && !capEdge) {
-      resizeOpts = await this.coverResizeToFormat(
+    let pipe: sharp.Sharp;
+    if (options.fitToFormat && printInches) {
+      pipe = await this.cropToFormat(
         buffer,
         printInches,
         effectiveDpi,
+        options.crop,
+        capEdge,
       );
     } else {
       const maxWidth =
@@ -633,15 +646,18 @@ export class ImageEnhancementService {
         (printInches
           ? Math.round(printInches.height * effectiveDpi)
           : MAX_EDGE);
-      resizeOpts = {
+      // Con tamaño de impresión, `outside`: el eje más justo para el formato
+      // queda a effectiveDpi. Con `inside` mandaba el otro eje y, si la
+      // proporción no coincide, el recorte del troquel dejaba el máster por
+      // debajo (3:4 a 20×30 cm salía a 268 DPI). Preview y sin tamaño: límite
+      // de borde, `inside`.
+      pipe = sharp(buffer).resize({
         width: maxWidth,
         height: maxHeight,
-        fit: 'inside',
+        fit: printInches && !capEdge ? 'outside' : 'inside',
         withoutEnlargement: true,
-      };
+      });
     }
-
-    let pipe = sharp(buffer).resize(resizeOpts);
 
     if (options.improve) pipe = pipe.normalise();
 
@@ -682,27 +698,46 @@ export class ImageEnhancementService {
   }
 
   /**
-   * Cover-crop options that match the print aspect ratio exactly, centered,
-   * sized to the given DPI but never enlarged beyond the source resolution.
+   * Recorta a la proporción exacta del formato según el encuadre (centrado por
+   * defecto) y lo dimensiona al DPI pedido, sin agrandar nunca. En preview se
+   * limita además a `capEdge` px.
    */
-  private async coverResizeToFormat(
+  private async cropToFormat(
     buffer: Buffer,
     printInches: { width: number; height: number },
-    dpi = PRINT_DPI,
-  ): Promise<sharp.ResizeOptions> {
+    dpi: number,
+    crop: PrintCrop | undefined,
+    capEdge?: number,
+  ): Promise<sharp.Sharp> {
+    const meta = await sharp(buffer).metadata();
     const targetW = Math.round(printInches.width * dpi);
     const targetH = Math.round(printInches.height * dpi);
-
-    const meta = await sharp(buffer).metadata();
-    let width = targetW;
-    let height = targetH;
-    if (meta.width && meta.height) {
-      const factor = Math.min(1, meta.width / targetW, meta.height / targetH);
-      width = Math.max(1, Math.round(targetW * factor));
-      height = Math.max(1, Math.round(targetH * factor));
+    if (!meta.width || !meta.height) {
+      return sharp(buffer).resize({
+        width: targetW,
+        height: targetH,
+        fit: 'cover',
+        position: 'centre',
+      });
     }
 
-    return { width, height, fit: 'cover', position: 'centre' };
+    const rect = cropRect(
+      meta.width,
+      meta.height,
+      printInches.width / printInches.height,
+      crop,
+    );
+    let scale = Math.min(1, rect.width / targetW, rect.height / targetH);
+    if (capEdge) {
+      scale = Math.min(scale, capEdge / Math.max(targetW, targetH));
+    }
+    return sharp(buffer)
+      .extract(rect)
+      .resize({
+        width: Math.max(1, Math.round(targetW * scale)),
+        height: Math.max(1, Math.round(targetH * scale)),
+        fit: 'fill',
+      });
   }
 
   /**

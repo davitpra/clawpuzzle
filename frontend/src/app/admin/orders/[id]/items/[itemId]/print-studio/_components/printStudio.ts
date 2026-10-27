@@ -1,6 +1,6 @@
 // Constantes y geometría pura del estudio de impresión. Extraído de
 // Print Studio para separar el cálculo (sin estado) de la UI.
-import type { EnhanceInfo } from "@/entities/admin/api";
+import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
 
 export const GOOD_DPI = 300;
 export const LOW_DPI = 200;
@@ -11,6 +11,55 @@ export const DEFAULT_UPSCALE_FACTOR = 2;
 export const BLEED_MM = 3;
 // Margen de seguridad dentro de la línea de corte.
 const SAFE_MARGIN_MM = 10;
+// Diferencia de proporción por debajo de la cual no se avisa de recorte
+// (redondeos de píxeles, no un recorte real).
+const ASPECT_TOLERANCE = 0.005;
+
+type Px = { w: number; h: number };
+type Inches = { width: number; height: number };
+
+// ── Encuadre ("Ajustar al formato") ───────────────────────────────────────
+// Réplica de backend/src/orders/print-crop.util.ts — editar ambos juntos.
+export const CENTER_CROP: PrintCrop = { x: 0.5, y: 0.5, zoom: 1 };
+export const MAX_CROP_ZOOM = 3;
+
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, v));
+
+// Rect del recorte en fracciones de la imagen (0–1). zoom 1 = el rect más
+// grande con la proporción del formato; el centro se ajusta para no salirse.
+export function cropRect(
+  imgPx: Px,
+  printInches: Inches,
+  crop: PrintCrop = CENTER_CROP,
+): { left: number; top: number; width: number; height: number } {
+  const imageRatio = imgPx.w / imgPx.h;
+  const printRatio = printInches.width / printInches.height;
+  const zoom = clamp(crop.zoom, 1, MAX_CROP_ZOOM);
+  const width = (imageRatio > printRatio ? printRatio / imageRatio : 1) / zoom;
+  const height = (imageRatio > printRatio ? 1 : imageRatio / printRatio) / zoom;
+  return {
+    left: clamp(crop.x - width / 2, 0, 1 - width),
+    top: clamp(crop.y - height / 2, 0, 1 - height),
+    width,
+    height,
+  };
+}
+
+// Encuadre equivalente con el centro dentro de los límites: al arrastrar, el
+// estado no se aleja del borde aunque el puntero sí.
+export function clampCrop(
+  crop: PrintCrop,
+  imgPx: Px,
+  printInches: Inches,
+): PrintCrop {
+  const rect = cropRect(imgPx, printInches, crop);
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+    zoom: clamp(crop.zoom, 1, MAX_CROP_ZOOM),
+  };
+}
 
 export function dpiTone(
   dpi: number | null,
@@ -20,80 +69,167 @@ export function dpiTone(
   return "success";
 }
 
+export const inchesToCm = (inches: number) =>
+  Math.round(inches * 2.54 * 10) / 10;
+
+// "20 × 30 cm" — el admin elige el tamaño en cm, así que se muestra en cm.
+export function formatPrintSize(printInches: Inches): string {
+  const fmt = (inches: number) => inchesToCm(inches).toLocaleString("es");
+  return `${fmt(printInches.width)} × ${fmt(printInches.height)} cm`;
+}
+
+// DPI efectivo de una imagen que cubre el formato: manda el eje más justo.
+// Redondeado: un máster de 2362 px a 20 cm son 299,97 DPI, no 299.
+export function dpiFor(px: Px, printInches: Inches): number {
+  return Math.round(
+    Math.min(px.w / printInches.width, px.h / printInches.height),
+  );
+}
+
+export interface AspectCrop {
+  // Eje que se recorta: "w" pierde izquierda/derecha, "h" arriba/abajo.
+  axis: "w" | "h";
+  // Fracción del eje recortado que se pierde por cada lado (0–0,5).
+  perSide: number;
+}
+
+// Recorte centrado que sufre una imagen al cubrir el formato, o null si la
+// proporción coincide.
+export function computeAspectCrop(
+  px: Px,
+  printInches: Inches,
+): AspectCrop | null {
+  const imageRatio = px.w / px.h;
+  const printRatio = printInches.width / printInches.height;
+  if (Math.abs(imageRatio / printRatio - 1) < ASPECT_TOLERANCE) return null;
+  return imageRatio > printRatio
+    ? { axis: "w", perSide: (1 - printRatio / imageRatio) / 2 }
+    : { axis: "h", perSide: (1 - imageRatio / printRatio) / 2 };
+}
+
+// Tamaño del máster que guardará el backend (`buildPrintImage`): se limita a
+// PRINT_DPI cubriendo el formato y nunca se agranda. Con fitToFormat se recorta
+// el encuadre a la proporción exacta (con zoom quedan menos píxeles); con bleed
+// se extiende BLEED_MM por lado.
+export function savedMasterPx(
+  basePx: Px,
+  printInches: Inches,
+  opts: { fitToFormat: boolean; bleed: boolean; crop?: PrintCrop },
+): Px {
+  const maxW = Math.round(printInches.width * PRINT_DPI);
+  const maxH = Math.round(printInches.height * PRINT_DPI);
+  let px: Px;
+  if (opts.fitToFormat) {
+    const rect = cropRect(basePx, printInches, opts.crop);
+    const factor = Math.min(
+      1,
+      (basePx.w * rect.width) / maxW,
+      (basePx.h * rect.height) / maxH,
+    );
+    px = {
+      w: Math.max(1, Math.round(maxW * factor)),
+      h: Math.max(1, Math.round(maxH * factor)),
+    };
+  } else {
+    const scale = Math.min(1, Math.max(maxW / basePx.w, maxH / basePx.h));
+    px = { w: Math.round(basePx.w * scale), h: Math.round(basePx.h * scale) };
+  }
+  if (opts.bleed) {
+    const bleedPx = Math.round((BLEED_MM / 25.4) * PRINT_DPI);
+    px = { w: px.w + 2 * bleedPx, h: px.h + 2 * bleedPx };
+  }
+  return px;
+}
+
 export interface PrintGeometry {
-  printInches: { width: number; height: number } | null;
+  printInches: Inches | null;
   cutInsetW: number;
   cutInsetH: number;
   safeInsetW: number;
   safeInsetH: number;
   stageAspect: string;
-  targetPx: { w: number; h: number } | null;
-  theoreticalDpi: number | null;
+  // Máster que saldría de "Agrandar con IA" con el factor elegido.
+  upscaleResultPx: Px | null;
+  upscaleResultDpi: number | null;
+  // DPI del máster que saldría al guardar ahora (sin volver a agrandar), con
+  // el encuadre aplicado.
+  framedDpi: number | null;
+  // El upscale sube el DPI final (el encuadre no llega a PRINT_DPI y el factor
+  // elegido lo acerca).
+  upscaleUseful: boolean;
 }
 
-// Deriva la geometría de las guías de impresión y el tamaño/DPI teórico tras el
-// upscale (todo client-side; el upscale real solo corre al guardar).
+// Deriva la geometría de las guías y el resultado del upscale (todo
+// client-side; el upscale real solo corre al pulsar "Agrandar con IA").
 export function computePrintGeometry(
   info: EnhanceInfo | null,
   upscaleFactor: number,
+  opts: { fitToFormat: boolean; bleed: boolean; crop?: PrintCrop },
 ): PrintGeometry {
   const printInches = info?.printInches ?? null;
-
-  // Theoretical target pixel size and DPI after upscale. The backend caps the
-  // saved master at PRINT_DPI, so we cap the displayed values too — otherwise a
-  // high factor would falsely promise e.g. 600 DPI when the result will be 300.
-  const rawTargetPx =
-    info?.sourcePx && upscaleFactor > 1
-      ? {
-          w: Math.round(info.sourcePx.width * upscaleFactor),
-          h: Math.round(info.sourcePx.height * upscaleFactor),
-        }
-      : info?.sourcePx
-        ? { w: info.sourcePx.width, h: info.sourcePx.height }
-        : null;
-  const rawDpi =
-    rawTargetPx && printInches
-      ? Math.floor(
-          Math.min(
-            rawTargetPx.w / printInches.width,
-            rawTargetPx.h / printInches.height,
-          ),
-        )
-      : null;
-  // When the raw upscale would exceed PRINT_DPI, the backend downscales to it.
-  const capScale =
-    rawDpi !== null && rawDpi > PRINT_DPI ? PRINT_DPI / rawDpi : 1;
-  const targetPx = rawTargetPx
-    ? {
-        w: Math.round(rawTargetPx.w * capScale),
-        h: Math.round(rawTargetPx.h * capScale),
-      }
+  const sourcePx = info?.sourcePx
+    ? { w: info.sourcePx.width, h: info.sourcePx.height }
     : null;
-  const theoreticalDpi = rawDpi !== null ? Math.min(rawDpi, PRINT_DPI) : null;
+
+  let upscaleResultPx: Px | null = null;
+  let upscaleResultDpi: number | null = null;
+  let framedDpi: number | null = null;
+  // Sin tamaño no hay DPI que comparar: el upscale queda disponible, como
+  // antes de existir el cálculo.
+  let upscaleUseful = printInches === null;
+  if (sourcePx && printInches) {
+    // "Guardar" parte de la base agrandada si existe; esa base se guardó
+    // cubriendo el formato a PRINT_DPI.
+    const basePx = info?.hasUpscaledBase
+      ? savedMasterPx(
+          { w: sourcePx.w * 100, h: sourcePx.h * 100 },
+          printInches,
+          { fitToFormat: false, bleed: false },
+        )
+      : sourcePx;
+    framedDpi = Math.min(
+      dpiFor(
+        savedMasterPx(basePx, printInches, { ...opts, bleed: false }),
+        printInches,
+      ),
+      PRINT_DPI,
+    );
+
+    const factor = Math.max(1, upscaleFactor);
+    const upscaled = {
+      w: Math.round(sourcePx.w * factor),
+      h: Math.round(sourcePx.h * factor),
+    };
+    // El DPI se mide sin bleed: es la resolución dentro de la línea de corte.
+    const unbled = savedMasterPx(upscaled, printInches, {
+      ...opts,
+      bleed: false,
+    });
+    upscaleResultPx = opts.bleed
+      ? savedMasterPx(upscaled, printInches, opts)
+      : unbled;
+    upscaleResultDpi = Math.min(dpiFor(unbled, printInches), PRINT_DPI);
+    upscaleUseful = framedDpi < PRINT_DPI && upscaleResultDpi > framedDpi;
+  }
 
   // ── Print guide geometry ────────────────────────────────────────────────
-  // The stage container always includes the bleed on each side.
-  // Total size in mm = printMm + 2·bleed; guide positions expressed as % of total.
+  // Con bleed el contenedor incluye la sangre a cada lado; sin bleed el
+  // contenedor es el formato y la línea de corte coincide con su borde.
+  // Guide positions expressed as % of the container.
+  const bleedMm = opts.bleed ? BLEED_MM : 0;
   const printMmW = printInches ? printInches.width * 25.4 : null;
   const printMmH = printInches ? printInches.height * 25.4 : null;
-  const totalMmW = printMmW !== null ? printMmW + 2 * BLEED_MM : null;
-  const totalMmH = printMmH !== null ? printMmH + 2 * BLEED_MM : null;
+  const totalMmW = printMmW !== null ? printMmW + 2 * bleedMm : null;
+  const totalMmH = printMmH !== null ? printMmH + 2 * bleedMm : null;
 
-  // Cut line = bleed from the outer edge
-  const cutInsetW = totalMmW ? (BLEED_MM / totalMmW) * 100 : 0;
-  const cutInsetH = totalMmH ? (BLEED_MM / totalMmH) * 100 : 0;
-  // Safe zone = bleed + safety margin from the outer edge
-  const safeMm = BLEED_MM + SAFE_MARGIN_MM;
+  const cutInsetW = totalMmW ? (bleedMm / totalMmW) * 100 : 0;
+  const cutInsetH = totalMmH ? (bleedMm / totalMmH) * 100 : 0;
+  const safeMm = bleedMm + SAFE_MARGIN_MM;
   const safeInsetW = totalMmW ? (safeMm / totalMmW) * 100 : 0;
   const safeInsetH = totalMmH ? (safeMm / totalMmH) * 100 : 0;
 
-  // Stage aspect ratio: total including bleed
   const stageAspect =
-    totalMmW && totalMmH
-      ? `${totalMmW} / ${totalMmH}`
-      : printInches
-        ? `${printInches.width} / ${printInches.height}`
-        : "1 / 1";
+    totalMmW && totalMmH ? `${totalMmW} / ${totalMmH}` : "1 / 1";
 
   return {
     printInches,
@@ -102,7 +238,9 @@ export function computePrintGeometry(
     safeInsetW,
     safeInsetH,
     stageAspect,
-    targetPx,
-    theoreticalDpi,
+    upscaleResultPx,
+    upscaleResultDpi,
+    framedDpi,
+    upscaleUseful,
   };
 }

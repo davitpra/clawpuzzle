@@ -1,4 +1,3 @@
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 export interface Paginated<T> {
@@ -70,12 +69,7 @@ export interface AdminUserListItem {
  * directamente.
  */
 export type UserActivityFilter =
-  | "3d"
-  | "7d"
-  | "30d"
-  | "90d"
-  | "dormant"
-  | "never";
+  "3d" | "7d" | "30d" | "90d" | "dormant" | "never";
 
 export interface AdminUserPhoto {
   id: string;
@@ -1590,10 +1584,21 @@ export interface EnhanceOptions {
   saturation?: number;
   improve?: boolean;
   fitToFormat?: boolean;
+  crop?: PrintCrop;
   format?: "jpeg" | "png";
   bleed?: boolean;
   bleedColor?: string;
   previewUpscale?: boolean;
+}
+
+/**
+ * Encuadre de "Ajustar al formato": centro del recorte (fracción 0–1 de la
+ * imagen) y acercamiento sobre "cubrir" (1–3). Ver print-crop.util.ts del backend.
+ */
+export interface PrintCrop {
+  x: number;
+  y: number;
+  zoom: number;
 }
 
 /** Un tamaño ya configurado en el catálogo, ofrecido en el Print Studio. */
@@ -1618,4 +1623,6 @@ export interface EnhanceInfo {
   recommendedUpscale: 0 | 2 | 4;
   alreadyEnhanced: boolean;
   hasUpscaledBase: boolean;
+  /** Encuadre guardado; null = centrado. */
+  printCrop: PrintCrop | null;
 }

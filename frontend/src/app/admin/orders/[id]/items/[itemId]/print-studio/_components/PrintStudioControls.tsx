@@ -19,9 +19,35 @@ import {
   ColorPicker,
   Collapsible,
 } from "@shopify/polaris";
-import type { EnhanceInfo } from "@/entities/admin/api";
+import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
 import type { HsbColor } from "@/lib/colorUtils";
-import { BLEED_MM, GOOD_DPI, dpiTone } from "./printStudio";
+import {
+  BLEED_MM,
+  GOOD_DPI,
+  CENTER_CROP,
+  MAX_CROP_ZOOM,
+  PRINT_DPI,
+  dpiTone,
+  formatPrintSize,
+  type AspectCrop,
+} from "./printStudio";
+
+// "3:4" a partir de un ancho/alto cualquiera (px o pulgadas).
+function ratioLabel(w: number, h: number): string {
+  const known = [
+    [1, 1],
+    [2, 3],
+    [3, 2],
+    [3, 4],
+    [4, 3],
+    [4, 5],
+    [5, 4],
+    [9, 16],
+    [16, 9],
+  ];
+  const match = known.find(([a, b]) => Math.abs(w / h / (a / b) - 1) < 0.01);
+  return match ? `${match[0]}:${match[1]}` : (w / h).toFixed(2);
+}
 
 // Panel de controles del estudio de impresión: upscale IA, ajustes de imagen,
 // tamaño de impresión, bleed y opciones de salida.
@@ -32,12 +58,19 @@ export function PrintStudioControls({
   setSavedOk,
   hasSource,
   currentDpi,
+  currentKind,
+  currentPx,
+  aspectCrop,
   printInches,
   info,
   upscaleFactor,
   setUpscaleFactor,
-  targetPx,
-  theoreticalDpi,
+  upscaleResultPx,
+  upscaleResultDpi,
+  upscaleUseful,
+  framedDpi,
+  crop,
+  onCropChange,
   canAct,
   upscaling,
   onUpscale,
@@ -76,12 +109,19 @@ export function PrintStudioControls({
   setSavedOk: Dispatch<SetStateAction<boolean>>;
   hasSource: boolean;
   currentDpi: number | null;
+  currentKind: "saved" | "original";
+  currentPx: { w: number; h: number } | null;
+  aspectCrop: AspectCrop | null;
   printInches: { width: number; height: number } | null;
   info: EnhanceInfo | null;
   upscaleFactor: number;
   setUpscaleFactor: Dispatch<SetStateAction<number>>;
-  targetPx: { w: number; h: number } | null;
-  theoreticalDpi: number | null;
+  upscaleResultPx: { w: number; h: number } | null;
+  upscaleResultDpi: number | null;
+  upscaleUseful: boolean;
+  framedDpi: number | null;
+  crop: PrintCrop;
+  onCropChange: (crop: PrintCrop) => void;
   canAct: boolean;
   upscaling: boolean;
   onUpscale: () => void;
@@ -115,6 +155,12 @@ export function PrintStudioControls({
   invalidatePreview: () => void;
 }) {
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const currentLabel =
+    currentKind === "saved"
+      ? "Imagen guardada"
+      : "Imagen original (sin guardar)";
+  // Con el encuadre actual el máster ya llega a PRINT_DPI sin agrandar.
+  const sourceIsEnough = framedDpi !== null && framedDpi >= PRINT_DPI;
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -139,18 +185,10 @@ export function PrintStudioControls({
 
         {currentDpi !== null && printInches && (
           <Banner tone={dpiTone(currentDpi)}>
-            {currentDpi >= GOOD_DPI ? (
-              <>
-                Imagen lista: <strong>{currentDpi} DPI</strong> para{" "}
-                {printInches.width}″ × {printInches.height}″
-              </>
-            ) : (
-              <>
-                Resolución actual: <strong>{currentDpi} DPI</strong> para{" "}
-                {printInches.width}″ × {printInches.height}″
-                {` — bajo el mínimo. Se recomienda upscale.`}
-              </>
-            )}
+            {currentLabel}: <strong>{currentDpi} DPI</strong> para{" "}
+            {formatPrintSize(printInches)}
+            {currentDpi < GOOD_DPI &&
+              ` — bajo el mínimo. Se recomienda upscale.`}
           </Banner>
         )}
         {currentDpi === null &&
@@ -159,7 +197,7 @@ export function PrintStudioControls({
           printInches && (
             <Banner tone={info.sourceDpi < GOOD_DPI ? "warning" : "success"}>
               Resolución origen: <strong>{info.sourceDpi} DPI</strong> para{" "}
-              {printInches.width}″ × {printInches.height}″
+              {formatPrintSize(printInches)}
               {info.sourceDpi < GOOD_DPI &&
                 ` — bajo el mínimo. Se recomienda upscale.`}
             </Banner>
@@ -170,51 +208,64 @@ export function PrintStudioControls({
           <Text as="p" variant="headingSm">
             Upscale con IA
           </Text>
-          {info?.hasUpscaledBase && (
-            <Banner tone="info">
-              Imagen ya agrandada con IA. Usa el botón para volver a ejecutar el
-              motor desde la imagen original con un factor diferente.
-            </Banner>
-          )}
-          <RangeSlider
-            label="Factor de upscale"
-            min={1}
-            max={8}
-            step={0.5}
-            value={upscaleFactor}
-            onChange={(v) => {
-              setUpscaleFactor(v as number);
-              invalidatePreview();
-            }}
-            output
-          />
-          <InlineStack gap="300" blockAlign="center" wrap>
+          {sourceIsEnough ? (
             <Text as="span" variant="bodySm" tone="subdued">
-              {targetPx
-                ? `Tamaño objetivo: ${targetPx.w} × ${targetPx.h} px`
-                : "Tamaño objetivo: —"}
+              Con este tamaño y encuadre el archivo ya llega a {PRINT_DPI} DPI;
+              agrandar no mejora la impresión.
             </Text>
-            <Badge tone={dpiTone(theoreticalDpi)}>
-              {theoreticalDpi !== null
-                ? `${theoreticalDpi} DPI (teórico)`
-                : "DPI —"}
-            </Badge>
-          </InlineStack>
-          <Text as="span" variant="bodySm" tone="subdued">
-            Solo este botón ejecuta el motor de IA. Los ajustes de abajo se
-            guardan sin volver a agrandar.
-          </Text>
-          <Box>
-            <Button
-              loading={upscaling}
-              disabled={!canAct || upscaleFactor <= 1}
-              onClick={onUpscale}
-            >
-              {info?.hasUpscaledBase
-                ? "Volver a agrandar con IA"
-                : "Agrandar con IA"}
-            </Button>
-          </Box>
+          ) : (
+            <>
+              {info?.hasUpscaledBase && (
+                <Banner tone="info">
+                  Imagen ya agrandada con IA. Usa el botón para volver a
+                  ejecutar el motor desde la imagen original con un factor
+                  diferente.
+                </Banner>
+              )}
+              <RangeSlider
+                label="Factor de upscale"
+                min={1}
+                max={8}
+                step={0.5}
+                value={upscaleFactor}
+                onChange={(v) => {
+                  setUpscaleFactor(v as number);
+                  invalidatePreview();
+                }}
+                output
+              />
+              {upscaleResultPx && upscaleResultDpi !== null && (
+                <InlineStack gap="300" blockAlign="center" wrap>
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    {`Al guardar: ${upscaleResultPx.w} × ${upscaleResultPx.h} px`}
+                  </Text>
+                  <Badge tone={dpiTone(upscaleResultDpi)}>
+                    {`${upscaleResultDpi} DPI`}
+                  </Badge>
+                </InlineStack>
+              )}
+              <Text as="span" variant="bodySm" tone="subdued">
+                {`El archivo guardado se limita a ${PRINT_DPI} DPI. Solo este botón ejecuta el motor de IA; los ajustes de abajo se guardan sin volver a agrandar.`}
+              </Text>
+              <Box>
+                <Button
+                  loading={upscaling}
+                  disabled={!canAct || upscaleFactor <= 1 || !upscaleUseful}
+                  onClick={onUpscale}
+                >
+                  {info?.hasUpscaledBase
+                    ? "Volver a agrandar con IA"
+                    : "Agrandar con IA"}
+                </Button>
+              </Box>
+              {upscaleFactor > 1 && !upscaleUseful && (
+                <Text as="span" variant="bodySm" tone="subdued">
+                  Con este factor el DPI final no sube: el archivo se limita a{" "}
+                  {PRINT_DPI} DPI.
+                </Text>
+              )}
+            </>
+          )}
         </BlockStack>
 
         <Divider />
@@ -292,15 +343,6 @@ export function PrintStudioControls({
                   invalidatePreview();
                 }}
               />
-              <Checkbox
-                label="Ajustar al formato (recorte centrado)"
-                helpText="Recorta al ratio exacto del producto para evitar recortes de Pictorem."
-                checked={fitToFormat}
-                onChange={(v) => {
-                  setFitToFormat(v);
-                  invalidatePreview();
-                }}
-              />
               <Box>
                 <Button
                   loading={previewing}
@@ -318,6 +360,66 @@ export function PrintStudioControls({
 
         {/* Tamaño de impresión del item */}
         {printSizeControl}
+
+        {/* Proporción: decisión de formato, no de color */}
+        {printInches && (
+          <BlockStack gap="200">
+            {aspectCrop && currentPx && (
+              <Banner tone="warning">
+                {`La imagen es ${ratioLabel(currentPx.w, currentPx.h)} y el formato ${ratioLabel(printInches.width, printInches.height)}: se pierde ~${Math.round(aspectCrop.perSide * 200)} % del ${aspectCrop.axis === "w" ? "ancho" : "alto"}. `}
+                {fitToFormat
+                  ? "Arrastra la imagen para elegir qué parte queda."
+                  : "El archivo guardado mantendrá la proporción original y el recorte se hará al troquelar."}
+              </Banner>
+            )}
+            <Checkbox
+              label="Ajustar al formato"
+              helpText="Recorta el archivo a la proporción exacta del tamaño de impresión. La zona sombreada es lo que se pierde."
+              checked={fitToFormat}
+              onChange={(v) => {
+                setFitToFormat(v);
+                invalidatePreview();
+              }}
+            />
+            {fitToFormat && (
+              <BlockStack gap="200">
+                <Text as="span" variant="bodySm" tone="subdued">
+                  Arrastra la imagen en la vista para encuadrarla dentro del
+                  corte.
+                </Text>
+                <RangeSlider
+                  label="Zoom"
+                  min={100}
+                  max={MAX_CROP_ZOOM * 100}
+                  step={5}
+                  value={Math.round(crop.zoom * 100)}
+                  onChange={(v) =>
+                    onCropChange({ ...crop, zoom: (v as number) / 100 })
+                  }
+                  suffix={`${Math.round(crop.zoom * 100)} %`}
+                />
+                <InlineStack gap="300" blockAlign="center" wrap>
+                  {framedDpi !== null && (
+                    <Badge tone={dpiTone(framedDpi)}>
+                      {`Al guardar: ${framedDpi} DPI`}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="plain"
+                    disabled={
+                      crop.x === CENTER_CROP.x &&
+                      crop.y === CENTER_CROP.y &&
+                      crop.zoom === CENTER_CROP.zoom
+                    }
+                    onClick={() => onCropChange(CENTER_CROP)}
+                  >
+                    Centrar
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            )}
+          </BlockStack>
+        )}
 
         <Divider />
 
@@ -360,7 +462,13 @@ export function PrintStudioControls({
         <BlockStack gap="200">
           <Checkbox
             label="Mostrar guías de impresión"
-            checked={showGuides}
+            helpText={
+              printInches
+                ? undefined
+                : "Elige un tamaño de impresión arriba para ver el corte y la zona segura."
+            }
+            disabled={!printInches}
+            checked={showGuides && Boolean(printInches)}
             onChange={setShowGuides}
           />
           <Select

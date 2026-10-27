@@ -238,4 +238,101 @@ describe('ImageEnhancementService generation source', () => {
       },
     });
   });
+  // El máster se limita a 300 DPI cubriendo el área de impresión: una fuente
+  // 3:4 a 20×30 cm (2:3) no puede quedar por debajo en el eje que se recorta.
+  describe('buildPrintImage DPI cap', () => {
+    const printInches = { width: 20 / 2.54, height: 30 / 2.54 };
+    const source = () =>
+      sharp({
+        create: {
+          width: 3584,
+          height: 4800,
+          channels: 3,
+          background: '#808080',
+        },
+      })
+        .jpeg()
+        .toBuffer();
+    const build = (buffer: Buffer, options: Record<string, unknown>) =>
+      (
+        service as unknown as {
+          buildPrintImage: (
+            b: Buffer,
+            p: typeof printInches,
+            o: Record<string, unknown>,
+          ) => Promise<Buffer>;
+        }
+      ).buildPrintImage(buffer, printInches, options);
+
+    it('keeps 300 DPI on both axes when the ratio differs', async () => {
+      const out = await sharp(await build(await source(), {})).metadata();
+      expect(out.width).toBe(2645);
+      expect(out.height).toBe(3543);
+    });
+
+    it('crops to the exact format with fitToFormat', async () => {
+      const out = await sharp(
+        await build(await source(), { fitToFormat: true }),
+      ).metadata();
+      expect(out.width).toBe(2362);
+      expect(out.height).toBe(3543);
+    });
+
+    // Fuente con la mitad izquierda roja y la derecha azul: el encuadre decide
+    // qué color queda en el máster.
+    const halves = () =>
+      sharp({
+        create: {
+          width: 3000,
+          height: 3000,
+          channels: 3,
+          background: '#0000ff',
+        },
+      })
+        .composite([
+          {
+            input: {
+              create: {
+                width: 1500,
+                height: 3000,
+                channels: 3,
+                background: '#ff0000',
+              },
+            },
+            left: 0,
+            top: 0,
+          },
+        ])
+        .png()
+        .toBuffer();
+    const dominant = async (buffer: Buffer) => {
+      const { channels } = await sharp(buffer).stats();
+      return channels[0].mean > channels[2].mean ? 'red' : 'blue';
+    };
+
+    it('keeps the framed side of the image', async () => {
+      const left = await build(await halves(), {
+        fitToFormat: true,
+        crop: { x: 0, y: 0.5, zoom: 1 },
+      });
+      const right = await build(await halves(), {
+        fitToFormat: true,
+        crop: { x: 1, y: 0.5, zoom: 1 },
+      });
+      expect(await dominant(left)).toBe('red');
+      expect(await dominant(right)).toBe('blue');
+    });
+
+    it('zooming in lowers the resolution of the master', async () => {
+      const out = await sharp(
+        await build(await halves(), {
+          fitToFormat: true,
+          crop: { x: 0.5, y: 0.5, zoom: 2 },
+        }),
+      ).metadata();
+      // Rect 1000×1500 px de la fuente: por debajo de 2362×3543, no se agranda.
+      expect(out.width).toBe(1000);
+      expect(out.height).toBe(1500);
+    });
+  });
 });

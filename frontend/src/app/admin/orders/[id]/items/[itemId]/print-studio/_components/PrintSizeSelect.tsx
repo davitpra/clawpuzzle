@@ -14,6 +14,7 @@ import {
   type PrintConfig,
   type PrintSizePreset,
 } from "@/entities/admin/api";
+import { inchesToCm } from "./printStudio";
 
 // Tamaño de impresión de la línea. Se guarda solo en el item (anula el
 // printConfig de la variante sin tocar el catálogo): sin tamaño no hay DPI,
@@ -44,8 +45,6 @@ const num = (v: string): number | undefined => {
   const n = Number(v);
   return v.trim() === "" || Number.isNaN(n) ? undefined : n;
 };
-
-const cm = (inches: number) => Math.round(inches * 2.54 * 10) / 10;
 
 export function PrintSizeSelect({
   orderId,
@@ -89,8 +88,8 @@ export function PrintSizeSelect({
       setDraft({ widthCm: cfg.widthCm, heightCm: cfg.heightCm });
     } else if (info?.printInches) {
       setDraft({
-        widthCm: cm(info.printInches.width),
-        heightCm: cm(info.printInches.height),
+        widthCm: inchesToCm(info.printInches.width),
+        heightCm: inchesToCm(info.printInches.height),
       });
     }
   }, [info?.printConfig, info?.printInches]);
@@ -101,7 +100,7 @@ export function PrintSizeSelect({
       ? [
           {
             label: info?.printInches
-              ? `De la variante (${cm(info.printInches.width)} × ${cm(info.printInches.height)} cm)`
+              ? `De la variante (${inchesToCm(info.printInches.width)} × ${inchesToCm(info.printInches.height)} cm)`
               : "De la variante",
             value: INHERITED,
           },

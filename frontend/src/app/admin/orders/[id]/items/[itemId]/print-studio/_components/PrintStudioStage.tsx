@@ -1,13 +1,26 @@
+import { useRef, useState } from "react";
 import { BlockStack, InlineStack, Text, Button, Badge } from "@shopify/polaris";
-import type { EnhanceInfo } from "@/entities/admin/api";
-import { dpiTone } from "./printStudio";
+import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
+import {
+  BLEED_MM,
+  CENTER_CROP,
+  clampCrop,
+  cropRect,
+  dpiTone,
+  formatPrintSize,
+} from "./printStudio";
+
+const CROP_SHADE = "rgba(0,0,0,0.5)";
 
 // Panel izquierdo del estudio de impresión: la previsualización ("stage") con
-// las guías de corte/bleed/zona segura y la barra de info (px · DPI · pulgadas).
+// las guías de corte/bleed/zona segura y la barra de info (px · DPI · tamaño).
 export function PrintStudioStage({
   currentImageUrl,
   onMeasure,
   displayUrl,
+  framing,
+  crop,
+  onCropChange,
   stageAspect,
   bleedEnabled,
   bleedColor,
@@ -21,12 +34,17 @@ export function PrintStudioStage({
   previewUrl,
   measuredPx,
   currentDpi,
+  currentKind,
   info,
   onZoom,
 }: {
   currentImageUrl: string | null;
   onMeasure: (px: { w: number; h: number }) => void;
   displayUrl: string | null;
+  // "Ajustar al formato" con guías: la imagen se encuadra arrastrándola.
+  framing: boolean;
+  crop: PrintCrop;
+  onCropChange: (crop: PrintCrop) => void;
   stageAspect: string;
   bleedEnabled: boolean;
   bleedColor: string;
@@ -40,9 +58,96 @@ export function PrintStudioStage({
   previewUrl: string | null;
   measuredPx: { w: number; h: number } | null;
   currentDpi: number | null;
+  currentKind: "saved" | "original";
   info: EnhanceInfo | null;
   onZoom: (zoom: { src: string; title: string }) => void;
 }) {
+  // Dimensiones de la imagen visible (puede ser la preview de 900 px): con ellas
+  // se calcula qué parte queda fuera del corte por diferencia de proporción.
+  const [displayPx, setDisplayPx] = useState<{
+    url: string;
+    w: number;
+    h: number;
+  } | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<{ x: number; y: number; crop: PrintCrop } | null>(
+    null,
+  );
+  const [dragging, setDragging] = useState(false);
+
+  const withGuides = showGuides && printInches !== null;
+  const shownPx =
+    withGuides && displayPx && displayPx.url === displayUrl ? displayPx : null;
+  // La preview del backend ya viene recortada, y sin "Ajustar al formato" el
+  // troquel recorta centrado: en ambos casos el encuadre es el centrado.
+  const editable = framing && !previewUrl && shownPx !== null;
+  const rect =
+    shownPx && printInches
+      ? cropRect(shownPx, printInches, editable ? crop : CENTER_CROP)
+      : { left: 0, top: 0, width: 1, height: 1 };
+  const cropsImage = rect.width < 0.999 || rect.height < 0.999;
+
+  // Rect de la imagen en % del contenedor: el encuadre ocupa el área de corte y
+  // el resto desborda, sombreado.
+  const cutW = 100 - 2 * cutInsetW;
+  const cutH = 100 - 2 * cutInsetH;
+  const img = {
+    width: cutW / rect.width,
+    height: cutH / rect.height,
+    left: cutInsetW - (rect.left * cutW) / rect.width,
+    top: cutInsetH - (rect.top * cutH) / rect.height,
+  };
+  // El backend recorta y luego extiende el bleed con color: la banda de bleed
+  // nunca lleva imagen.
+  const bleedBands =
+    bleedEnabled && cropsImage
+      ? [
+          { left: 0, right: 0, top: 0, height: `${cutInsetH}%` },
+          { left: 0, right: 0, bottom: 0, height: `${cutInsetH}%` },
+          { left: 0, top: 0, bottom: 0, width: `${cutInsetW}%` },
+          { right: 0, top: 0, bottom: 0, width: `${cutInsetW}%` },
+        ]
+      : [];
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    // Sobre la preview ya recortada, empezar a arrastrar la descarta y vuelve
+    // al original para encuadrar.
+    if (framing && previewUrl) {
+      onCropChange(crop);
+      return;
+    }
+    if (!editable) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStart.current = { x: e.clientX, y: e.clientY, crop };
+    setDragging(true);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const start = dragStart.current;
+    const box = containerRef.current?.getBoundingClientRect();
+    if (!start || !box || !shownPx || !printInches) return;
+    // Arrastrar la imagen a la derecha mueve el encuadre a la izquierda.
+    const imgWidthPx = (box.width * img.width) / 100;
+    const imgHeightPx = (box.height * img.height) / 100;
+    onCropChange(
+      clampCrop(
+        {
+          ...start.crop,
+          x: start.crop.x - (e.clientX - start.x) / imgWidthPx,
+          y: start.crop.y - (e.clientY - start.y) / imgHeightPx,
+        },
+        shownPx,
+        printInches,
+      ),
+    );
+  }
+
+  function handlePointerUp() {
+    dragStart.current = null;
+    setDragging(false);
+  }
+
   return (
     <>
       {/* Hidden image to measure the real delivered dimensions of the current master */}
@@ -65,76 +170,109 @@ export function PrintStudioStage({
       {/* ── LEFT: image stage ───────────────────────────────────── */}
       <div style={{ width: "100%" }}>
         <BlockStack gap="200" inlineAlign="center">
+          {/* Con recorte, un margen alrededor deja ver sombreado lo que se pierde
+              sin que la imagen se salga de la tarjeta. */}
           <div
             style={{
-              position: "relative",
               width: "100%",
-              // El contenedor de formato (caja con fondo, borde y recorte por
-              // bleed) solo se muestra cuando las guías están activas. Sin
-              // guías, la imagen se ve sola en su proporción natural.
-              ...(showGuides && printInches
-                ? {
-                    aspectRatio: stageAspect,
-                    background: bleedEnabled ? bleedColor : "#ebebeb",
-                    borderRadius: 6,
-                    border: "1px solid #c9cccf",
-                    overflow: "hidden",
-                  }
+              ...(withGuides && cropsImage
+                ? { padding: "6%", overflow: "hidden", borderRadius: 6 }
                 : {}),
             }}
           >
-            {/* Con guías la imagen llena el área de formato (inset por el % de
-                corte); sin guías se muestra completa en su proporción natural. */}
-            {displayUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={displayUrl}
-                alt="Vista de impresión"
-                style={
-                  showGuides && printInches
-                    ? {
-                        position: "absolute",
-                        top: `${cutInsetH}%`,
-                        left: `${cutInsetW}%`,
-                        width: `${100 - 2 * cutInsetW}%`,
-                        height: `${100 - 2 * cutInsetH}%`,
-                        objectFit: "cover",
-                        objectPosition: "center",
-                        display: "block",
-                        filter: cssFilter,
-                      }
-                    : {
-                        display: "block",
-                        width: "100%",
-                        height: "auto",
-                        borderRadius: 6,
-                        filter: cssFilter,
-                      }
-                }
-              />
-            )}
-            {!displayUrl && (
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: stageAspect,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "#ebebeb",
-                  borderRadius: 6,
-                }}
-              >
-                <Text as="span" tone="subdued" variant="bodySm">
-                  Sin imagen
-                </Text>
-              </div>
-            )}
+            <div
+              ref={containerRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              style={{
+                position: "relative",
+                width: "100%",
+                ...(editable || (framing && previewUrl)
+                  ? {
+                      cursor: dragging ? "grabbing" : "grab",
+                      touchAction: "none",
+                      userSelect: "none",
+                    }
+                  : {}),
+                // El contenedor de formato (caja con fondo, borde y recorte por
+                // bleed) solo se muestra cuando las guías están activas. Sin
+                // guías, la imagen se ve sola en su proporción natural.
+                ...(withGuides
+                  ? {
+                      aspectRatio: stageAspect,
+                      background: bleedEnabled ? bleedColor : "#ebebeb",
+                      borderRadius: 6,
+                      border: "1px solid #c9cccf",
+                      // Con recorte la imagen desborda a propósito: se ve
+                      // sombreado lo que el corte va a quitar.
+                      overflow: cropsImage ? "visible" : "hidden",
+                    }
+                  : {}),
+              }}
+            >
+              {/* Con guías la imagen cubre el área de corte, como al imprimir;
+                sin guías se muestra completa en su proporción natural. */}
+              {displayUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={displayUrl}
+                  alt="Vista de impresión"
+                  draggable={false}
+                  onLoad={(e) =>
+                    setDisplayPx({
+                      url: displayUrl,
+                      w: e.currentTarget.naturalWidth,
+                      h: e.currentTarget.naturalHeight,
+                    })
+                  }
+                  style={
+                    withGuides
+                      ? {
+                          position: "absolute",
+                          top: `${img.top}%`,
+                          left: `${img.left}%`,
+                          width: `${img.width}%`,
+                          height: `${img.height}%`,
+                          // El reset de Tailwind limita img a max-width: 100%; con
+                          // recorte la imagen desborda a propósito.
+                          maxWidth: "none",
+                          objectFit: "cover",
+                          objectPosition: "center",
+                          display: "block",
+                          filter: cssFilter,
+                        }
+                      : {
+                          display: "block",
+                          width: "100%",
+                          height: "auto",
+                          borderRadius: 6,
+                          filter: cssFilter,
+                        }
+                  }
+                />
+              )}
+              {!displayUrl && (
+                <div
+                  style={{
+                    width: "100%",
+                    aspectRatio: stageAspect,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#ebebeb",
+                    borderRadius: 6,
+                  }}
+                >
+                  <Text as="span" tone="subdued" variant="bodySm">
+                    Sin imagen
+                  </Text>
+                </div>
+              )}
 
-            {/* Guides overlay */}
-            {showGuides && printInches && (
-              <>
-                {/* Cut line — red dashed (= format/trim edge) */}
+              {/* Todo lo que queda fuera del corte, sombreado */}
+              {withGuides && cropsImage && (
                 <div
                   style={{
                     position: "absolute",
@@ -142,41 +280,77 @@ export function PrintStudioStage({
                     left: `${cutInsetW}%`,
                     right: `${cutInsetW}%`,
                     bottom: `${cutInsetH}%`,
-                    border: "1.5px dashed rgba(220,38,38,0.9)",
+                    boxShadow: `0 0 0 9999px ${CROP_SHADE}`,
                     pointerEvents: "none",
                   }}
                 />
-                {/* Safe zone — blue dashed (10mm inside the cut) */}
+              )}
+              {bleedBands.map((band, i) => (
                 <div
+                  key={i}
                   style={{
                     position: "absolute",
-                    top: `${safeInsetH}%`,
-                    left: `${safeInsetW}%`,
-                    right: `${safeInsetW}%`,
-                    bottom: `${safeInsetH}%`,
-                    border: "1.5px dashed rgba(37,99,235,0.85)",
+                    background: bleedColor,
                     pointerEvents: "none",
+                    ...band,
                   }}
                 />
-              </>
-            )}
+              ))}
+
+              {/* Guides overlay */}
+              {withGuides && (
+                <>
+                  {/* Cut line — red dashed (= format/trim edge) */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: `${cutInsetH}%`,
+                      left: `${cutInsetW}%`,
+                      right: `${cutInsetW}%`,
+                      bottom: `${cutInsetH}%`,
+                      border: "1.5px dashed rgba(220,38,38,0.9)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  {/* Safe zone — blue dashed (10mm inside the cut) */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: `${safeInsetH}%`,
+                      left: `${safeInsetW}%`,
+                      right: `${safeInsetW}%`,
+                      bottom: `${safeInsetH}%`,
+                      border: "1.5px dashed rgba(37,99,235,0.85)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           {/* Guide legend */}
-          {showGuides && printInches && (
+          {withGuides && (
             <InlineStack gap="300" align="center" wrap>
-              <InlineStack gap="100" blockAlign="center">
-                <div
-                  style={{
-                    width: 18,
-                    height: 0,
-                    borderTop: "1.5px dashed #c9cccf",
-                  }}
-                />
+              {bleedEnabled ? (
+                <InlineStack gap="100" blockAlign="center">
+                  <div
+                    style={{
+                      width: 18,
+                      height: 10,
+                      background: bleedColor,
+                      border: "1px solid #c9cccf",
+                    }}
+                  />
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Bleed {BLEED_MM} mm
+                  </Text>
+                </InlineStack>
+              ) : (
                 <Text as="span" variant="bodySm" tone="subdued">
-                  Bleed
+                  Sin bleed: se corta al borde
                 </Text>
-              </InlineStack>
+              )}
               <InlineStack gap="100" blockAlign="center">
                 <div
                   style={{
@@ -201,6 +375,16 @@ export function PrintStudioStage({
                   Zona segura
                 </Text>
               </InlineStack>
+              {cropsImage && (
+                <InlineStack gap="100" blockAlign="center">
+                  <div
+                    style={{ width: 18, height: 10, background: CROP_SHADE }}
+                  />
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Se recorta
+                  </Text>
+                </InlineStack>
+              )}
             </InlineStack>
           )}
 
@@ -216,7 +400,10 @@ export function PrintStudioStage({
             {measuredPx ? (
               <>
                 <Text as="span" variant="bodySm" tone="subdued">
-                  {measuredPx.w} × {measuredPx.h} px
+                  {currentKind === "saved"
+                    ? "Guardada"
+                    : "Original (sin guardar)"}
+                  : {measuredPx.w} × {measuredPx.h} px
                 </Text>
                 {currentDpi !== null && (
                   <Badge
@@ -233,7 +420,7 @@ export function PrintStudioStage({
             )}
             {printInches && (
               <Text as="span" variant="bodySm" tone="subdued">
-                {printInches.width}″ × {printInches.height}″
+                {formatPrintSize(printInches)}
               </Text>
             )}
           </InlineStack>

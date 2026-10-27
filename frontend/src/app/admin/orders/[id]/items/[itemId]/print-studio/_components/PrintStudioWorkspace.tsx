@@ -13,7 +13,12 @@ import {
   Popover,
   ActionList,
 } from "@shopify/polaris";
-import { adminApi, EnhanceInfo, EnhanceOptions } from "@/entities/admin/api";
+import {
+  adminApi,
+  EnhanceInfo,
+  EnhanceOptions,
+  PrintCrop,
+} from "@/entities/admin/api";
 import {
   cloudinaryDownloadUrl,
   type DownloadFormat,
@@ -23,7 +28,10 @@ import ImagePreviewModal from "@/app/admin/_components/ImagePreviewModal";
 import {
   GOOD_DPI,
   DEFAULT_UPSCALE_FACTOR,
+  CENTER_CROP,
+  computeAspectCrop,
   computePrintGeometry,
+  dpiFor,
 } from "./printStudio";
 import { PrintStudioStage } from "./PrintStudioStage";
 import { PrintStudioControls } from "./PrintStudioControls";
@@ -62,6 +70,7 @@ export default function PrintStudioWorkspace({
   const [saturation, setSaturation] = useState(0);
   const [improve, setImprove] = useState(false);
   const [fitToFormat, setFitToFormat] = useState(false);
+  const [crop, setCrop] = useState<PrintCrop>(CENTER_CROP);
   const [bleedEnabled, setBleedEnabled] = useState(false);
   const [bleedColor, setBleedColor] = useState("#ffffff");
   const [bleedHsb, setBleedHsb] = useState<HsbColor>({
@@ -73,7 +82,12 @@ export default function PrintStudioWorkspace({
 
   // The current image to display (before any backend preview)
   const sourceUrl = info?.sourceUrl ?? null;
-  const displayUrl = previewUrl ?? savedUrl ?? info?.printImageUrl ?? sourceUrl;
+  // Encuadrando, el stage muestra el original sin recortar (el máster guardado
+  // ya está recortado y se recortaría dos veces) o la preview del backend.
+  const framing = fitToFormat && showGuides && Boolean(info?.printInches);
+  const displayUrl = framing
+    ? (previewUrl ?? sourceUrl)
+    : (previewUrl ?? savedUrl ?? info?.printImageUrl ?? sourceUrl);
   // Full-res current print image (excludes the 900px backend preview) — used for
   // client-side dimension measurement and zoom.
   const currentImageUrl = savedUrl ?? info?.printImageUrl ?? sourceUrl;
@@ -89,6 +103,22 @@ export default function PrintStudioWorkspace({
         // Solo inicializa controles en la primera carga; los refresh posteriores
         // actualizan la imagen sin pisar los ajustes del admin.
         if (firstLoad) {
+          // Proporción distinta al formato: recortar al guardar por defecto,
+          // así el archivo coincide con lo que se ve en el estudio.
+          if (
+            data.sourcePx &&
+            data.printInches &&
+            computeAspectCrop(
+              { w: data.sourcePx.width, h: data.sourcePx.height },
+              data.printInches,
+            )
+          ) {
+            setFitToFormat(true);
+          }
+          if (data.printCrop) {
+            setFitToFormat(true);
+            setCrop(data.printCrop);
+          }
           if (data.bleedColor) {
             setBleedColor(data.bleedColor);
             setBleedHsb(hexToHsb(data.bleedColor));
@@ -130,6 +160,11 @@ export default function PrintStudioWorkspace({
     setSavedOk(false);
   }, []);
 
+  function updateCrop(next: PrintCrop) {
+    setCrop(next);
+    invalidatePreview();
+  }
+
   function updateBleedColor(hsb: HsbColor) {
     setBleedHsb(hsb);
     setBleedColor(hsbToHex(hsb));
@@ -150,7 +185,10 @@ export default function PrintStudioWorkspace({
       .filter(Boolean)
       .join(" ") || undefined;
 
-  // Derived print geometry (guides, target px/DPI) — pure, no backend call.
+  // Sin tamaño de impresión el backend rechaza el bleed: no se envía.
+  const applyBleed = bleedEnabled && Boolean(info?.printInches);
+
+  // Derived print geometry (guides, upscale result) — pure, no backend call.
   const {
     printInches,
     cutInsetW,
@@ -158,22 +196,32 @@ export default function PrintStudioWorkspace({
     safeInsetW,
     safeInsetH,
     stageAspect,
-    targetPx,
-    theoreticalDpi,
-  } = computePrintGeometry(info, upscaleFactor);
-  // Sin tamaño de impresión el backend rechaza el bleed: no se envía.
-  const applyBleed = bleedEnabled && printInches !== null;
+    upscaleResultPx,
+    upscaleResultDpi,
+    framedDpi,
+    upscaleUseful,
+  } = computePrintGeometry(info, upscaleFactor, {
+    fitToFormat,
+    bleed: applyBleed,
+    crop,
+  });
+
+  // Qué imagen se mide: el máster guardado o, si no hay, el original de IA.
+  const currentKind =
+    savedUrl || info?.printImageUrl
+      ? ("saved" as const)
+      : ("original" as const);
+  const currentPx =
+    measuredPx ??
+    (info?.sourcePx
+      ? { w: info.sourcePx.width, h: info.sourcePx.height }
+      : null);
+  const aspectCrop =
+    currentPx && printInches ? computeAspectCrop(currentPx, printInches) : null;
 
   // DPI of the current print image as measured client-side from the delivered URL.
   const currentDpi =
-    measuredPx && printInches
-      ? Math.floor(
-          Math.min(
-            measuredPx.w / printInches.width,
-            measuredPx.h / printInches.height,
-          ),
-        )
-      : null;
+    measuredPx && printInches ? dpiFor(measuredPx, printInches) : null;
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -188,6 +236,7 @@ export default function PrintStudioWorkspace({
         saturation: saturation || undefined,
         improve: improve || undefined,
         fitToFormat: fitToFormat || undefined,
+        crop: fitToFormat ? crop : undefined,
         format,
       };
       const res = await adminApi.orders.enhancePreview(orderId, itemId, opts);
@@ -211,6 +260,7 @@ export default function PrintStudioWorkspace({
         saturation: saturation || undefined,
         improve: improve || undefined,
         fitToFormat: fitToFormat || undefined,
+        crop: fitToFormat ? crop : undefined,
         bleed: applyBleed || undefined,
         bleedColor: applyBleed ? bleedColor : undefined,
         format,
@@ -253,6 +303,7 @@ export default function PrintStudioWorkspace({
         saturation: saturation || undefined,
         improve: improve || undefined,
         fitToFormat: fitToFormat || undefined,
+        crop: fitToFormat ? crop : undefined,
         bleed: applyBleed || undefined,
         bleedColor: applyBleed ? bleedColor : undefined,
         format,
@@ -375,6 +426,9 @@ export default function PrintStudioWorkspace({
                   currentImageUrl={currentImageUrl}
                   onMeasure={setMeasuredPx}
                   displayUrl={displayUrl}
+                  framing={framing}
+                  crop={crop}
+                  onCropChange={updateCrop}
                   stageAspect={stageAspect}
                   bleedEnabled={applyBleed}
                   bleedColor={bleedColor}
@@ -388,6 +442,7 @@ export default function PrintStudioWorkspace({
                   previewUrl={previewUrl}
                   measuredPx={measuredPx}
                   currentDpi={currentDpi}
+                  currentKind={currentKind}
                   info={info}
                   onZoom={setZoom}
                 />
@@ -402,12 +457,19 @@ export default function PrintStudioWorkspace({
                   setSavedOk={setSavedOk}
                   hasSource={hasSource}
                   currentDpi={currentDpi}
+                  currentKind={currentKind}
+                  currentPx={currentPx}
+                  aspectCrop={aspectCrop}
                   printInches={printInches}
                   info={info}
                   upscaleFactor={upscaleFactor}
                   setUpscaleFactor={setUpscaleFactor}
-                  targetPx={targetPx}
-                  theoreticalDpi={theoreticalDpi}
+                  upscaleResultPx={upscaleResultPx}
+                  upscaleResultDpi={upscaleResultDpi}
+                  upscaleUseful={upscaleUseful}
+                  framedDpi={framedDpi}
+                  crop={crop}
+                  onCropChange={updateCrop}
                   canAct={canAct}
                   upscaling={upscaling}
                   onUpscale={handleUpscale}
