@@ -19,13 +19,11 @@ import {
   ColorPicker,
   Collapsible,
 } from "@shopify/polaris";
-import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
+import type { EnhanceInfo } from "@/entities/admin/api";
 import type { HsbColor } from "@/lib/colorUtils";
 import {
   BLEED_MM,
   GOOD_DPI,
-  CENTER_CROP,
-  MAX_CROP_ZOOM,
   PRINT_DPI,
   dpiTone,
   formatPrintSize,
@@ -70,8 +68,6 @@ export function PrintStudioControls({
   upscaleResultDpi,
   upscaleUseful,
   framedDpi,
-  crop,
-  onCropChange,
   canAct,
   upscaling,
   onUpscale,
@@ -121,8 +117,6 @@ export function PrintStudioControls({
   upscaleResultDpi: number | null;
   upscaleUseful: boolean;
   framedDpi: number | null;
-  crop: PrintCrop;
-  onCropChange: (crop: PrintCrop) => void;
   canAct: boolean;
   upscaling: boolean;
   onUpscale: () => void;
@@ -230,38 +224,16 @@ export function PrintStudioControls({
             {fitToFormat && (
               <BlockStack gap="200">
                 <Text as="span" variant="bodySm" tone="subdued">
-                  Arrastra la imagen en la vista para encuadrarla dentro del
-                  corte.
+                  Arrastra la imagen y usa el zoom junto a la vista para
+                  encuadrarla dentro del corte.
                 </Text>
-                <RangeSlider
-                  label="Zoom"
-                  min={100}
-                  max={MAX_CROP_ZOOM * 100}
-                  step={5}
-                  value={Math.round(crop.zoom * 100)}
-                  onChange={(v) =>
-                    onCropChange({ ...crop, zoom: (v as number) / 100 })
-                  }
-                  suffix={`${Math.round(crop.zoom * 100)} %`}
-                />
-                <InlineStack gap="300" blockAlign="center" wrap>
-                  {framedDpi !== null && (
+                {framedDpi !== null && (
+                  <Box>
                     <Badge tone={dpiTone(framedDpi)}>
                       {`Al guardar: ${framedDpi} DPI`}
                     </Badge>
-                  )}
-                  <Button
-                    variant="plain"
-                    disabled={
-                      crop.x === CENTER_CROP.x &&
-                      crop.y === CENTER_CROP.y &&
-                      crop.zoom === CENTER_CROP.zoom
-                    }
-                    onClick={() => onCropChange(CENTER_CROP)}
-                  >
-                    Centrar
-                  </Button>
-                </InlineStack>
+                  </Box>
+                )}
               </BlockStack>
             )}
           </BlockStack>

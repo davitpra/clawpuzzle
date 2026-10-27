@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { BlockStack, InlineStack, Text, Button, Badge } from "@shopify/polaris";
+import { MinusIcon, PlusIcon, TargetIcon } from "@shopify/polaris-icons";
 import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
 import {
   BLEED_MM,
   CENTER_CROP,
+  MAX_CROP_ZOOM,
   clampCrop,
   cropRect,
   dpiTone,
@@ -11,6 +13,8 @@ import {
 } from "./printStudio";
 
 const CROP_SHADE = "rgba(0,0,0,0.5)";
+// Paso de los botones de zoom de la barra junto a la vista.
+const ZOOM_STEP = 0.1;
 // Alto máximo de la vista: la ventana menos la cabecera de la página, el
 // padding de la tarjeta y la leyenda, para que el encuadre se vea entero.
 const STAGE_MAX_H = "(100dvh - 280px)";
@@ -173,6 +177,19 @@ export function PrintStudioStage({
     setDragging(false);
   }
 
+  // Al alejar, clampCrop vuelve a meter el encuadre dentro de la imagen.
+  function setZoom(zoom: number) {
+    const next = { ...crop, zoom: Math.round(zoom * 100) / 100 };
+    onCropChange(
+      shownPx && printInches ? clampCrop(next, shownPx, printInches) : next,
+    );
+  }
+
+  const isCentered =
+    crop.x === CENTER_CROP.x &&
+    crop.y === CENTER_CROP.y &&
+    crop.zoom === CENTER_CROP.zoom;
+
   return (
     <>
       {/* Hidden image to measure the real delivered dimensions of the current master */}
@@ -195,174 +212,236 @@ export function PrintStudioStage({
       {/* ── LEFT: image stage ───────────────────────────────────── */}
       <div style={{ width: "100%" }}>
         <BlockStack gap="200" inlineAlign="center">
-          {/* Con recorte, el marco se amplía justo lo que la imagen desborda
-              para ver sombreado lo que se pierde sin salirse de la tarjeta. Su
-              ancho se limita para que el alto quepa en la ventana. */}
           <div
-            style={
-              withGuides
-                ? {
-                    position: "relative",
-                    width: `min(100%, calc(${STAGE_MAX_H} * ${frameW / frameH}))`,
-                    aspectRatio: `${frameW} / ${frameH}`,
-                    overflow: "hidden",
-                    borderRadius: 6,
-                  }
-                : { width: "100%" }
-            }
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              width: "100%",
+            }}
           >
+            {/* Zoom del encuadre, pegado a la vista que se arrastra */}
+            {framing && withGuides && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: 4,
+                  background: "#fff",
+                  border: "1px solid #c9cccf",
+                  borderRadius: 8,
+                  flexShrink: 0,
+                }}
+              >
+                <Button
+                  variant="tertiary"
+                  icon={PlusIcon}
+                  accessibilityLabel="Acercar"
+                  disabled={crop.zoom >= MAX_CROP_ZOOM}
+                  onClick={() => setZoom(crop.zoom + ZOOM_STEP)}
+                />
+                <Text as="span" variant="bodySm" fontWeight="medium">
+                  {`${Math.round(crop.zoom * 100)} %`}
+                </Text>
+                <Button
+                  variant="tertiary"
+                  icon={MinusIcon}
+                  accessibilityLabel="Alejar"
+                  disabled={crop.zoom <= 1}
+                  onClick={() => setZoom(crop.zoom - ZOOM_STEP)}
+                />
+                <div
+                  style={{ width: "100%", borderTop: "1px solid #e3e3e3" }}
+                />
+                <Button
+                  variant="tertiary"
+                  icon={TargetIcon}
+                  accessibilityLabel="Centrar encuadre"
+                  disabled={isCentered}
+                  onClick={() => onCropChange(CENTER_CROP)}
+                />
+              </div>
+            )}
             <div
-              ref={containerRef}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
               style={{
-                position: "relative",
-                width: "100%",
-                ...(editable || (framing && previewUrl)
-                  ? {
-                      cursor: dragging ? "grabbing" : "grab",
-                      touchAction: "none",
-                      userSelect: "none",
-                    }
-                  : {}),
-                // El contenedor de formato (caja con fondo, borde y recorte por
-                // bleed) solo se muestra cuando las guías están activas. Sin
-                // guías, la imagen se ve sola en su proporción natural.
-                ...(withGuides
-                  ? {
-                      position: "absolute",
-                      left: `${(padL / frameW) * 100}%`,
-                      top: `${((padT * aspectH) / aspectW / frameH) * 100}%`,
-                      width: `${(1 / frameW) * 100}%`,
-                      height: `${((aspectH / aspectW) / frameH) * 100}%`,
-                      background: bleedEnabled ? bleedColor : "#ebebeb",
-                      borderRadius: 6,
-                      border: "1px solid #c9cccf",
-                      // Con recorte la imagen desborda a propósito: se ve
-                      // sombreado lo que el corte va a quitar.
-                      overflow: cropsImage ? "visible" : "hidden",
-                    }
-                  : {}),
+                flex: 1,
+                minWidth: 0,
+                display: "flex",
+                justifyContent: "center",
               }}
             >
-              {/* Con guías la imagen cubre el área de corte, como al imprimir;
-                sin guías se muestra completa en su proporción natural. */}
-              {displayUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={displayUrl}
-                  alt="Vista de impresión"
-                  draggable={false}
-                  onLoad={(e) =>
-                    setDisplayPx({
-                      url: displayUrl,
-                      w: e.currentTarget.naturalWidth,
-                      h: e.currentTarget.naturalHeight,
-                    })
-                  }
-                  style={
-                    withGuides
+              {/* Con recorte, el marco se amplía justo lo que la imagen desborda
+              para ver sombreado lo que se pierde sin salirse de la tarjeta. Su
+              ancho se limita para que el alto quepa en la ventana. */}
+              <div
+                style={
+                  withGuides
+                    ? {
+                        position: "relative",
+                        width: `min(100%, calc(${STAGE_MAX_H} * ${frameW / frameH}))`,
+                        aspectRatio: `${frameW} / ${frameH}`,
+                        overflow: "hidden",
+                        borderRadius: 6,
+                      }
+                    : { width: "100%" }
+                }
+              >
+                <div
+                  ref={containerRef}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    ...(editable || (framing && previewUrl)
+                      ? {
+                          cursor: dragging ? "grabbing" : "grab",
+                          touchAction: "none",
+                          userSelect: "none",
+                        }
+                      : {}),
+                    // El contenedor de formato (caja con fondo, borde y recorte por
+                    // bleed) solo se muestra cuando las guías están activas. Sin
+                    // guías, la imagen se ve sola en su proporción natural.
+                    ...(withGuides
                       ? {
                           position: "absolute",
-                          top: `${img.top}%`,
-                          left: `${img.left}%`,
-                          width: `${img.width}%`,
-                          height: `${img.height}%`,
-                          // El reset de Tailwind limita img a max-width: 100%; con
-                          // recorte la imagen desborda a propósito.
-                          maxWidth: "none",
-                          objectFit: "cover",
-                          objectPosition: "center",
-                          display: "block",
-                          filter: cssFilter,
-                        }
-                      : {
-                          display: "block",
-                          width: "auto",
-                          maxWidth: "100%",
-                          maxHeight: `calc${STAGE_MAX_H}`,
-                          margin: "0 auto",
+                          left: `${(padL / frameW) * 100}%`,
+                          top: `${((padT * aspectH) / aspectW / frameH) * 100}%`,
+                          width: `${(1 / frameW) * 100}%`,
+                          height: `${(aspectH / aspectW / frameH) * 100}%`,
+                          background: bleedEnabled ? bleedColor : "#ebebeb",
                           borderRadius: 6,
-                          filter: cssFilter,
+                          border: "1px solid #c9cccf",
+                          // Con recorte la imagen desborda a propósito: se ve
+                          // sombreado lo que el corte va a quitar.
+                          overflow: cropsImage ? "visible" : "hidden",
                         }
-                  }
-                />
-              )}
-              {!displayUrl && (
-                <div
-                  style={{
-                    width: "100%",
-                    aspectRatio: stageAspect,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "#ebebeb",
-                    borderRadius: 6,
+                      : {}),
                   }}
                 >
-                  <Text as="span" tone="subdued" variant="bodySm">
-                    Sin imagen
-                  </Text>
+                  {/* Con guías la imagen cubre el área de corte, como al imprimir;
+                sin guías se muestra completa en su proporción natural. */}
+                  {displayUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={displayUrl}
+                      alt="Vista de impresión"
+                      draggable={false}
+                      onLoad={(e) =>
+                        setDisplayPx({
+                          url: displayUrl,
+                          w: e.currentTarget.naturalWidth,
+                          h: e.currentTarget.naturalHeight,
+                        })
+                      }
+                      style={
+                        withGuides
+                          ? {
+                              position: "absolute",
+                              top: `${img.top}%`,
+                              left: `${img.left}%`,
+                              width: `${img.width}%`,
+                              height: `${img.height}%`,
+                              // El reset de Tailwind limita img a max-width: 100%; con
+                              // recorte la imagen desborda a propósito.
+                              maxWidth: "none",
+                              objectFit: "cover",
+                              objectPosition: "center",
+                              display: "block",
+                              filter: cssFilter,
+                            }
+                          : {
+                              display: "block",
+                              width: "auto",
+                              maxWidth: "100%",
+                              maxHeight: `calc${STAGE_MAX_H}`,
+                              margin: "0 auto",
+                              borderRadius: 6,
+                              filter: cssFilter,
+                            }
+                      }
+                    />
+                  )}
+                  {!displayUrl && (
+                    <div
+                      style={{
+                        width: "100%",
+                        aspectRatio: stageAspect,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "#ebebeb",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text as="span" tone="subdued" variant="bodySm">
+                        Sin imagen
+                      </Text>
+                    </div>
+                  )}
+
+                  {/* Todo lo que queda fuera del corte, sombreado */}
+                  {withGuides && cropsImage && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: `${cutInsetH}%`,
+                        left: `${cutInsetW}%`,
+                        right: `${cutInsetW}%`,
+                        bottom: `${cutInsetH}%`,
+                        boxShadow: `0 0 0 9999px ${CROP_SHADE}`,
+                        pointerEvents: "none",
+                      }}
+                    />
+                  )}
+                  {bleedBands.map((band, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        position: "absolute",
+                        background: bleedColor,
+                        pointerEvents: "none",
+                        ...band,
+                      }}
+                    />
+                  ))}
+
+                  {/* Guides overlay */}
+                  {withGuides && (
+                    <>
+                      {/* Cut line — red dashed (= format/trim edge) */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: `${cutInsetH}%`,
+                          left: `${cutInsetW}%`,
+                          right: `${cutInsetW}%`,
+                          bottom: `${cutInsetH}%`,
+                          border: "1.5px dashed rgba(220,38,38,0.9)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                      {/* Safe zone — blue dashed (10mm inside the cut) */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: `${safeInsetH}%`,
+                          left: `${safeInsetW}%`,
+                          right: `${safeInsetW}%`,
+                          bottom: `${safeInsetH}%`,
+                          border: "1.5px dashed rgba(37,99,235,0.85)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    </>
+                  )}
                 </div>
-              )}
-
-              {/* Todo lo que queda fuera del corte, sombreado */}
-              {withGuides && cropsImage && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: `${cutInsetH}%`,
-                    left: `${cutInsetW}%`,
-                    right: `${cutInsetW}%`,
-                    bottom: `${cutInsetH}%`,
-                    boxShadow: `0 0 0 9999px ${CROP_SHADE}`,
-                    pointerEvents: "none",
-                  }}
-                />
-              )}
-              {bleedBands.map((band, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    background: bleedColor,
-                    pointerEvents: "none",
-                    ...band,
-                  }}
-                />
-              ))}
-
-              {/* Guides overlay */}
-              {withGuides && (
-                <>
-                  {/* Cut line — red dashed (= format/trim edge) */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${cutInsetH}%`,
-                      left: `${cutInsetW}%`,
-                      right: `${cutInsetW}%`,
-                      bottom: `${cutInsetH}%`,
-                      border: "1.5px dashed rgba(220,38,38,0.9)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  {/* Safe zone — blue dashed (10mm inside the cut) */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${safeInsetH}%`,
-                      left: `${safeInsetW}%`,
-                      right: `${safeInsetW}%`,
-                      bottom: `${safeInsetH}%`,
-                      border: "1.5px dashed rgba(37,99,235,0.85)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                </>
-              )}
+              </div>
             </div>
           </div>
 

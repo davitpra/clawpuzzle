@@ -363,14 +363,14 @@ export default function PrintStudioWorkspace({
       subtitle="Imagen generada"
       fullWidth
       primaryAction={{
-        content: "Guardar imagen",
+        content: "Guardar cambios",
         loading: applying,
         disabled: !canAct,
         onAction: handleSave,
       }}
       actionGroups={[
         {
-          title: "Descargar",
+          title: "Exportar Imagen",
           disabled: !currentImageUrl || loadingInfo,
           actions: [
             {
