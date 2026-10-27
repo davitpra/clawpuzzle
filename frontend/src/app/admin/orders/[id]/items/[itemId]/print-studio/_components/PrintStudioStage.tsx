@@ -11,6 +11,11 @@ import {
 } from "./printStudio";
 
 const CROP_SHADE = "rgba(0,0,0,0.5)";
+// Alto máximo de la vista: la ventana menos la cabecera de la página, el
+// padding de la tarjeta y la leyenda, para que el encuadre se vea entero.
+const STAGE_MAX_H = "(100dvh - 280px)";
+// Margen máximo por lado alrededor de la vista para ver lo que se recorta.
+const MAX_PAD = 0.06;
 
 // Panel izquierdo del estudio de impresión: la previsualización ("stage") con
 // las guías de corte/bleed/zona segura y la barra de info (px · DPI · tamaño).
@@ -98,6 +103,26 @@ export function PrintStudioStage({
     left: cutInsetW - (rect.left * cutW) / rect.width,
     top: cutInsetH - (rect.top * cutH) / rect.height,
   };
+  // Margen del marco por eje (fracción del ancho / alto de la vista): lo que la
+  // imagen desborda, hasta MAX_PAD por lado para que con zoom el corte no
+  // encoja. El total por eje no cambia al arrastrar —el encuadre siempre cubre
+  // el corte—, así que el marco no salta; solo se reparte entre los lados.
+  const overflowX = Math.max(0, img.width - 100) / 100;
+  const overflowY = Math.max(0, img.height - 100) / 100;
+  const padX = Math.min(overflowX, 2 * MAX_PAD);
+  const padY = Math.min(overflowY, 2 * MAX_PAD);
+  // Mitad por lado, salvo que un lado desborde menos: entonces el resto va al otro.
+  const splitPad = (before: number, overflow: number, pad: number) => {
+    const b = Math.min(Math.max(0, before), overflow);
+    return Math.min(Math.max(pad / 2, pad - (overflow - b)), b);
+  };
+  const padL = splitPad(-img.left / 100, overflowX, padX);
+  const padT = splitPad(-img.top / 100, overflowY, padY);
+  // Marco = vista + desborde, en unidades del ancho de la vista.
+  const [aspectW, aspectH] = stageAspect.split("/").map(Number);
+  const frameW = 1 + padX;
+  const frameH = (1 + padY) * (aspectH / aspectW);
+
   // El backend recorta y luego extiende el bleed con color: la banda de bleed
   // nunca lleva imagen.
   const bleedBands =
@@ -170,15 +195,21 @@ export function PrintStudioStage({
       {/* ── LEFT: image stage ───────────────────────────────────── */}
       <div style={{ width: "100%" }}>
         <BlockStack gap="200" inlineAlign="center">
-          {/* Con recorte, un margen alrededor deja ver sombreado lo que se pierde
-              sin que la imagen se salga de la tarjeta. */}
+          {/* Con recorte, el marco se amplía justo lo que la imagen desborda
+              para ver sombreado lo que se pierde sin salirse de la tarjeta. Su
+              ancho se limita para que el alto quepa en la ventana. */}
           <div
-            style={{
-              width: "100%",
-              ...(withGuides && cropsImage
-                ? { padding: "6%", overflow: "hidden", borderRadius: 6 }
-                : {}),
-            }}
+            style={
+              withGuides
+                ? {
+                    position: "relative",
+                    width: `min(100%, calc(${STAGE_MAX_H} * ${frameW / frameH}))`,
+                    aspectRatio: `${frameW} / ${frameH}`,
+                    overflow: "hidden",
+                    borderRadius: 6,
+                  }
+                : { width: "100%" }
+            }
           >
             <div
               ref={containerRef}
@@ -201,7 +232,11 @@ export function PrintStudioStage({
                 // guías, la imagen se ve sola en su proporción natural.
                 ...(withGuides
                   ? {
-                      aspectRatio: stageAspect,
+                      position: "absolute",
+                      left: `${(padL / frameW) * 100}%`,
+                      top: `${((padT * aspectH) / aspectW / frameH) * 100}%`,
+                      width: `${(1 / frameW) * 100}%`,
+                      height: `${((aspectH / aspectW) / frameH) * 100}%`,
                       background: bleedEnabled ? bleedColor : "#ebebeb",
                       borderRadius: 6,
                       border: "1px solid #c9cccf",
@@ -245,8 +280,10 @@ export function PrintStudioStage({
                         }
                       : {
                           display: "block",
-                          width: "100%",
-                          height: "auto",
+                          width: "auto",
+                          maxWidth: "100%",
+                          maxHeight: `calc${STAGE_MAX_H}`,
+                          margin: "0 auto",
                           borderRadius: 6,
                           filter: cssFilter,
                         }
