@@ -62,7 +62,6 @@ export default function PrintStudioWorkspace({
   const [brightness, setBrightness] = useState(0);
   const [saturation, setSaturation] = useState(0);
   const [improve, setImprove] = useState(false);
-  const [fitToFormat, setFitToFormat] = useState(false);
   const [crop, setCrop] = useState<PrintCrop>(CENTER_CROP);
   const [bleedEnabled, setBleedEnabled] = useState(false);
   const [bleedColor, setBleedColor] = useState("#ffffff");
@@ -77,7 +76,7 @@ export default function PrintStudioWorkspace({
   const sourceUrl = info?.sourceUrl ?? null;
   // Encuadrando, el stage muestra el original sin recortar (el máster guardado
   // ya está recortado y se recortaría dos veces) o la preview del backend.
-  const framing = fitToFormat && showGuides && Boolean(info?.printInches);
+  const framing = showGuides && Boolean(info?.printInches);
   const displayUrl = framing
     ? (previewUrl ?? sourceUrl)
     : (previewUrl ?? savedUrl ?? info?.printImageUrl ?? sourceUrl);
@@ -96,22 +95,7 @@ export default function PrintStudioWorkspace({
         // Solo inicializa controles en la primera carga; los refresh posteriores
         // actualizan la imagen sin pisar los ajustes del admin.
         if (firstLoad) {
-          // Proporción distinta al formato: recortar al guardar por defecto,
-          // así el archivo coincide con lo que se ve en el estudio.
-          if (
-            data.sourcePx &&
-            data.printInches &&
-            computeAspectCrop(
-              { w: data.sourcePx.width, h: data.sourcePx.height },
-              data.printInches,
-            )
-          ) {
-            setFitToFormat(true);
-          }
-          if (data.printCrop) {
-            setFitToFormat(true);
-            setCrop(data.printCrop);
-          }
+          if (data.printCrop) setCrop(data.printCrop);
           if (data.bleedColor) {
             setBleedColor(data.bleedColor);
             setBleedHsb(hexToHsb(data.bleedColor));
@@ -194,7 +178,7 @@ export default function PrintStudioWorkspace({
     framedDpi,
     upscaleUseful,
   } = computePrintGeometry(info, upscaleFactor, {
-    fitToFormat,
+    fitToFormat: true,
     bleed: applyBleed,
     crop,
   });
@@ -228,8 +212,8 @@ export default function PrintStudioWorkspace({
         brightness: brightness || undefined,
         saturation: saturation || undefined,
         improve: improve || undefined,
-        fitToFormat: fitToFormat || undefined,
-        crop: fitToFormat ? crop : undefined,
+        fitToFormat: true,
+        crop,
       };
       const res = await adminApi.orders.enhancePreview(orderId, itemId, opts);
       setPreviewUrl(res.previewUrl);
@@ -251,8 +235,8 @@ export default function PrintStudioWorkspace({
         brightness: brightness || undefined,
         saturation: saturation || undefined,
         improve: improve || undefined,
-        fitToFormat: fitToFormat || undefined,
-        crop: fitToFormat ? crop : undefined,
+        fitToFormat: true,
+        crop,
         bleed: applyBleed || undefined,
         bleedColor: applyBleed ? bleedColor : undefined,
       };
@@ -293,8 +277,8 @@ export default function PrintStudioWorkspace({
         brightness: brightness || undefined,
         saturation: saturation || undefined,
         improve: improve || undefined,
-        fitToFormat: fitToFormat || undefined,
-        crop: fitToFormat ? crop : undefined,
+        fitToFormat: true,
+        crop,
         bleed: applyBleed || undefined,
         bleedColor: applyBleed ? bleedColor : undefined,
       };
@@ -420,62 +404,57 @@ export default function PrintStudioWorkspace({
               </Card>
             </Layout.Section>
             <Layout.Section variant="oneThird">
-              <Card>
-                <PrintStudioControls
-                  err={err}
-                  setErr={setErr}
-                  savedOk={savedOk}
-                  setSavedOk={setSavedOk}
-                  hasSource={hasSource}
-                  currentDpi={currentDpi}
-                  currentKind={currentKind}
-                  currentPx={currentPx}
-                  aspectCrop={aspectCrop}
-                  printInches={printInches}
-                  info={info}
-                  upscaleFactor={upscaleFactor}
-                  setUpscaleFactor={setUpscaleFactor}
-                  upscaleResultPx={upscaleResultPx}
-                  upscaleResultDpi={upscaleResultDpi}
-                  upscaleUseful={upscaleUseful}
-                  framedDpi={framedDpi}
-                  canAct={canAct}
-                  upscaling={upscaling}
-                  onUpscale={handleUpscale}
-                  brightness={brightness}
-                  setBrightness={setBrightness}
-                  contrast={contrast}
-                  setContrast={setContrast}
-                  saturation={saturation}
-                  setSaturation={setSaturation}
-                  sharpen={sharpen}
-                  setSharpen={setSharpen}
-                  improve={improve}
-                  setImprove={setImprove}
-                  fitToFormat={fitToFormat}
-                  setFitToFormat={setFitToFormat}
-                  previewing={previewing}
-                  onPreview={handlePreviewExact}
-                  bleedEnabled={bleedEnabled}
-                  printSizeControl={
-                    <PrintSizeSelect
-                      orderId={orderId}
-                      itemId={itemId}
-                      info={info}
-                      onInfoChange={setInfo}
-                      invalidatePreview={invalidatePreview}
-                    />
-                  }
-                  setBleedEnabled={setBleedEnabled}
-                  bleedHsb={bleedHsb}
-                  bleedColor={bleedColor}
-                  onBleedColorChange={updateBleedColor}
-                  reverting={reverting}
-                  busy={busy}
-                  onRevert={handleRevert}
-                  invalidatePreview={invalidatePreview}
-                />
-              </Card>
+              <PrintStudioControls
+                err={err}
+                setErr={setErr}
+                savedOk={savedOk}
+                setSavedOk={setSavedOk}
+                hasSource={hasSource}
+                currentDpi={currentDpi}
+                currentKind={currentKind}
+                aspectCrop={aspectCrop}
+                printInches={printInches}
+                info={info}
+                upscaleFactor={upscaleFactor}
+                setUpscaleFactor={setUpscaleFactor}
+                upscaleResultPx={upscaleResultPx}
+                upscaleResultDpi={upscaleResultDpi}
+                upscaleUseful={upscaleUseful}
+                framedDpi={framedDpi}
+                canAct={canAct}
+                upscaling={upscaling}
+                onUpscale={handleUpscale}
+                brightness={brightness}
+                setBrightness={setBrightness}
+                contrast={contrast}
+                setContrast={setContrast}
+                saturation={saturation}
+                setSaturation={setSaturation}
+                sharpen={sharpen}
+                setSharpen={setSharpen}
+                improve={improve}
+                setImprove={setImprove}
+                previewing={previewing}
+                onPreview={handlePreviewExact}
+                bleedEnabled={bleedEnabled}
+                printSizeControl={
+                  <PrintSizeSelect
+                    orderId={orderId}
+                    itemId={itemId}
+                    info={info}
+                    onInfoChange={setInfo}
+                    invalidatePreview={invalidatePreview}
+                  />
+                }
+                setBleedEnabled={setBleedEnabled}
+                bleedHsb={bleedHsb}
+                bleedColor={bleedColor}
+                onBleedColorChange={updateBleedColor}
+                reverting={reverting}
+                busy={busy}
+                onRevert={handleRevert}
+                invalidatePreview={invalidatePreview}
+              />
             </Layout.Section>
           </Layout>
         )}

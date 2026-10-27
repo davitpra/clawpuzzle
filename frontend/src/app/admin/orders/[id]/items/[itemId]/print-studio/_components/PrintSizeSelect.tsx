@@ -151,15 +151,13 @@ export function PrintSizeSelect({
 
   return (
     <BlockStack gap="200">
-      <InlineStack gap="200" blockAlign="center">
-        <Text as="h2" variant="headingMd">
-          Tamaño de impresión
-        </Text>
-        {!source && <Badge tone="attention">Requerido</Badge>}
-      </InlineStack>
       <Select
-        label="Tamaño de impresión"
-        labelHidden
+        label={
+          <InlineStack gap="200" blockAlign="center">
+            <span>Tamaño de impresión</span>
+            {!source && <Badge tone="attention">Requerido</Badge>}
+          </InlineStack>
+        }
         options={options}
         value={customOpen ? CUSTOM : current}
         onChange={onSelect}
