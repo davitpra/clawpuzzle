@@ -6,6 +6,7 @@ import {
   cropRect,
   computePrintGeometry,
   formatPrintSize,
+  maxUsefulUpscale,
   savedMasterPx,
 } from "./printStudio";
 
@@ -145,5 +146,39 @@ describe("cropRect", () => {
     );
     expect(g.upscaleUseful).toBe(true);
     expect(g.upscaleResultDpi).toBeNull();
+  });
+});
+
+describe("maxUsefulUpscale", () => {
+  const opts = { fitToFormat: true };
+
+  it("stops at the first step that reaches 300 DPI", () => {
+    // 832 px × 3 = 2496 ≥ 2362 px que pide el ancho de 20 cm a 300 DPI.
+    expect(maxUsefulUpscale(info(832, 1248), opts)).toBe(3);
+  });
+
+  it("needs a larger factor when the crop zooms in", () => {
+    expect(
+      maxUsefulUpscale(info(832, 1248), {
+        ...opts,
+        crop: { x: 0.5, y: 0.5, zoom: 2 },
+      }),
+    ).toBe(6);
+  });
+
+  it("keeps one step above 1 when the source is already enough", () => {
+    expect(maxUsefulUpscale(info(3584, 4800), opts)).toBe(1.5);
+  });
+
+  it("has no ceiling without a print size", () => {
+    expect(
+      maxUsefulUpscale(
+        {
+          sourcePx: { width: 832, height: 1248 },
+          printInches: null,
+        } as EnhanceInfo,
+        opts,
+      ),
+    ).toBe(8);
   });
 });

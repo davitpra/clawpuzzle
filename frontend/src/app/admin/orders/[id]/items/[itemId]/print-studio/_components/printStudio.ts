@@ -7,6 +7,9 @@ export const LOW_DPI = 200;
 // Resolution the backend caps the saved print master at (matches PRINT_DPI server-side).
 export const PRINT_DPI = 300;
 export const DEFAULT_UPSCALE_FACTOR = 2;
+// Rango del slider de upscale.
+export const UPSCALE_STEP = 0.5;
+export const MAX_UPSCALE_FACTOR = 8;
 // Sangre fija por lado; coincide con BLEED_MM del backend.
 export const BLEED_MM = 3;
 // Margen de seguridad dentro de la línea de corte.
@@ -146,6 +149,32 @@ export function savedMasterPx(
     px = { w: px.w + 2 * bleedPx, h: px.h + 2 * bleedPx };
   }
   return px;
+}
+
+// Menor factor del slider con el que el upscale (que siempre parte del original
+// de IA) ya llega a PRINT_DPI con el encuadre actual: por encima de él el
+// archivo guardado no cambia. Sin tamaño de impresión no hay techo.
+export function maxUsefulUpscale(
+  info: EnhanceInfo | null,
+  opts: { fitToFormat: boolean; crop?: PrintCrop },
+): number {
+  const printInches = info?.printInches;
+  const sourcePx = info?.sourcePx;
+  if (!printInches || !sourcePx) return MAX_UPSCALE_FACTOR;
+  // El slider necesita max > min: como mínimo un paso por encima de 1.
+  for (
+    let factor = 1 + UPSCALE_STEP;
+    factor < MAX_UPSCALE_FACTOR;
+    factor += UPSCALE_STEP
+  ) {
+    const upscaled = {
+      w: Math.round(sourcePx.width * factor),
+      h: Math.round(sourcePx.height * factor),
+    };
+    const px = savedMasterPx(upscaled, printInches, { ...opts, bleed: false });
+    if (dpiFor(px, printInches) >= PRINT_DPI) return factor;
+  }
+  return MAX_UPSCALE_FACTOR;
 }
 
 export interface PrintGeometry {

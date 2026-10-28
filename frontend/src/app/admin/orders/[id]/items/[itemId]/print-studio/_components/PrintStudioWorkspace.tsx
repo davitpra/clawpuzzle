@@ -24,6 +24,7 @@ import ImagePreviewModal from "@/app/admin/_components/ImagePreviewModal";
 import {
   GOOD_DPI,
   DEFAULT_UPSCALE_FACTOR,
+  maxUsefulUpscale,
   CENTER_CROP,
   computeAspectCrop,
   computePrintGeometry,
@@ -172,6 +173,11 @@ export default function PrintStudioWorkspace({
   // Sin tamaño de impresión el backend rechaza el bleed: no se envía.
   const applyBleed = bleedEnabled && Boolean(info?.printInches);
 
+  // El slider no pasa del factor que ya llega a PRINT_DPI; si el encuadre
+  // cambia y baja el techo, el factor elegido se recorta sin perderse.
+  const upscaleMax = maxUsefulUpscale(info, { fitToFormat: true, crop });
+  const effectiveUpscale = Math.min(upscaleFactor, upscaleMax);
+
   // Derived print geometry (guides, upscale result) — pure, no backend call.
   const {
     printInches,
@@ -184,7 +190,7 @@ export default function PrintStudioWorkspace({
     upscaleResultDpi,
     framedDpi,
     upscaleUseful,
-  } = computePrintGeometry(info, upscaleFactor, {
+  } = computePrintGeometry(info, effectiveUpscale, {
     fitToFormat: true,
     bleed: applyBleed,
     crop,
@@ -236,7 +242,7 @@ export default function PrintStudioWorkspace({
     setErr(null);
     try {
       const opts: EnhanceOptions = {
-        upscaleFactor: upscaleFactor > 1 ? upscaleFactor : undefined,
+        upscaleFactor: effectiveUpscale > 1 ? effectiveUpscale : undefined,
         sharpen: sharpen || undefined,
         contrast: contrast || undefined,
         brightness: brightness || undefined,
@@ -425,7 +431,8 @@ export default function PrintStudioWorkspace({
                 aspectCrop={aspectCrop}
                 printInches={printInches}
                 info={info}
-                upscaleFactor={upscaleFactor}
+                upscaleFactor={effectiveUpscale}
+                upscaleMax={upscaleMax}
                 setUpscaleFactor={setUpscaleFactor}
                 upscaleResultPx={upscaleResultPx}
                 upscaleResultDpi={upscaleResultDpi}

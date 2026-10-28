@@ -23,6 +23,7 @@ import {
   BLEED_MM,
   GOOD_DPI,
   PRINT_DPI,
+  UPSCALE_STEP,
   dpiTone,
   formatPrintSize,
   type AspectCrop,
@@ -130,6 +131,7 @@ export function PrintStudioControls({
   printInches,
   info,
   upscaleFactor,
+  upscaleMax,
   setUpscaleFactor,
   upscaleResultPx,
   upscaleResultDpi,
@@ -175,6 +177,8 @@ export function PrintStudioControls({
   printInches: { width: number; height: number } | null;
   info: EnhanceInfo | null;
   upscaleFactor: number;
+  // Factor a partir del cual el archivo guardado ya llega a PRINT_DPI.
+  upscaleMax: number;
   setUpscaleFactor: Dispatch<SetStateAction<number>>;
   upscaleResultPx: { w: number; h: number } | null;
   upscaleResultDpi: number | null;
@@ -369,8 +373,8 @@ export function PrintStudioControls({
                     <RangeSlider
                       label="Factor de upscale"
                       min={1}
-                      max={8}
-                      step={0.5}
+                      max={upscaleMax}
+                      step={UPSCALE_STEP}
                       value={upscaleFactor}
                       onChange={(v) => {
                         setUpscaleFactor(v as number);
