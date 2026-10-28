@@ -2,6 +2,7 @@
 
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { ApiEnvelope } from "@/entities/order/types";
 import { parseUserAgent } from "../lib/parse-user-agent";
 
@@ -65,7 +66,7 @@ export function ActiveSessions() {
       const res = await post<ApiEnvelope<{ message: string; count: number }>>(
         "/auth/sessions/revoke-all"
       );
-      alert(
+      toast.success(
         `Se cerró la sesión en ${res.data?.count ?? 0} dispositivo(s)`
       );
       await loadSessions();

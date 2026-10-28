@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Modal,
   Badge,
@@ -127,7 +128,7 @@ export function FormatsModal({
       await adminApi.formats.deactivate(f.id);
       onChanged();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setDeletingFormat(null);
     }
@@ -143,7 +144,7 @@ export function FormatsModal({
       }
       onChanged();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setTogglingFormat(null);
     }

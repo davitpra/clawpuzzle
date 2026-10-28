@@ -6,6 +6,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { SITE_URL } from "@/shared/config/seo";
+import { Toaster } from "@/shared/ui/Toaster";
 
 // Epilogue es variable: sin `weight` next/font emite un solo @font-face con
 // `font-weight: 100 900`, así que pesa un archivo en vez de cuatro y los pesos
@@ -78,6 +79,7 @@ export default function RootLayout({
             <CartProvider>{children}</CartProvider>
           </AuthProvider>
         </GoogleOAuthProvider>
+        <Toaster />
       </body>
     </html>
   );

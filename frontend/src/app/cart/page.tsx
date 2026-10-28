@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { toast } from "sonner";
 import { Navbar } from "@/widgets/navbar";
 import { Footer } from "@/widgets/footer";
 import { CartItemList, OrderSummary, PromoCodeBox } from "@/widgets/cart";
@@ -17,11 +18,11 @@ export default function CartPage() {
   const handleCheckout = async () => {
     const result = await startCheckout();
     if (result.status === "no-variants") {
-      alert(
+      toast.error(
         "To test checkout, you need real Shopify Product Variant IDs. Please add products to your Shopify store and update the items with their Variant IDs.",
       );
     } else if (result.status === "error") {
-      alert(
+      toast.error(
         result.message
           ? `Checkout error: ${result.message}`
           : "An error occurred during checkout. Please try again.",
