@@ -55,65 +55,9 @@ function StepCard({
   );
 }
 
-// Sección plegable dentro de "Ajustes adicionales".
-function SubSection({
-  id,
-  title,
-  summary,
-  open,
-  onToggle,
-  children,
-}: {
-  id: string;
-  title: string;
-  summary: string;
-  open: boolean;
-  onToggle: () => void;
-  children?: ReactNode;
-}) {
-  return (
-    <Box
-      borderWidth="025"
-      borderColor="border"
-      borderRadius="200"
-      padding="300"
-    >
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="start" wrap={false}>
-          <BlockStack gap="050">
-            <Text as="h3" variant="headingSm">
-              {title}
-            </Text>
-            <Text as="span" variant="bodySm" tone="subdued">
-              {summary}
-            </Text>
-          </BlockStack>
-          {children && (
-            <Button
-              variant="plain"
-              size="slim"
-              disclosure={open ? "up" : "down"}
-              onClick={onToggle}
-              ariaExpanded={open}
-              ariaControls={id}
-            >
-              {open ? "Ocultar" : "Mostrar"}
-            </Button>
-          )}
-        </InlineStack>
-        {children && (
-          <Collapsible open={open} id={id}>
-            {children}
-          </Collapsible>
-        )}
-      </BlockStack>
-    </Box>
-  );
-}
-
 // Panel de controles del estudio de impresión en bloques: formato
 // (va primero: sin él no hay DPI, guías ni bleed), encuadre, sangrado y
-// ajustes adicionales (upscale IA).
+// upscale IA.
 export function PrintStudioControls({
   err,
   setErr,
@@ -184,7 +128,6 @@ export function PrintStudioControls({
   onRevert: () => void;
   markUnsaved: () => void;
 }) {
-  const [extrasOpen, setExtrasOpen] = useState(true);
   // null = automático: el upscale se despliega solo si hace falta.
   const [upscaleOpen, setUpscaleOpen] = useState<boolean | null>(null);
   const currentLabel =
@@ -193,6 +136,7 @@ export function PrintStudioControls({
       : "Imagen original (sin guardar)";
   // Con el encuadre actual el máster ya llega a PRINT_DPI sin agrandar.
   const sourceIsEnough = framedDpi !== null && framedDpi >= PRINT_DPI;
+  const upscaleExpanded = upscaleOpen ?? !sourceIsEnough;
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -294,95 +238,84 @@ export function PrintStudioControls({
           </BlockStack>
         </StepCard>
 
-        {/* Upscale IA, plegable */}
+        {/* Upscale IA: se despliega solo si hace falta. */}
         <StepCard
-          title="Ajustes adicionales"
+          title="Upscale con IA"
           action={
-            <Button
-              variant="plain"
-              size="slim"
-              disclosure={extrasOpen ? "up" : "down"}
-              onClick={() => setExtrasOpen((value) => !value)}
-              ariaExpanded={extrasOpen}
-              ariaControls="print-studio-extras"
-            >
-              {extrasOpen ? "Ocultar" : "Mostrar"}
-            </Button>
+            !sourceIsEnough && (
+              <Button
+                variant="plain"
+                size="slim"
+                disclosure={upscaleExpanded ? "up" : "down"}
+                onClick={() => setUpscaleOpen(!upscaleExpanded)}
+                ariaExpanded={upscaleExpanded}
+                ariaControls="print-studio-upscale"
+              >
+                {upscaleExpanded ? "Ocultar" : "Mostrar"}
+              </Button>
+            )
           }
         >
-          <Collapsible open={extrasOpen} id="print-studio-extras">
-            <BlockStack gap="300">
-              <SubSection
-                id="print-studio-upscale"
-                title="Upscale con IA"
-                summary={
-                  sourceIsEnough
-                    ? `Con este tamaño y encuadre el archivo ya llega a ${PRINT_DPI} DPI; agrandar no mejora la impresión.`
-                    : `Mejora la resolución hasta ${PRINT_DPI} DPI.`
-                }
-                open={upscaleOpen ?? !sourceIsEnough}
-                onToggle={() =>
-                  setUpscaleOpen((value) => !(value ?? !sourceIsEnough))
-                }
-              >
-                {!sourceIsEnough && (
-                  <BlockStack gap="200">
-                    {info?.hasUpscaledBase && (
-                      <Banner tone="info">
-                        Imagen ya agrandada con IA. Usa el botón para volver a
-                        ejecutar el motor desde la imagen original con un factor
-                        diferente.
-                      </Banner>
-                    )}
-                    <RangeSlider
-                      label="Factor de upscale"
-                      min={1}
-                      max={upscaleMax}
-                      step={UPSCALE_STEP}
-                      value={upscaleFactor}
-                      onChange={(v) => {
-                        setUpscaleFactor(v as number);
-                        markUnsaved();
-                      }}
-                      output
-                    />
-                    {upscaleResultPx && upscaleResultDpi !== null && (
-                      <InlineStack gap="300" blockAlign="center" wrap>
-                        <Text as="span" variant="bodySm" tone="subdued">
-                          {`Al guardar: ${upscaleResultPx.w} × ${upscaleResultPx.h} px`}
-                        </Text>
-                        <Badge tone={dpiTone(upscaleResultDpi)}>
-                          {`${upscaleResultDpi} DPI`}
-                        </Badge>
-                      </InlineStack>
-                    )}
-                    <Text as="span" variant="bodySm" tone="subdued">
-                      {`El archivo guardado se limita a ${PRINT_DPI} DPI. Solo este botón ejecuta el motor de IA; los demás ajustes se guardan sin volver a agrandar.`}
-                    </Text>
-                    <Box>
-                      <Button
-                        loading={upscaling}
-                        disabled={
-                          !canAct || upscaleFactor <= 1 || !upscaleUseful
-                        }
-                        onClick={onUpscale}
-                      >
-                        {info?.hasUpscaledBase
-                          ? "Volver a agrandar con IA"
-                          : "Agrandar con IA"}
-                      </Button>
-                    </Box>
-                    {upscaleFactor > 1 && !upscaleUseful && (
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        Con este factor el DPI final no sube: el archivo se
-                        limita a {PRINT_DPI} DPI.
-                      </Text>
-                    )}
-                  </BlockStack>
+          <Text as="span" variant="bodySm" tone="subdued">
+            {sourceIsEnough
+              ? `Con este tamaño y encuadre el archivo ya llega a ${PRINT_DPI} DPI; agrandar no mejora la impresión.`
+              : `Mejora la resolución hasta ${PRINT_DPI} DPI.`}
+          </Text>
+          {!sourceIsEnough && (
+            <Collapsible open={upscaleExpanded} id="print-studio-upscale">
+              <BlockStack gap="200">
+                {info?.hasUpscaledBase && (
+                  <Banner tone="info">
+                    Imagen ya agrandada con IA. Usa el botón para volver a
+                    ejecutar el motor desde la imagen original con un factor
+                    diferente.
+                  </Banner>
                 )}
-              </SubSection>
-            </BlockStack>
-          </Collapsible>
+                <RangeSlider
+                  label="Factor de upscale"
+                  min={1}
+                  max={upscaleMax}
+                  step={UPSCALE_STEP}
+                  value={upscaleFactor}
+                  onChange={(v) => {
+                    setUpscaleFactor(v as number);
+                    markUnsaved();
+                  }}
+                  output
+                />
+                {upscaleResultPx && upscaleResultDpi !== null && (
+                  <InlineStack gap="300" blockAlign="center" wrap>
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      {`Al guardar: ${upscaleResultPx.w} × ${upscaleResultPx.h} px`}
+                    </Text>
+                    <Badge tone={dpiTone(upscaleResultDpi)}>
+                      {`${upscaleResultDpi} DPI`}
+                    </Badge>
+                  </InlineStack>
+                )}
+                <Text as="span" variant="bodySm" tone="subdued">
+                  {`El archivo guardado se limita a ${PRINT_DPI} DPI. Solo este botón ejecuta el motor de IA; los demás ajustes se guardan sin volver a agrandar.`}
+                </Text>
+                <Box>
+                  <Button
+                    loading={upscaling}
+                    disabled={!canAct || upscaleFactor <= 1 || !upscaleUseful}
+                    onClick={onUpscale}
+                  >
+                    {info?.hasUpscaledBase
+                      ? "Volver a agrandar con IA"
+                      : "Agrandar con IA"}
+                  </Button>
+                </Box>
+                {upscaleFactor > 1 && !upscaleUseful && (
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Con este factor el DPI final no sube: el archivo se limita a{" "}
+                    {PRINT_DPI} DPI.
+                  </Text>
+                )}
+              </BlockStack>
+            </Collapsible>
+          )}
         </StepCard>
 
         {info?.alreadyEnhanced && (
