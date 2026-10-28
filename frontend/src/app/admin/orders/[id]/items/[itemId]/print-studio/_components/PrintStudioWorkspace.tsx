@@ -26,7 +26,6 @@ import {
   DEFAULT_UPSCALE_FACTOR,
   maxUsefulUpscale,
   CENTER_CROP,
-  computeAspectCrop,
   computePrintGeometry,
   dpiFor,
 } from "./printStudio";
@@ -178,14 +177,6 @@ export default function PrintStudioWorkspace({
     savedUrl || info?.printImageUrl
       ? ("saved" as const)
       : ("original" as const);
-  const currentPx =
-    measuredPx ??
-    (info?.sourcePx
-      ? { w: info.sourcePx.width, h: info.sourcePx.height }
-      : null);
-  const aspectCrop =
-    currentPx && printInches ? computeAspectCrop(currentPx, printInches) : null;
-
   // DPI of the current print image as measured client-side from the delivered URL.
   const currentDpi =
     measuredPx && printInches ? dpiFor(measuredPx, printInches) : null;
@@ -352,6 +343,7 @@ export default function PrintStudioWorkspace({
                   printInches={printInches}
                   measuredPx={measuredPx}
                   currentDpi={currentDpi}
+                  framedDpi={framedDpi}
                   currentKind={currentKind}
                   info={info}
                   onZoom={setZoom}
@@ -365,7 +357,6 @@ export default function PrintStudioWorkspace({
                 hasSource={hasSource}
                 currentDpi={currentDpi}
                 currentKind={currentKind}
-                aspectCrop={aspectCrop}
                 printInches={printInches}
                 info={info}
                 upscaleFactor={effectiveUpscale}

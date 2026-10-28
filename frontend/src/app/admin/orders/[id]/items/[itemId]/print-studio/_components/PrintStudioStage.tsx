@@ -6,8 +6,8 @@ import {
   Button,
   Badge,
   Checkbox,
+  RangeSlider,
 } from "@shopify/polaris";
-import { MinusIcon, PlusIcon, TargetIcon } from "@shopify/polaris-icons";
 import type { BleedMode, EnhanceInfo, PrintCrop } from "@/entities/admin/api";
 import {
   BLEED_MM,
@@ -42,7 +42,7 @@ function InfoRow({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const CROP_SHADE = "rgba(0,0,0,0.5)";
-// Paso de los botones de zoom de la barra junto a la vista.
+// Paso del slider de zoom del encuadre.
 const ZOOM_STEP = 0.1;
 // Alto máximo de la vista hasta medir dónde empieza: la ventana menos una
 // estimación de la cabecera y el padding de la tarjeta.
@@ -77,6 +77,7 @@ export function PrintStudioStage({
   printInches,
   measuredPx,
   currentDpi,
+  framedDpi,
   currentKind,
   info,
   onZoom,
@@ -101,6 +102,8 @@ export function PrintStudioStage({
   printInches: { width: number; height: number } | null;
   measuredPx: { w: number; h: number } | null;
   currentDpi: number | null;
+  // DPI del máster que saldría al guardar con el encuadre actual.
+  framedDpi: number | null;
   currentKind: "saved" | "original";
   info: EnhanceInfo | null;
   onZoom: (zoom: { src: string; title: string }) => void;
@@ -270,50 +273,6 @@ export function PrintStudioStage({
               width: "100%",
             }}
           >
-            {/* Zoom del encuadre, pegado a la vista que se arrastra */}
-            {framing && framed && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: 4,
-                  background: "#fff",
-                  border: "1px solid #c9cccf",
-                  borderRadius: 8,
-                  flexShrink: 0,
-                }}
-              >
-                <Button
-                  variant="tertiary"
-                  icon={PlusIcon}
-                  accessibilityLabel="Acercar"
-                  disabled={crop.zoom >= MAX_CROP_ZOOM}
-                  onClick={() => setZoom(crop.zoom + ZOOM_STEP)}
-                />
-                <Text as="span" variant="bodySm" fontWeight="medium">
-                  {`${Math.round(crop.zoom * 100)} %`}
-                </Text>
-                <Button
-                  variant="tertiary"
-                  icon={MinusIcon}
-                  accessibilityLabel="Alejar"
-                  disabled={crop.zoom <= 1}
-                  onClick={() => setZoom(crop.zoom - ZOOM_STEP)}
-                />
-                <div
-                  style={{ width: "100%", borderTop: "1px solid #e3e3e3" }}
-                />
-                <Button
-                  variant="tertiary"
-                  icon={TargetIcon}
-                  accessibilityLabel="Centrar encuadre"
-                  disabled={isCentered}
-                  onClick={() => onCropChange(CENTER_CROP)}
-                />
-              </div>
-            )}
             <div
               ref={stageRef}
               style={{
@@ -583,6 +542,57 @@ export function PrintStudioStage({
                     </Button>
                   )}
                 </BlockStack>
+
+                {/* Encuadre: zoom y posición del recorte; la posición se
+                    elige arrastrando la imagen. */}
+                {editable && (
+                  <>
+                    <div style={{ borderTop: "1px solid #e3e3e3" }} />
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingXs" tone="subdued">
+                        ENCUADRE
+                      </Text>
+                      <RangeSlider
+                        label="Zoom"
+                        min={1}
+                        max={MAX_CROP_ZOOM}
+                        step={ZOOM_STEP}
+                        value={crop.zoom}
+                        output
+                        onChange={(v) => setZoom(v as number)}
+                        suffix={
+                          <Text as="span" variant="bodySm">
+                            {`${Math.round(crop.zoom * 100)} %`}
+                          </Text>
+                        }
+                      />
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {cropsImage
+                          ? `Se usa el ${Math.round(rect.width * 100)} % del ancho y el ${Math.round(rect.height * 100)} % del alto.`
+                          : "Se usa la imagen completa."}
+                      </Text>
+                      {framedDpi !== null && (
+                        <InfoRow label="Con este encuadre">
+                          <Badge tone={dpiTone(framedDpi)}>
+                            {`${framedDpi} DPI`}
+                          </Badge>
+                        </InfoRow>
+                      )}
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        Arrastra la imagen para mover el encuadre.
+                      </Text>
+                      <InlineStack>
+                        <Button
+                          variant="plain"
+                          disabled={isCentered}
+                          onClick={() => onCropChange(CENTER_CROP)}
+                        >
+                          Restablecer encuadre
+                        </Button>
+                      </InlineStack>
+                    </BlockStack>
+                  </>
+                )}
 
                 <div style={{ borderTop: "1px solid #e3e3e3" }} />
 

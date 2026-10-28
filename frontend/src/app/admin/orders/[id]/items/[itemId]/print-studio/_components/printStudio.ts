@@ -14,9 +14,6 @@ export const MAX_UPSCALE_FACTOR = 8;
 export const BLEED_MM = 3;
 // Margen de seguridad dentro de la línea de corte.
 const SAFE_MARGIN_MM = 10;
-// Diferencia de proporción por debajo de la cual no se avisa de recorte
-// (redondeos de píxeles, no un recorte real).
-const ASPECT_TOLERANCE = 0.005;
 
 type Px = { w: number; h: number };
 type Inches = { width: number; height: number };
@@ -94,27 +91,6 @@ export function dpiFor(px: Px, printInches: Inches): number {
   return Math.round(
     Math.min(px.w / printInches.width, px.h / printInches.height),
   );
-}
-
-export interface AspectCrop {
-  // Eje que se recorta: "w" pierde izquierda/derecha, "h" arriba/abajo.
-  axis: "w" | "h";
-  // Fracción del eje recortado que se pierde por cada lado (0–0,5).
-  perSide: number;
-}
-
-// Recorte centrado que sufre una imagen al cubrir el formato, o null si la
-// proporción coincide.
-export function computeAspectCrop(
-  px: Px,
-  printInches: Inches,
-): AspectCrop | null {
-  const imageRatio = px.w / px.h;
-  const printRatio = printInches.width / printInches.height;
-  if (Math.abs(imageRatio / printRatio - 1) < ASPECT_TOLERANCE) return null;
-  return imageRatio > printRatio
-    ? { axis: "w", perSide: (1 - printRatio / imageRatio) / 2 }
-    : { axis: "h", perSide: (1 - imageRatio / printRatio) / 2 };
 }
 
 // Tamaño del máster que guardará el backend (`buildPrintImage`): se limita a

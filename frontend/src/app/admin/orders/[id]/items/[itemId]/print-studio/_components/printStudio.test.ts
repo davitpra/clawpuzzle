@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { EnhanceInfo } from "@/entities/admin/api";
 import {
   clampCrop,
-  computeAspectCrop,
   cropRect,
   computePrintGeometry,
   formatPrintSize,
@@ -26,18 +25,6 @@ describe("formatPrintSize", () => {
     expect(formatPrintSize({ width: 21.5 / 2.54, height: 30 / 2.54 })).toBe(
       "21,5 × 30 cm",
     );
-  });
-});
-
-describe("computeAspectCrop", () => {
-  it("crops the sides of a 3:4 image on a 2:3 format", () => {
-    const crop = computeAspectCrop({ w: 3584, h: 4800 }, print);
-    expect(crop?.axis).toBe("w");
-    expect(crop?.perSide).toBeCloseTo((1 - 2 / 3 / 0.7467) / 2, 3);
-  });
-
-  it("ignores pixel rounding", () => {
-    expect(computeAspectCrop({ w: 2362, h: 3543 }, print)).toBeNull();
   });
 });
 

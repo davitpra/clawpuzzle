@@ -27,7 +27,6 @@ import {
   PRINT_DPI,
   UPSCALE_STEP,
   dpiTone,
-  type AspectCrop,
 } from "./printStudio";
 import { BleedModePicker } from "./BleedModePicker";
 
@@ -57,15 +56,14 @@ function StepCard({
 }
 
 // Panel de controles del estudio de impresión en bloques: formato
-// (va primero: sin él no hay DPI, guías ni bleed), encuadre, sangrado y
-// upscale IA.
+// (va primero: sin él no hay DPI, guías ni bleed), sangrado y upscale IA. El
+// encuadre vive junto a la vista, donde se arrastra la imagen.
 export function PrintStudioControls({
   err,
   setErr,
   hasSource,
   currentDpi,
   currentKind,
-  aspectCrop,
   printInches,
   info,
   upscaleFactor,
@@ -97,7 +95,6 @@ export function PrintStudioControls({
   hasSource: boolean;
   currentDpi: number | null;
   currentKind: "saved" | "original";
-  aspectCrop: AspectCrop | null;
   printInches: { width: number; height: number } | null;
   info: EnhanceInfo | null;
   upscaleFactor: number;
@@ -162,30 +159,6 @@ export function PrintStudioControls({
 
         {/* Tamaño de impresión del item */}
         <StepCard title="Formato de impresión">{printSizeControl}</StepCard>
-
-        {/* Proporción: decisión de formato, no de color */}
-        <StepCard title="Encuadre de imagen">
-          {printInches ? (
-            aspectCrop ? (
-              <Banner
-                tone="warning"
-                title={`La imagen se recorta un ${Math.round(aspectCrop.perSide * 200)} % del ${aspectCrop.axis === "w" ? "ancho" : "alto"}.`}
-              >
-                Arrastra la imagen y usa el zoom junto a la vista para elegir
-                qué parte queda. La zona sombreada es lo que se pierde.
-              </Banner>
-            ) : (
-              <Text as="span" variant="bodySm" tone="subdued">
-                La imagen ya tiene la proporción del formato. Usa el zoom junto
-                a la vista para ajustar el encuadre.
-              </Text>
-            )
-          ) : (
-            <Text as="span" variant="bodySm" tone="subdued">
-              Elige un tamaño de impresión para encuadrar la imagen.
-            </Text>
-          )}
-        </StepCard>
 
         {/* Bleed — sin tamaño de impresión el backend no puede medirlo. */}
         <StepCard title="Sangrado (bleed)">
