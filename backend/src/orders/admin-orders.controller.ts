@@ -399,23 +399,6 @@ export class AdminOrdersController {
     );
   }
 
-  @Post(':id/items/:itemId/enhance-preview')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Build a non-committed preview URL for the requested adjustments',
-  })
-  enhancePreview(
-    @Param('id') orderId: string,
-    @Param('itemId') itemId: string,
-    @Body() options: EnhanceDto,
-  ) {
-    return this.imageEnhancementService.previewEnhance(
-      orderId,
-      itemId,
-      options,
-    );
-  }
-
   @Post(':id/items/:itemId/enhance')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

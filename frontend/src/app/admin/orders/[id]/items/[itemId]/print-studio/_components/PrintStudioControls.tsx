@@ -60,7 +60,6 @@ function SubSection({
   id,
   title,
   summary,
-  badge,
   open,
   onToggle,
   children,
@@ -68,7 +67,6 @@ function SubSection({
   id: string;
   title: string;
   summary: string;
-  badge?: ReactNode;
   open: boolean;
   onToggle: () => void;
   children?: ReactNode;
@@ -83,12 +81,9 @@ function SubSection({
       <BlockStack gap="300">
         <InlineStack align="space-between" blockAlign="start" wrap={false}>
           <BlockStack gap="050">
-            <InlineStack gap="200" blockAlign="center">
-              <Text as="h3" variant="headingSm">
-                {title}
-              </Text>
-              {badge}
-            </InlineStack>
+            <Text as="h3" variant="headingSm">
+              {title}
+            </Text>
             <Text as="span" variant="bodySm" tone="subdued">
               {summary}
             </Text>
@@ -118,7 +113,7 @@ function SubSection({
 
 // Panel de controles del estudio de impresión en bloques: formato
 // (va primero: sin él no hay DPI, guías ni bleed), encuadre, sangrado y
-// ajustes adicionales (upscale IA y color).
+// ajustes adicionales (upscale IA).
 export function PrintStudioControls({
   err,
   setErr,
@@ -140,18 +135,6 @@ export function PrintStudioControls({
   canAct,
   upscaling,
   onUpscale,
-  brightness,
-  setBrightness,
-  contrast,
-  setContrast,
-  saturation,
-  setSaturation,
-  sharpen,
-  setSharpen,
-  improve,
-  setImprove,
-  previewing,
-  onPreview,
   printSizeControl,
   bleedEnabled,
   setBleedEnabled,
@@ -164,7 +147,7 @@ export function PrintStudioControls({
   reverting,
   busy,
   onRevert,
-  invalidatePreview,
+  markUnsaved,
 }: {
   err: string | null;
   setErr: Dispatch<SetStateAction<string | null>>;
@@ -187,18 +170,6 @@ export function PrintStudioControls({
   canAct: boolean;
   upscaling: boolean;
   onUpscale: () => void;
-  brightness: number;
-  setBrightness: Dispatch<SetStateAction<number>>;
-  contrast: number;
-  setContrast: Dispatch<SetStateAction<number>>;
-  saturation: number;
-  setSaturation: Dispatch<SetStateAction<number>>;
-  sharpen: number;
-  setSharpen: Dispatch<SetStateAction<number>>;
-  improve: boolean;
-  setImprove: Dispatch<SetStateAction<boolean>>;
-  previewing: boolean;
-  onPreview: () => void;
   printSizeControl: ReactNode;
   bleedEnabled: boolean;
   setBleedEnabled: Dispatch<SetStateAction<boolean>>;
@@ -211,24 +182,17 @@ export function PrintStudioControls({
   reverting: boolean;
   busy: boolean;
   onRevert: () => void;
-  invalidatePreview: () => void;
+  markUnsaved: () => void;
 }) {
   const [extrasOpen, setExtrasOpen] = useState(true);
   // null = automático: el upscale se despliega solo si hace falta.
   const [upscaleOpen, setUpscaleOpen] = useState<boolean | null>(null);
-  const [adjustOpen, setAdjustOpen] = useState(false);
   const currentLabel =
     currentKind === "saved"
       ? "Imagen guardada"
       : "Imagen original (sin guardar)";
   // Con el encuadre actual el máster ya llega a PRINT_DPI sin agrandar.
   const sourceIsEnough = framedDpi !== null && framedDpi >= PRINT_DPI;
-  const colorTouched =
-    brightness !== 0 ||
-    contrast !== 0 ||
-    saturation !== 0 ||
-    sharpen !== 0 ||
-    improve;
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -314,7 +278,7 @@ export function PrintStudioControls({
               checked={bleedEnabled && Boolean(printInches)}
               onChange={(v) => {
                 setBleedEnabled(v);
-                invalidatePreview();
+                markUnsaved();
               }}
             />
             {bleedEnabled && printInches && (
@@ -330,7 +294,7 @@ export function PrintStudioControls({
           </BlockStack>
         </StepCard>
 
-        {/* Upscale IA y ajustes de color, plegados por defecto */}
+        {/* Upscale IA, plegable */}
         <StepCard
           title="Ajustes adicionales"
           action={
@@ -378,7 +342,7 @@ export function PrintStudioControls({
                       value={upscaleFactor}
                       onChange={(v) => {
                         setUpscaleFactor(v as number);
-                        invalidatePreview();
+                        markUnsaved();
                       }}
                       output
                     />
@@ -416,81 +380,6 @@ export function PrintStudioControls({
                     )}
                   </BlockStack>
                 )}
-              </SubSection>
-
-              <SubSection
-                id="print-studio-adjustments"
-                title="Color y ajustes de imagen"
-                summary="Brillo, contraste, saturación y nitidez."
-                badge={colorTouched ? <Badge>Modificado</Badge> : undefined}
-                open={adjustOpen}
-                onToggle={() => setAdjustOpen((value) => !value)}
-              >
-                <BlockStack gap="300">
-                  <RangeSlider
-                    label="Brillo"
-                    min={-50}
-                    max={100}
-                    value={brightness}
-                    onChange={(v) => {
-                      setBrightness(v as number);
-                      invalidatePreview();
-                    }}
-                    output
-                  />
-                  <RangeSlider
-                    label="Contraste"
-                    min={-50}
-                    max={100}
-                    value={contrast}
-                    onChange={(v) => {
-                      setContrast(v as number);
-                      invalidatePreview();
-                    }}
-                    output
-                  />
-                  <RangeSlider
-                    label="Saturación"
-                    min={-50}
-                    max={100}
-                    value={saturation}
-                    onChange={(v) => {
-                      setSaturation(v as number);
-                      invalidatePreview();
-                    }}
-                    output
-                  />
-                  <RangeSlider
-                    label="Nitidez"
-                    min={0}
-                    max={200}
-                    step={10}
-                    value={sharpen}
-                    onChange={(v) => {
-                      setSharpen(v as number);
-                      invalidatePreview();
-                    }}
-                    output
-                  />
-                  <Checkbox
-                    label="Mejora automática"
-                    helpText="Auto-niveles: normaliza el rango tonal."
-                    checked={improve}
-                    onChange={(v) => {
-                      setImprove(v);
-                      invalidatePreview();
-                    }}
-                  />
-                  <Box>
-                    <Button
-                      loading={previewing}
-                      disabled={!canAct}
-                      onClick={onPreview}
-                    >
-                      Previsualizar exacto
-                    </Button>
-                  </Box>
-                </BlockStack>
               </SubSection>
             </BlockStack>
           </Collapsible>

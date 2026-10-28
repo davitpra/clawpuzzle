@@ -1504,15 +1504,6 @@ export const adminApi = {
         `/admin/orders/${orderId}/items/${itemId}/print-config`,
         { method: "DELETE" },
       ),
-    enhancePreview: (
-      orderId: string,
-      itemId: string,
-      options: EnhanceOptions,
-    ) =>
-      adminFetch<{ previewUrl: string; willUpscale: boolean }>(
-        `/admin/orders/${orderId}/items/${itemId}/enhance-preview`,
-        { method: "POST", body: JSON.stringify(options) },
-      ),
     enhance: (orderId: string, itemId: string, options: EnhanceOptions) =>
       adminFetch<{ printImageUrl: string }>(
         `/admin/orders/${orderId}/items/${itemId}/enhance`,
@@ -1578,18 +1569,12 @@ export interface EnhanceOptions {
   upscaleFactor?: number;
   upscale?: 0 | 2 | 4;
   targetDpi?: number;
-  sharpen?: number;
-  contrast?: number;
-  brightness?: number;
-  saturation?: number;
-  improve?: boolean;
   fitToFormat?: boolean;
   crop?: PrintCrop;
   format?: "jpeg" | "png";
   bleed?: boolean;
   bleedColor?: string;
   bleedMode?: BleedMode;
-  previewUpscale?: boolean;
 }
 
 /** Relleno de la banda de sangrado: píxel del borde, espejo o color sólido. */

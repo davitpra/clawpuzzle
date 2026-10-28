@@ -45,12 +45,10 @@ const CROP_SHADE = "rgba(0,0,0,0.5)";
 // Paso de los botones de zoom de la barra junto a la vista.
 const ZOOM_STEP = 0.1;
 // Alto máximo de la vista hasta medir dónde empieza: la ventana menos una
-// estimación de la cabecera, el padding de la tarjeta y la nota.
+// estimación de la cabecera y el padding de la tarjeta.
 const STAGE_FALLBACK_MAX_H = "calc(100dvh - 280px)";
 // Lo que queda bajo la vista: padding inferior de la tarjeta y de la página.
 const BOTTOM_GAP = 40;
-// Alto de la nota de vista previa que se pinta bajo la vista.
-const PREVIEW_NOTE_H = 28;
 // Alto mínimo de la vista en ventanas muy bajas.
 const MIN_STAGE_H = 320;
 // Margen máximo por lado alrededor de la vista para ver lo que se recorta.
@@ -77,8 +75,6 @@ export function PrintStudioStage({
   showGuides,
   onShowGuidesChange,
   printInches,
-  cssFilter,
-  previewUrl,
   measuredPx,
   currentDpi,
   currentKind,
@@ -103,15 +99,13 @@ export function PrintStudioStage({
   showGuides: boolean;
   onShowGuidesChange: (checked: boolean) => void;
   printInches: { width: number; height: number } | null;
-  cssFilter: string | undefined;
-  previewUrl: string | null;
   measuredPx: { w: number; h: number } | null;
   currentDpi: number | null;
   currentKind: "saved" | "original";
   info: EnhanceInfo | null;
   onZoom: (zoom: { src: string; title: string }) => void;
 }) {
-  // Dimensiones de la imagen visible (puede ser la preview de 900 px): con ellas
+  // Dimensiones de la imagen visible: con ellas
   // se calcula qué parte queda fuera del corte por diferencia de proporción.
   const [displayPx, setDisplayPx] = useState<{
     url: string;
@@ -134,21 +128,19 @@ export function PrintStudioStage({
       const el = stageRef.current;
       if (!el) return;
       const top = el.getBoundingClientRect().top + window.scrollY;
-      const gap = BOTTOM_GAP + (previewUrl ? PREVIEW_NOTE_H : 0);
-      setMaxH(Math.max(MIN_STAGE_H, window.innerHeight - top - gap));
+      setMaxH(Math.max(MIN_STAGE_H, window.innerHeight - top - BOTTOM_GAP));
     }
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [previewUrl]);
+  }, []);
   const stageMaxH = maxH !== null ? `${maxH}px` : STAGE_FALLBACK_MAX_H;
 
   const withGuides = showGuides && printInches !== null;
   const shownPx =
     withGuides && displayPx && displayPx.url === displayUrl ? displayPx : null;
-  // La preview del backend ya viene recortada, y sin "Ajustar al formato" el
-  // troquel recorta centrado: en ambos casos el encuadre es el centrado.
-  const editable = framing && !previewUrl && shownPx !== null;
+  // Sin "Ajustar al formato" el troquel recorta centrado.
+  const editable = framing && shownPx !== null;
   const rect =
     shownPx && printInches
       ? cropRect(shownPx, printInches, editable ? crop : CENTER_CROP)
@@ -199,12 +191,6 @@ export function PrintStudioStage({
       : [];
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    // Sobre la preview ya recortada, empezar a arrastrar la descarta y vuelve
-    // al original para encuadrar.
-    if (framing && previewUrl) {
-      onCropChange(crop);
-      return;
-    }
     if (!editable) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragStart.current = { x: e.clientX, y: e.clientY, crop };
@@ -357,7 +343,7 @@ export function PrintStudioStage({
                   style={{
                     position: "relative",
                     width: "100%",
-                    ...(editable || (framing && previewUrl)
+                    ...(editable
                       ? {
                           cursor: dragging ? "grabbing" : "grab",
                           touchAction: "none",
@@ -413,7 +399,6 @@ export function PrintStudioStage({
                               objectFit: "cover",
                               objectPosition: "center",
                               display: "block",
-                              filter: cssFilter,
                             }
                           : {
                               display: "block",
@@ -422,7 +407,6 @@ export function PrintStudioStage({
                               maxHeight: stageMaxH,
                               margin: "0 auto",
                               borderRadius: 6,
-                              filter: cssFilter,
                             }
                       }
                     />
@@ -486,7 +470,6 @@ export function PrintStudioStage({
                           height: `${img.height}%`,
                           objectFit: "cover",
                           objectPosition: "center",
-                          filter: cssFilter,
                         }}
                       />
                     )}
@@ -676,13 +659,6 @@ export function PrintStudioStage({
               </BlockStack>
             </div>
           </div>
-
-          {previewUrl && (
-            <Text as="span" variant="bodySm" tone="subdued">
-              Vista previa (aprox.) — el archivo guardado no cambia hasta pulsar
-              Guardar.
-            </Text>
-          )}
         </BlockStack>
       </div>
     </>

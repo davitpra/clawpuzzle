@@ -22,7 +22,6 @@ import { cloudinaryDownloadUrl } from "@/shared/lib/cloudinary";
 import { hexToHsb, hsbToHex, HsbColor } from "@/lib/colorUtils";
 import ImagePreviewModal from "@/app/admin/_components/ImagePreviewModal";
 import {
-  GOOD_DPI,
   DEFAULT_UPSCALE_FACTOR,
   maxUsefulUpscale,
   CENTER_CROP,
@@ -43,11 +42,9 @@ export default function PrintStudioWorkspace({
 }) {
   const [info, setInfo] = useState<EnhanceInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // URL guardada durante esta sesión para mostrar el resultado inmediatamente.
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
-  const [previewing, setPreviewing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -59,11 +56,6 @@ export default function PrintStudioWorkspace({
   // Controls
   const [upscaleFactor, setUpscaleFactor] = useState(DEFAULT_UPSCALE_FACTOR);
   const [upscaling, setUpscaling] = useState(false);
-  const [sharpen, setSharpen] = useState(0);
-  const [contrast, setContrast] = useState(0);
-  const [brightness, setBrightness] = useState(0);
-  const [saturation, setSaturation] = useState(0);
-  const [improve, setImprove] = useState(false);
   const [crop, setCrop] = useState<PrintCrop>(CENTER_CROP);
   const [bleedEnabled, setBleedEnabled] = useState(false);
   const [bleedColor, setBleedColor] = useState("#ffffff");
@@ -75,17 +67,14 @@ export default function PrintStudioWorkspace({
   });
   const [showGuides, setShowGuides] = useState(true);
 
-  // The current image to display (before any backend preview)
   const sourceUrl = info?.sourceUrl ?? null;
-  // Encuadrando, el stage muestra el original sin recortar (el máster guardado
-  // ya está recortado y se recortaría dos veces) o la preview del backend.
-  const framing = showGuides && Boolean(info?.printInches);
-  const displayUrl = framing
-    ? (previewUrl ?? sourceUrl)
-    : (previewUrl ?? savedUrl ?? info?.printImageUrl ?? sourceUrl);
-  // Full-res current print image (excludes the 900px backend preview) — used for
-  // client-side dimension measurement and zoom.
+  // Full-res current print image — used for client-side dimension measurement
+  // and zoom.
   const currentImageUrl = savedUrl ?? info?.printImageUrl ?? sourceUrl;
+  // Encuadrando, el stage muestra el original sin recortar: el máster guardado
+  // ya está recortado y se recortaría dos veces.
+  const framing = showGuides && Boolean(info?.printInches);
+  const displayUrl = framing ? sourceUrl : currentImageUrl;
 
   useEffect(() => {
     let active = true;
@@ -103,12 +92,8 @@ export default function PrintStudioWorkspace({
             setBleedColor(data.bleedColor);
             setBleedHsb(hexToHsb(data.bleedColor));
           }
-          // Only suggest enhancements when the image hasn't been enhanced yet.
+          // Only suggest an upscale when the image hasn't been enhanced yet.
           if (!data.alreadyEnhanced) {
-            if (data.sourceDpi !== null && data.sourceDpi < GOOD_DPI) {
-              setImprove(true);
-              setSharpen(60);
-            }
             if (data.recommendedUpscale > 0) {
               setUpscaleFactor(data.recommendedUpscale);
             }
@@ -135,40 +120,27 @@ export default function PrintStudioWorkspace({
     setMeasuredPx(null);
   }, [currentImageUrl]);
 
-  const invalidatePreview = useCallback(() => {
-    setPreviewUrl(null);
-    setSavedOk(false);
-  }, []);
+  const markUnsaved = useCallback(() => setSavedOk(false), []);
 
   function updateCrop(next: PrintCrop) {
     setCrop(next);
-    invalidatePreview();
+    markUnsaved();
   }
 
   function updateBleedMode(mode: BleedMode) {
     setBleedMode(mode);
-    invalidatePreview();
+    markUnsaved();
   }
 
   function updateBleedColor(hsb: HsbColor) {
     setBleedHsb(hsb);
     setBleedColor(hsbToHex(hsb));
-    invalidatePreview();
+    markUnsaved();
   }
 
   const busy = applying || reverting || upscaling;
   const hasSource = Boolean(info?.sourceUrl);
   const canAct = hasSource && !busy && !loadingInfo;
-
-  // CSS filter for live brightness/contrast/saturation preview
-  const cssFilter =
-    [
-      brightness !== 0 ? `brightness(${1 + brightness / 100})` : "",
-      contrast !== 0 ? `contrast(${1 + contrast / 100})` : "",
-      saturation !== 0 ? `saturate(${1 + saturation / 100})` : "",
-    ]
-      .filter(Boolean)
-      .join(" ") || undefined;
 
   // Sin tamaño de impresión el backend rechaza el bleed: no se envía.
   const applyBleed = bleedEnabled && Boolean(info?.printInches);
@@ -215,44 +187,18 @@ export default function PrintStudioWorkspace({
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
-  async function handlePreviewExact() {
-    setPreviewing(true);
-    setErr(null);
-    try {
-      const opts: EnhanceOptions = {
-        sharpen: sharpen || undefined,
-        contrast: contrast || undefined,
-        brightness: brightness || undefined,
-        saturation: saturation || undefined,
-        improve: improve || undefined,
-        fitToFormat: true,
-        crop,
-      };
-      const res = await adminApi.orders.enhancePreview(orderId, itemId, opts);
-      setPreviewUrl(res.previewUrl);
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setPreviewing(false);
-    }
-  }
-
   async function handleUpscale() {
     setUpscaling(true);
     setErr(null);
     try {
       const opts: EnhanceOptions = {
         upscaleFactor: effectiveUpscale > 1 ? effectiveUpscale : undefined,
-        sharpen: sharpen || undefined,
-        contrast: contrast || undefined,
-        brightness: brightness || undefined,
-        saturation: saturation || undefined,
-        improve: improve || undefined,
         fitToFormat: true,
         crop,
         bleed: applyBleed || undefined,
         bleedMode: applyBleed ? bleedMode : undefined,
-        bleedColor: applyBleed && bleedMode === "solid" ? bleedColor : undefined,
+        bleedColor:
+          applyBleed && bleedMode === "solid" ? bleedColor : undefined,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
@@ -269,7 +215,6 @@ export default function PrintStudioWorkspace({
             }
           : prev,
       );
-      setPreviewUrl(null);
       setSavedUrl(printImageUrl);
       setSavedOk(true);
     } catch (e) {
@@ -283,19 +228,15 @@ export default function PrintStudioWorkspace({
     setApplying(true);
     setErr(null);
     try {
-      // Never pass upscaleFactor here — "Guardar" only re-applies colour/bleed
-      // adjustments on the existing high-res base (or original if not upscaled yet).
+      // Never pass upscaleFactor here — "Guardar" only re-applies crop/bleed
+      // on the existing high-res base (or original if not upscaled yet).
       const opts: EnhanceOptions = {
-        sharpen: sharpen || undefined,
-        contrast: contrast || undefined,
-        brightness: brightness || undefined,
-        saturation: saturation || undefined,
-        improve: improve || undefined,
         fitToFormat: true,
         crop,
         bleed: applyBleed || undefined,
         bleedMode: applyBleed ? bleedMode : undefined,
-        bleedColor: applyBleed && bleedMode === "solid" ? bleedColor : undefined,
+        bleedColor:
+          applyBleed && bleedMode === "solid" ? bleedColor : undefined,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
@@ -305,7 +246,6 @@ export default function PrintStudioWorkspace({
       setInfo((prev) =>
         prev ? { ...prev, printImageUrl, alreadyEnhanced: true } : prev,
       );
-      setPreviewUrl(null);
       setSavedUrl(printImageUrl);
       setSavedOk(true);
     } catch (e) {
@@ -322,7 +262,6 @@ export default function PrintStudioWorkspace({
       await adminApi.orders.enhanceRevert(orderId, itemId);
       const data = await adminApi.orders.enhanceInfo(orderId, itemId);
       setInfo(data);
-      setPreviewUrl(null);
       setSavedUrl(null);
       setSavedOk(false);
     } catch (e) {
@@ -409,8 +348,6 @@ export default function PrintStudioWorkspace({
                   showGuides={showGuides}
                   onShowGuidesChange={setShowGuides}
                   printInches={printInches}
-                  cssFilter={cssFilter}
-                  previewUrl={previewUrl}
                   measuredPx={measuredPx}
                   currentDpi={currentDpi}
                   currentKind={currentKind}
@@ -441,18 +378,6 @@ export default function PrintStudioWorkspace({
                 canAct={canAct}
                 upscaling={upscaling}
                 onUpscale={handleUpscale}
-                brightness={brightness}
-                setBrightness={setBrightness}
-                contrast={contrast}
-                setContrast={setContrast}
-                saturation={saturation}
-                setSaturation={setSaturation}
-                sharpen={sharpen}
-                setSharpen={setSharpen}
-                improve={improve}
-                setImprove={setImprove}
-                previewing={previewing}
-                onPreview={handlePreviewExact}
                 bleedEnabled={bleedEnabled}
                 printSizeControl={
                   <PrintSizeSelect
@@ -460,7 +385,7 @@ export default function PrintStudioWorkspace({
                     itemId={itemId}
                     info={info}
                     onInfoChange={setInfo}
-                    invalidatePreview={invalidatePreview}
+                    markUnsaved={markUnsaved}
                   />
                 }
                 setBleedEnabled={setBleedEnabled}
@@ -473,7 +398,7 @@ export default function PrintStudioWorkspace({
                 reverting={reverting}
                 busy={busy}
                 onRevert={handleRevert}
-                invalidatePreview={invalidatePreview}
+                markUnsaved={markUnsaved}
               />
             </Layout.Section>
           </Layout>

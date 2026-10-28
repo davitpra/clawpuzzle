@@ -196,72 +196,6 @@ export class ImageEnhancementService {
   }
 
   /**
-   * Build a non-committed preview returned inline as a data URI.
-   * With previewUpscale=true the fal.ai upscale runs so the preview is fully
-   * accurate (slower). Without it only colour/sharpness adjustments apply.
-   */
-  async previewEnhance(
-    orderId: string,
-    itemId: string,
-    options: EnhanceDto,
-  ): Promise<{ previewUrl: string; willUpscale: boolean }> {
-    const item = await this.loadItem(orderId, itemId);
-    const original = this.resolveGeneratedArt(item);
-    if (!original) {
-      throw new BadRequestException('Item has no generated artwork');
-    }
-
-    const printInches = this.resolvePrintInches(item);
-    const mock = this.configService.get<boolean>('ai.mock');
-    const willUpscale =
-      Boolean(options.previewUpscale) ||
-      Boolean(options.upscale) ||
-      Boolean(options.targetDpi);
-
-    let bytes: Buffer;
-    if (options.previewUpscale && !mock) {
-      const factor = await this.resolveUpscaleFactor(
-        options,
-        original,
-        printInches,
-      );
-      if (factor > 0) {
-        const result = await this.falService.generate({
-          model: UPSCALE_MODEL,
-          prompt: '',
-          params: {
-            image_url: original.url,
-            upscale_mode: 'factor',
-            upscale_factor: factor,
-          },
-        });
-        bytes = result.imageBuffer;
-        this.logger.log(`Preview upscale x${factor} (req ${result.requestId})`);
-      } else {
-        bytes = await this.download(original.url);
-      }
-    } else {
-      if (options.previewUpscale && mock) {
-        this.logger.warn('MOCK_AI=true — skipping fal upscale in preview');
-      }
-      bytes = await this.download(original.url);
-    }
-
-    // Previews are capped at 900 px (1200 after an upscale preview).
-    // Bleed is intentionally skipped in previews — it is shown live via CSS.
-    const capEdge = options.previewUpscale ? 1200 : 900;
-    const previewBuffer = await this.buildPrintImage(
-      bytes,
-      printInches,
-      options,
-      capEdge,
-    );
-    const mimeType = options.format === 'png' ? 'image/png' : 'image/jpeg';
-    const previewUrl = `data:${mimeType};base64,${previewBuffer.toString('base64')}`;
-    return { previewUrl, willUpscale };
-  }
-
-  /**
    * Run the enhancement pipeline and persist the result.
    *
    * Two paths depending on whether `options.upscaleFactor` (or `upscale` /
@@ -609,18 +543,17 @@ export class ImageEnhancementService {
   }
 
   /**
-   * Re-encode a buffer to a print-ready image, applying the sharp adjustments.
+   * Re-encode a buffer to a print-ready image: crop, resize and bleed.
    * - Caps resolution to the print size at targetDpi/PRINT_DPI (or MAX_EDGE),
    *   never enlarges. The cap covers the print area (`outside`), so a source
    *   whose ratio differs from the format still has targetDpi after the crop.
-   * - Applies bleed extension unless `capEdge` is set (preview mode).
+   * - Applies the bleed extension when requested.
    * - Outputs JPEG or PNG per options.format.
    */
   private async buildPrintImage(
     buffer: Buffer,
     printInches: { width: number; height: number } | null,
     options: EnhanceDto,
-    capEdge?: number,
   ): Promise<Buffer> {
     // Cap output at PRINT_DPI (or targetDpi) at the print size. The AI upscale is
     // sized to reach this DPI; capping here keeps both the stored base and the
@@ -635,51 +568,28 @@ export class ImageEnhancementService {
         printInches,
         effectiveDpi,
         options.crop,
-        capEdge,
       );
     } else {
-      const maxWidth =
-        capEdge ??
-        (printInches ? Math.round(printInches.width * effectiveDpi) : MAX_EDGE);
-      const maxHeight =
-        capEdge ??
-        (printInches
-          ? Math.round(printInches.height * effectiveDpi)
-          : MAX_EDGE);
+      const maxWidth = printInches
+        ? Math.round(printInches.width * effectiveDpi)
+        : MAX_EDGE;
+      const maxHeight = printInches
+        ? Math.round(printInches.height * effectiveDpi)
+        : MAX_EDGE;
       // Con tamaño de impresión, `outside`: el eje más justo para el formato
       // queda a effectiveDpi. Con `inside` mandaba el otro eje y, si la
       // proporción no coincide, el recorte del troquel dejaba el máster por
-      // debajo (3:4 a 20×30 cm salía a 268 DPI). Preview y sin tamaño: límite
-      // de borde, `inside`.
+      // debajo (3:4 a 20×30 cm salía a 268 DPI). Sin tamaño: límite de borde,
+      // `inside`.
       pipe = sharp(buffer).resize({
         width: maxWidth,
         height: maxHeight,
-        fit: printInches && !capEdge ? 'outside' : 'inside',
+        fit: printInches ? 'outside' : 'inside',
         withoutEnlargement: true,
       });
     }
 
-    if (options.improve) pipe = pipe.normalise();
-
-    const brightness =
-      options.brightness != null ? 1 + options.brightness / 100 : undefined;
-    const saturation =
-      options.saturation != null ? 1 + options.saturation / 100 : undefined;
-    if (brightness != null || saturation != null) {
-      pipe = pipe.modulate({ brightness, saturation });
-    }
-
-    if (options.contrast) {
-      const a = 1 + options.contrast / 100;
-      pipe = pipe.linear(a, 128 * (1 - a)); // contrast around mid-grey
-    }
-
-    if (options.sharpen) {
-      pipe = pipe.sharpen({ sigma: 1 + options.sharpen / 100 });
-    }
-
-    // Bleed extension — only on actual saves, not on previews (capEdge is undefined).
-    if (options.bleed && printInches && !capEdge) {
+    if (options.bleed && printInches) {
       const bleedPx = Math.round((BLEED_MM / 25.4) * effectiveDpi);
       const mode = options.bleedMode ?? 'solid';
       pipe = pipe.extend({
@@ -704,15 +614,13 @@ export class ImageEnhancementService {
 
   /**
    * Recorta a la proporción exacta del formato según el encuadre (centrado por
-   * defecto) y lo dimensiona al DPI pedido, sin agrandar nunca. En preview se
-   * limita además a `capEdge` px.
+   * defecto) y lo dimensiona al DPI pedido, sin agrandar nunca.
    */
   private async cropToFormat(
     buffer: Buffer,
     printInches: { width: number; height: number },
     dpi: number,
     crop: PrintCrop | undefined,
-    capEdge?: number,
   ): Promise<sharp.Sharp> {
     const meta = await sharp(buffer).metadata();
     const targetW = Math.round(printInches.width * dpi);
@@ -732,10 +640,7 @@ export class ImageEnhancementService {
       printInches.width / printInches.height,
       crop,
     );
-    let scale = Math.min(1, rect.width / targetW, rect.height / targetH);
-    if (capEdge) {
-      scale = Math.min(scale, capEdge / Math.max(targetW, targetH));
-    }
+    const scale = Math.min(1, rect.width / targetW, rect.height / targetH);
     return sharp(buffer)
       .extract(rect)
       .resize({

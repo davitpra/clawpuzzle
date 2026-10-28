@@ -52,13 +52,13 @@ export function PrintSizeSelect({
   itemId,
   info,
   onInfoChange,
-  invalidatePreview,
+  markUnsaved,
 }: {
   orderId: string;
   itemId: string;
   info: EnhanceInfo | null;
   onInfoChange: (info: EnhanceInfo) => void;
-  invalidatePreview: () => void;
+  markUnsaved: () => void;
 }) {
   const presets = info?.printSizePresets ?? [];
   const source = info?.printConfigSource ?? null;
@@ -122,7 +122,7 @@ export function PrintSizeSelect({
         ? await adminApi.orders.setItemPrintConfig(orderId, itemId, cfg)
         : await adminApi.orders.clearItemPrintConfig(orderId, itemId);
       onInfoChange(next);
-      invalidatePreview();
+      markUnsaved();
       setCustomOpen(false);
     } catch (e) {
       setError((e as Error).message);

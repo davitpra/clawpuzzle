@@ -42,7 +42,7 @@ export class PrintCropDto {
 /**
  * Options for the image-enhancement pipeline applied to an order item's print
  * image before it goes to print. The pipeline runs a real AI upscale via fal.ai
- * (optional) plus adjustments with sharp, storing the result as a flat file.
+ * (optional) plus crop/bleed with sharp, storing the result as a flat file.
  */
 export class EnhanceDto {
   @ApiProperty({
@@ -86,47 +86,6 @@ export class EnhanceDto {
   @Min(72)
   @Max(600)
   targetDpi?: number;
-
-  @ApiProperty({
-    description: 'sharpen strength (sharp sigma = 1 + value / 100)',
-    minimum: 0,
-    maximum: 200,
-    required: false,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(200)
-  sharpen?: number;
-
-  @ApiProperty({ minimum: -50, maximum: 100, required: false })
-  @IsOptional()
-  @IsInt()
-  @Min(-50)
-  @Max(100)
-  contrast?: number;
-
-  @ApiProperty({ minimum: -50, maximum: 100, required: false })
-  @IsOptional()
-  @IsInt()
-  @Min(-50)
-  @Max(100)
-  brightness?: number;
-
-  @ApiProperty({ minimum: -50, maximum: 100, required: false })
-  @IsOptional()
-  @IsInt()
-  @Min(-50)
-  @Max(100)
-  saturation?: number;
-
-  @ApiProperty({
-    description: 'Apply auto-levels (normalise the tonal range)',
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  improve?: boolean;
 
   @ApiProperty({
     description:
@@ -195,14 +154,4 @@ export class EnhanceDto {
   @IsOptional()
   @IsIn(['extend', 'mirror', 'solid'])
   bleedMode?: 'extend' | 'mirror' | 'solid';
-
-  @ApiProperty({
-    description:
-      'When true, the enhance-preview endpoint also runs the fal.ai upscale so ' +
-      'the preview is fully accurate (slower — costs one fal.ai call).',
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  previewUpscale?: boolean;
 }
