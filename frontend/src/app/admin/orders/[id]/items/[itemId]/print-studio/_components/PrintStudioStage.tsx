@@ -54,9 +54,9 @@ const MIN_STAGE_H = 320;
 // Margen máximo por lado alrededor de la vista para ver lo que se recorta.
 const MAX_PAD = 0.06;
 
-// Panel izquierdo del estudio de impresión: la previsualización ("stage") con
-// las guías de corte/bleed/zona segura y, a su derecha, la leyenda y la info
-// (px · DPI · tamaño).
+// Panel izquierdo del estudio de impresión: la previsualización ("stage") en el
+// formato de impresión con su bleed —y, opcionalmente, las guías de corte y zona
+// segura— y, a su derecha, la leyenda y la info (px · DPI · tamaño).
 export function PrintStudioStage({
   currentImageUrl,
   onMeasure,
@@ -136,9 +136,12 @@ export function PrintStudioStage({
   }, []);
   const stageMaxH = maxH !== null ? `${maxH}px` : STAGE_FALLBACK_MAX_H;
 
-  const withGuides = showGuides && printInches !== null;
+  // Con tamaño de impresión la vista es siempre la final (recorte + bleed); las
+  // guías solo añaden las líneas y el sombreado de lo que se recorta.
+  const framed = printInches !== null;
+  const withGuides = showGuides && framed;
   const shownPx =
-    withGuides && displayPx && displayPx.url === displayUrl ? displayPx : null;
+    framed && displayPx && displayPx.url === displayUrl ? displayPx : null;
   // Sin "Ajustar al formato" el troquel recorta centrado.
   const editable = framing && shownPx !== null;
   const rect =
@@ -146,6 +149,8 @@ export function PrintStudioStage({
       ? cropRect(shownPx, printInches, editable ? crop : CENTER_CROP)
       : { left: 0, top: 0, width: 1, height: 1 };
   const cropsImage = rect.width < 0.999 || rect.height < 0.999;
+  // Sin guías la imagen no desborda: se recorta en el borde del bleed.
+  const showOverflow = withGuides && cropsImage;
 
   // Rect de la imagen en % del contenedor: el encuadre ocupa el área de corte y
   // el resto desborda, sombreado.
@@ -163,8 +168,8 @@ export function PrintStudioStage({
   // el corte—, así que el marco no salta; solo se reparte entre los lados.
   const overflowX = Math.max(0, img.width - 100) / 100;
   const overflowY = Math.max(0, img.height - 100) / 100;
-  const padX = Math.min(overflowX, 2 * MAX_PAD);
-  const padY = Math.min(overflowY, 2 * MAX_PAD);
+  const padX = showOverflow ? Math.min(overflowX, 2 * MAX_PAD) : 0;
+  const padY = showOverflow ? Math.min(overflowY, 2 * MAX_PAD) : 0;
   // Mitad por lado, salvo que un lado desborde menos: entonces el resto va al otro.
   const splitPad = (before: number, overflow: number, pad: number) => {
     const b = Math.min(Math.max(0, before), overflow);
@@ -266,7 +271,7 @@ export function PrintStudioStage({
             }}
           >
             {/* Zoom del encuadre, pegado a la vista que se arrastra */}
-            {framing && withGuides && (
+            {framing && framed && (
               <div
                 style={{
                   display: "flex",
@@ -323,7 +328,7 @@ export function PrintStudioStage({
               ancho se limita para que el alto quepa en la ventana. */}
               <div
                 style={
-                  withGuides
+                  framed
                     ? {
                         position: "relative",
                         width: `min(100%, calc(${stageMaxH} * ${frameW / frameH}))`,
@@ -351,9 +356,9 @@ export function PrintStudioStage({
                         }
                       : {}),
                     // El contenedor de formato (caja con fondo, borde y recorte por
-                    // bleed) solo se muestra cuando las guías están activas. Sin
-                    // guías, la imagen se ve sola en su proporción natural.
-                    ...(withGuides
+                    // bleed) se muestra siempre que hay tamaño de impresión. Sin
+                    // él, la imagen se ve sola en su proporción natural.
+                    ...(framed
                       ? {
                           position: "absolute",
                           left: `${(padL / frameW) * 100}%`,
@@ -363,15 +368,15 @@ export function PrintStudioStage({
                           background: solidBleed ? bleedColor : "#ebebeb",
                           borderRadius: 6,
                           border: "1px solid #c9cccf",
-                          // Con recorte la imagen desborda a propósito: se ve
-                          // sombreado lo que el corte va a quitar.
-                          overflow: cropsImage ? "visible" : "hidden",
+                          // Con guías y recorte la imagen desborda a propósito: se
+                          // ve sombreado lo que el corte va a quitar.
+                          overflow: showOverflow ? "visible" : "hidden",
                         }
                       : {}),
                   }}
                 >
-                  {/* Con guías la imagen cubre el área de corte, como al imprimir;
-                sin guías se muestra completa en su proporción natural. */}
+                  {/* Con formato la imagen cubre el área de corte, como al imprimir;
+                sin él se muestra completa en su proporción natural. */}
                   {displayUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -386,7 +391,7 @@ export function PrintStudioStage({
                         })
                       }
                       style={
-                        withGuides
+                        framed
                           ? {
                               position: "absolute",
                               top: `${img.top}%`,
@@ -454,7 +459,7 @@ export function PrintStudioStage({
                       }}
                     />
                   ))}
-                  {withGuides &&
+                  {framed &&
                     bleedEnabled &&
                     bleedMode !== "solid" &&
                     displayUrl && (

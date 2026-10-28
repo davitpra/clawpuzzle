@@ -71,9 +71,10 @@ export default function PrintStudioWorkspace({
   // Full-res current print image — used for client-side dimension measurement
   // and zoom.
   const currentImageUrl = savedUrl ?? info?.printImageUrl ?? sourceUrl;
-  // Encuadrando, el stage muestra el original sin recortar: el máster guardado
-  // ya está recortado y se recortaría dos veces.
-  const framing = showGuides && Boolean(info?.printInches);
+  // Con tamaño de impresión el stage encuadra siempre (con o sin guías) sobre
+  // el original sin recortar: el máster guardado ya está recortado y se
+  // recortaría dos veces.
+  const framing = Boolean(info?.printInches);
   const displayUrl = framing ? sourceUrl : currentImageUrl;
 
   useEffect(() => {
