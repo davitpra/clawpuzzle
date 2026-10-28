@@ -16,7 +16,9 @@ import {
   Badge,
   Card,
   Collapsible,
+  Icon,
 } from "@shopify/polaris";
+import { AlertTriangleIcon } from "@shopify/polaris-icons";
 import type { BleedMode, EnhanceInfo } from "@/entities/admin/api";
 import type { HsbColor } from "@/lib/colorUtils";
 import {
@@ -25,7 +27,6 @@ import {
   PRINT_DPI,
   UPSCALE_STEP,
   dpiTone,
-  formatPrintSize,
   type AspectCrop,
 } from "./printStudio";
 import { BleedModePicker } from "./BleedModePicker";
@@ -61,8 +62,6 @@ function StepCard({
 export function PrintStudioControls({
   err,
   setErr,
-  savedOk,
-  setSavedOk,
   hasSource,
   currentDpi,
   currentKind,
@@ -95,8 +94,6 @@ export function PrintStudioControls({
 }: {
   err: string | null;
   setErr: Dispatch<SetStateAction<string | null>>;
-  savedOk: boolean;
-  setSavedOk: Dispatch<SetStateAction<boolean>>;
   hasSource: boolean;
   currentDpi: number | null;
   currentKind: "saved" | "original";
@@ -131,9 +128,19 @@ export function PrintStudioControls({
   // null = automático: el upscale se despliega solo si hace falta.
   const [upscaleOpen, setUpscaleOpen] = useState<boolean | null>(null);
   const currentLabel =
-    currentKind === "saved"
-      ? "Imagen guardada"
-      : "Imagen original (sin guardar)";
+    currentKind === "saved" ? "La imagen guardada" : "La imagen original";
+  // DPI bajo el mínimo: el medido de la imagen actual o, mientras no se ha
+  // medido, el de origen que calcula el backend.
+  const lowDpi =
+    !printInches
+      ? null
+      : currentDpi !== null
+        ? currentDpi < GOOD_DPI
+          ? { label: currentLabel, dpi: currentDpi }
+          : null
+        : info?.sourceDpi != null && info.sourceDpi < GOOD_DPI
+          ? { label: "La imagen de origen", dpi: info.sourceDpi }
+          : null;
   // Con el encuadre actual el máster ya llega a PRINT_DPI sin agrandar.
   const sourceIsEnough = framedDpi !== null && framedDpi >= PRINT_DPI;
   const upscaleExpanded = upscaleOpen ?? !sourceIsEnough;
@@ -147,39 +154,11 @@ export function PrintStudioControls({
           </Banner>
         )}
 
-        {savedOk && (
-          <Banner tone="success" onDismiss={() => setSavedOk(false)}>
-            Imagen actualizada y guardada.
-          </Banner>
-        )}
-
         {!hasSource && (
           <Banner tone="warning">
             Este item no tiene una imagen de IA original disponible.
           </Banner>
         )}
-
-        {/* El DPI y su veredicto ya están en la leyenda de la vista; aquí solo
-            se avisa cuando no llega al mínimo. */}
-        {currentDpi !== null && currentDpi < GOOD_DPI && printInches && (
-          <Banner tone={dpiTone(currentDpi)}>
-            {currentLabel}: <strong>{currentDpi} DPI</strong> para{" "}
-            {formatPrintSize(printInches)}
-            {currentDpi < GOOD_DPI &&
-              ` — bajo el mínimo. Se recomienda upscale.`}
-          </Banner>
-        )}
-        {currentDpi === null &&
-          info?.sourceDpi !== null &&
-          info?.sourceDpi !== undefined &&
-          printInches && (
-            <Banner tone={info.sourceDpi < GOOD_DPI ? "warning" : "success"}>
-              Resolución origen: <strong>{info.sourceDpi} DPI</strong> para{" "}
-              {formatPrintSize(printInches)}
-              {info.sourceDpi < GOOD_DPI &&
-                ` — bajo el mínimo. Se recomienda upscale.`}
-            </Banner>
-          )}
 
         {/* Tamaño de impresión del item */}
         <StepCard title="Formato de impresión">{printSizeControl}</StepCard>
@@ -256,6 +235,18 @@ export function PrintStudioControls({
             )
           }
         >
+          {/* El veredicto completo está en la leyenda de la vista; aquí basta
+              una línea junto al control que lo arregla. */}
+          {lowDpi && (
+            <InlineStack gap="100" blockAlign="center" wrap={false}>
+              <Box>
+                <Icon source={AlertTriangleIcon} tone="critical" />
+              </Box>
+              <Text as="span" variant="bodySm" tone="critical">
+                {`${lowDpi.label} está a ${lowDpi.dpi} DPI (mín. ${GOOD_DPI})`}
+              </Text>
+            </InlineStack>
+          )}
           <Text as="span" variant="bodySm" tone="subdued">
             {sourceIsEnough
               ? `Con este tamaño y encuadre el archivo ya llega a ${PRINT_DPI} DPI; agrandar no mejora la impresión.`

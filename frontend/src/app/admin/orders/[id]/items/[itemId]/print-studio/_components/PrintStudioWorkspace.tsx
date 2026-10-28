@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   BlockStack,
   Box,
@@ -33,6 +34,9 @@ import { PrintStudioStage } from "./PrintStudioStage";
 import { PrintStudioControls } from "./PrintStudioControls";
 import { PrintSizeSelect } from "./PrintSizeSelect";
 
+// Id fijo: un nuevo guardado reemplaza al anterior en vez de apilarse.
+const SAVED_TOAST_ID = "print-studio-saved";
+
 export default function PrintStudioWorkspace({
   orderId,
   itemId,
@@ -44,7 +48,6 @@ export default function PrintStudioWorkspace({
   const [loadingInfo, setLoadingInfo] = useState(true);
   // URL guardada durante esta sesión para mostrar el resultado inmediatamente.
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
-  const [savedOk, setSavedOk] = useState(false);
   const [applying, setApplying] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -121,7 +124,8 @@ export default function PrintStudioWorkspace({
     setMeasuredPx(null);
   }, [currentImageUrl]);
 
-  const markUnsaved = useCallback(() => setSavedOk(false), []);
+  // Cualquier cambio deja obsoleto el aviso de "guardado": se cierra.
+  const markUnsaved = useCallback(() => toast.dismiss(SAVED_TOAST_ID), []);
 
   function updateCrop(next: PrintCrop) {
     setCrop(next);
@@ -190,7 +194,6 @@ export default function PrintStudioWorkspace({
 
   async function handleUpscale() {
     setUpscaling(true);
-    setErr(null);
     try {
       const opts: EnhanceOptions = {
         upscaleFactor: effectiveUpscale > 1 ? effectiveUpscale : undefined,
@@ -217,9 +220,9 @@ export default function PrintStudioWorkspace({
           : prev,
       );
       setSavedUrl(printImageUrl);
-      setSavedOk(true);
+      toast.success("Imagen actualizada y guardada.", { id: SAVED_TOAST_ID });
     } catch (e) {
-      setErr((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setUpscaling(false);
     }
@@ -227,7 +230,6 @@ export default function PrintStudioWorkspace({
 
   async function handleSave() {
     setApplying(true);
-    setErr(null);
     try {
       // Never pass upscaleFactor here — "Guardar" only re-applies crop/bleed
       // on the existing high-res base (or original if not upscaled yet).
@@ -248,9 +250,9 @@ export default function PrintStudioWorkspace({
         prev ? { ...prev, printImageUrl, alreadyEnhanced: true } : prev,
       );
       setSavedUrl(printImageUrl);
-      setSavedOk(true);
+      toast.success("Imagen actualizada y guardada.", { id: SAVED_TOAST_ID });
     } catch (e) {
-      setErr((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setApplying(false);
     }
@@ -258,15 +260,14 @@ export default function PrintStudioWorkspace({
 
   async function handleRevert() {
     setReverting(true);
-    setErr(null);
     try {
       await adminApi.orders.enhanceRevert(orderId, itemId);
       const data = await adminApi.orders.enhanceInfo(orderId, itemId);
       setInfo(data);
       setSavedUrl(null);
-      setSavedOk(false);
+      markUnsaved();
     } catch (e) {
-      setErr((e as Error).message);
+      toast.error((e as Error).message);
       setReverting(false);
     }
   }
@@ -361,8 +362,6 @@ export default function PrintStudioWorkspace({
               <PrintStudioControls
                 err={err}
                 setErr={setErr}
-                savedOk={savedOk}
-                setSavedOk={setSavedOk}
                 hasSource={hasSource}
                 currentDpi={currentDpi}
                 currentKind={currentKind}

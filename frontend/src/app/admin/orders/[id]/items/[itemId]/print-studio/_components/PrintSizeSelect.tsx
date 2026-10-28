@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   BlockStack,
   InlineStack,
@@ -6,7 +7,6 @@ import {
   Select,
   TextField,
   Button,
-  Banner,
   Badge,
 } from "@shopify/polaris";
 import {
@@ -80,7 +80,6 @@ export function PrintSizeSelect({
   const [customOpen, setCustomOpen] = useState(false);
   const [draft, setDraft] = useState<PrintConfig>({});
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Rellena "Personalizado" con el tamaño efectivo actual.
   useEffect(() => {
@@ -116,7 +115,6 @@ export function PrintSizeSelect({
 
   async function save(cfg: PrintConfig | null) {
     setSaving(true);
-    setError(null);
     try {
       const next = cfg
         ? await adminApi.orders.setItemPrintConfig(orderId, itemId, cfg)
@@ -125,14 +123,13 @@ export function PrintSizeSelect({
       markUnsaved();
       setCustomOpen(false);
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setSaving(false);
     }
   }
 
   function onSelect(value: string) {
-    setError(null);
     if (value === CUSTOM) {
       setCustomOpen(true);
       return;
@@ -196,11 +193,6 @@ export function PrintSizeSelect({
             </Button>
           </InlineStack>
         </BlockStack>
-      )}
-      {error && (
-        <Banner tone="critical" onDismiss={() => setError(null)}>
-          {error}
-        </Banner>
       )}
       {saving && !showCustom && (
         <Text as="span" variant="bodySm" tone="subdued">
