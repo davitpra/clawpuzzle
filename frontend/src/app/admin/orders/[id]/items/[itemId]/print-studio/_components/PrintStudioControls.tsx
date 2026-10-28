@@ -15,10 +15,9 @@ import {
   Box,
   Badge,
   Card,
-  ColorPicker,
   Collapsible,
 } from "@shopify/polaris";
-import type { EnhanceInfo } from "@/entities/admin/api";
+import type { BleedMode, EnhanceInfo } from "@/entities/admin/api";
 import type { HsbColor } from "@/lib/colorUtils";
 import {
   BLEED_MM,
@@ -28,6 +27,7 @@ import {
   formatPrintSize,
   type AspectCrop,
 } from "./printStudio";
+import { BleedModePicker } from "./BleedModePicker";
 
 // Bloque del panel: un paso del flujo de preparación.
 function StepCard({
@@ -153,6 +153,9 @@ export function PrintStudioControls({
   printSizeControl,
   bleedEnabled,
   setBleedEnabled,
+  bleedMode,
+  onBleedModeChange,
+  bleedThumbUrl,
   bleedHsb,
   bleedColor,
   onBleedColorChange,
@@ -195,6 +198,9 @@ export function PrintStudioControls({
   printSizeControl: ReactNode;
   bleedEnabled: boolean;
   setBleedEnabled: Dispatch<SetStateAction<boolean>>;
+  bleedMode: BleedMode;
+  onBleedModeChange: (mode: BleedMode) => void;
+  bleedThumbUrl: string | null;
   bleedHsb: HsbColor;
   bleedColor: string;
   onBleedColorChange: (hsb: HsbColor) => void;
@@ -297,7 +303,7 @@ export function PrintStudioControls({
               label={`Añadir sangrado de ${BLEED_MM} mm`}
               helpText={
                 printInches
-                  ? `Extiende el fondo ${BLEED_MM} mm en cada lado para el sangrado del troquel.`
+                  ? `Extiende el fondo ${BLEED_MM} mm en cada lado para el sangrado de impresión.`
                   : "Elige un tamaño de impresión arriba para poder añadir bleed."
               }
               disabled={!printInches}
@@ -308,31 +314,14 @@ export function PrintStudioControls({
               }}
             />
             {bleedEnabled && printInches && (
-              <BlockStack gap="200">
-                <InlineStack gap="200" blockAlign="center">
-                  <Text as="span" variant="bodySm">
-                    Color de relleno
-                  </Text>
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 4,
-                      border: "1px solid var(--p-color-border)",
-                      background: bleedColor,
-                    }}
-                  />
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    {bleedColor}
-                  </Text>
-                </InlineStack>
-                <ColorPicker
-                  color={bleedHsb}
-                  onChange={onBleedColorChange}
-                  allowAlpha={false}
-                />
-              </BlockStack>
+              <BleedModePicker
+                value={bleedMode}
+                onChange={onBleedModeChange}
+                thumbUrl={bleedThumbUrl}
+                bleedHsb={bleedHsb}
+                bleedColor={bleedColor}
+                onBleedColorChange={onBleedColorChange}
+              />
             )}
           </BlockStack>
         </StepCard>

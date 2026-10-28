@@ -1588,8 +1588,12 @@ export interface EnhanceOptions {
   format?: "jpeg" | "png";
   bleed?: boolean;
   bleedColor?: string;
+  bleedMode?: BleedMode;
   previewUpscale?: boolean;
 }
+
+/** Relleno de la banda de sangrado: píxel del borde, espejo o color sólido. */
+export type BleedMode = "extend" | "mirror" | "solid";
 
 /**
  * Encuadre de "Ajustar al formato": centro del recorte (fracción 0–1 de la

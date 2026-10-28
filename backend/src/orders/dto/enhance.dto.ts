@@ -164,8 +164,8 @@ export class EnhanceDto {
 
   @ApiProperty({
     description:
-      'Extend the image by 3 mm on each side with a solid colour (sangre para el troquelado). ' +
-      'The colour is taken from bleedColor (defaults to #ffffff).',
+      'Extend the image by 3 mm on each side (sangre para el troquelado). ' +
+      'How the band is filled is set by bleedMode.',
     required: false,
   })
   @IsOptional()
@@ -174,7 +174,7 @@ export class EnhanceDto {
 
   @ApiProperty({
     description:
-      'Hex colour used for the bleed extension (#rrggbb). Only effective when bleed=true.',
+      'Hex colour used for the bleed extension (#rrggbb). Only effective when bleed=true and bleedMode=solid.',
     pattern: '^#[0-9a-fA-F]{6}$',
     required: false,
     default: '#ffffff',
@@ -183,6 +183,18 @@ export class EnhanceDto {
   @IsString()
   @Matches(/^#([0-9a-fA-F]{6})$/)
   bleedColor?: string;
+
+  @ApiProperty({
+    description:
+      'How the bleed band is filled: extend repeats the edge pixels, mirror ' +
+      'reflects the strip next to the cut line, solid uses bleedColor.',
+    enum: ['extend', 'mirror', 'solid'],
+    required: false,
+    default: 'solid',
+  })
+  @IsOptional()
+  @IsIn(['extend', 'mirror', 'solid'])
+  bleedMode?: 'extend' | 'mirror' | 'solid';
 
   @ApiProperty({
     description:

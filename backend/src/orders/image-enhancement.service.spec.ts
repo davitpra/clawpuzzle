@@ -198,6 +198,40 @@ describe('ImageEnhancementService generation source', () => {
     expect(meta.height).toBe(150 + 2 * 35);
   });
 
+  // extend y mirror rellenan la banda con la propia imagen, no con bleedColor.
+  it.each(['extend', 'mirror'] as const)(
+    'fills the bleed with image pixels in %s mode',
+    async (bleedMode) => {
+      const source = await sharp({
+        create: { width: 100, height: 150, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      const buildPrintImage = (
+        service as unknown as {
+          buildPrintImage: (
+            b: Buffer,
+            i: { width: number; height: number },
+            o: object,
+          ) => Promise<Buffer>;
+        }
+      ).buildPrintImage.bind(service);
+
+      const out = await buildPrintImage(
+        source,
+        { width: 20 / 2.54, height: 30 / 2.54 },
+        { bleed: true, bleedMode, bleedColor: '#000000', format: 'png' },
+      );
+
+      const { data, info } = await sharp(out)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect(info.width).toBe(100 + 2 * 35);
+      // Esquina superior izquierda: dentro de la banda de bleed.
+      expect([data[0], data[1], data[2]]).toEqual([255, 0, 0]);
+    },
+  );
+
   it('drops a stale base and saves the generation as the print source', async () => {
     prisma.orderItem.findFirst.mockResolvedValue(
       item({

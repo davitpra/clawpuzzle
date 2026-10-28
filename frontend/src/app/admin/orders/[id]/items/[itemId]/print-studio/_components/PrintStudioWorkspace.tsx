@@ -13,6 +13,7 @@ import {
 } from "@shopify/polaris";
 import {
   adminApi,
+  BleedMode,
   EnhanceInfo,
   EnhanceOptions,
   PrintCrop,
@@ -65,6 +66,7 @@ export default function PrintStudioWorkspace({
   const [crop, setCrop] = useState<PrintCrop>(CENTER_CROP);
   const [bleedEnabled, setBleedEnabled] = useState(false);
   const [bleedColor, setBleedColor] = useState("#ffffff");
+  const [bleedMode, setBleedMode] = useState<BleedMode>("extend");
   const [bleedHsb, setBleedHsb] = useState<HsbColor>({
     hue: 0,
     saturation: 0,
@@ -139,6 +141,11 @@ export default function PrintStudioWorkspace({
 
   function updateCrop(next: PrintCrop) {
     setCrop(next);
+    invalidatePreview();
+  }
+
+  function updateBleedMode(mode: BleedMode) {
+    setBleedMode(mode);
     invalidatePreview();
   }
 
@@ -238,7 +245,8 @@ export default function PrintStudioWorkspace({
         fitToFormat: true,
         crop,
         bleed: applyBleed || undefined,
-        bleedColor: applyBleed ? bleedColor : undefined,
+        bleedMode: applyBleed ? bleedMode : undefined,
+        bleedColor: applyBleed && bleedMode === "solid" ? bleedColor : undefined,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
@@ -280,7 +288,8 @@ export default function PrintStudioWorkspace({
         fitToFormat: true,
         crop,
         bleed: applyBleed || undefined,
-        bleedColor: applyBleed ? bleedColor : undefined,
+        bleedMode: applyBleed ? bleedMode : undefined,
+        bleedColor: applyBleed && bleedMode === "solid" ? bleedColor : undefined,
       };
       const { printImageUrl } = await adminApi.orders.enhance(
         orderId,
@@ -385,6 +394,7 @@ export default function PrintStudioWorkspace({
                   onCropChange={updateCrop}
                   stageAspect={stageAspect}
                   bleedEnabled={applyBleed}
+                  bleedMode={bleedMode}
                   bleedColor={bleedColor}
                   cutInsetW={cutInsetW}
                   cutInsetH={cutInsetH}
@@ -447,6 +457,9 @@ export default function PrintStudioWorkspace({
                   />
                 }
                 setBleedEnabled={setBleedEnabled}
+                bleedMode={bleedMode}
+                onBleedModeChange={updateBleedMode}
+                bleedThumbUrl={displayUrl}
                 bleedHsb={bleedHsb}
                 bleedColor={bleedColor}
                 onBleedColorChange={updateBleedColor}

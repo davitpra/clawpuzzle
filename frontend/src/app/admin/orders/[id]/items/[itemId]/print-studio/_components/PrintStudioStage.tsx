@@ -8,7 +8,7 @@ import {
   Checkbox,
 } from "@shopify/polaris";
 import { MinusIcon, PlusIcon, TargetIcon } from "@shopify/polaris-icons";
-import type { EnhanceInfo, PrintCrop } from "@/entities/admin/api";
+import type { BleedMode, EnhanceInfo, PrintCrop } from "@/entities/admin/api";
 import {
   BLEED_MM,
   CENTER_CROP,
@@ -19,6 +19,13 @@ import {
   dpiVerdict,
   formatPrintSize,
 } from "./printStudio";
+import { BleedFill } from "./BleedFill";
+
+const BLEED_MODE_LEGEND: Record<BleedMode, string> = {
+  extend: "imagen extendida",
+  mirror: "bordes reflejados",
+  solid: "color sólido",
+};
 
 // Fila etiqueta/valor de la ficha de la imagen, con el valor a la derecha.
 function InfoRow({ label, children }: { label: string; children: ReactNode }) {
@@ -61,6 +68,7 @@ export function PrintStudioStage({
   onCropChange,
   stageAspect,
   bleedEnabled,
+  bleedMode,
   bleedColor,
   cutInsetW,
   cutInsetH,
@@ -86,6 +94,7 @@ export function PrintStudioStage({
   onCropChange: (crop: PrintCrop) => void;
   stageAspect: string;
   bleedEnabled: boolean;
+  bleedMode: BleedMode;
   bleedColor: string;
   cutInsetW: number;
   cutInsetH: number;
@@ -176,10 +185,11 @@ export function PrintStudioStage({
   const frameW = 1 + padX;
   const frameH = (1 + padY) * (aspectH / aspectW);
 
-  // El backend recorta y luego extiende el bleed con color: la banda de bleed
-  // nunca lleva imagen.
+  // El backend recorta y luego extiende el bleed: la banda nunca lleva la
+  // imagen de fuera del encuadre, sino el color o la imagen extendida/reflejada.
+  const solidBleed = bleedEnabled && bleedMode === "solid";
   const bleedBands =
-    bleedEnabled && cropsImage
+    solidBleed && cropsImage
       ? [
           { left: 0, right: 0, top: 0, height: `${cutInsetH}%` },
           { left: 0, right: 0, bottom: 0, height: `${cutInsetH}%` },
@@ -364,7 +374,7 @@ export function PrintStudioStage({
                           top: `${((padT * aspectH) / aspectW / frameH) * 100}%`,
                           width: `${(1 / frameW) * 100}%`,
                           height: `${(aspectH / aspectW / frameH) * 100}%`,
-                          background: bleedEnabled ? bleedColor : "#ebebeb",
+                          background: solidBleed ? bleedColor : "#ebebeb",
                           borderRadius: 6,
                           border: "1px solid #c9cccf",
                           // Con recorte la imagen desborda a propósito: se ve
@@ -460,6 +470,26 @@ export function PrintStudioStage({
                       }}
                     />
                   ))}
+                  {withGuides &&
+                    bleedEnabled &&
+                    bleedMode !== "solid" &&
+                    displayUrl && (
+                      <BleedFill
+                        src={displayUrl}
+                        mode={bleedMode}
+                        cutInsetW={cutInsetW}
+                        cutInsetH={cutInsetH}
+                        imgStyle={{
+                          top: `${img.top}%`,
+                          left: `${img.left}%`,
+                          width: `${img.width}%`,
+                          height: `${img.height}%`,
+                          objectFit: "cover",
+                          objectPosition: "center",
+                          filter: cssFilter,
+                        }}
+                      />
+                    )}
 
                   {/* Guides overlay */}
                   {withGuides && (
@@ -612,12 +642,15 @@ export function PrintStudioStage({
                             width: 18,
                             height: 10,
                             flexShrink: 0,
-                            background: bleedColor,
+                            background:
+                              solidBleed || !displayUrl
+                                ? bleedColor
+                                : `center / cover no-repeat url("${displayUrl}")`,
                             border: "1px solid #c9cccf",
                           }}
                         />
                         <Text as="span" variant="bodySm" tone="subdued">
-                          Bleed {BLEED_MM} mm
+                          Bleed {BLEED_MM} mm · {BLEED_MODE_LEGEND[bleedMode]}
                         </Text>
                       </InlineStack>
                     ) : (

@@ -681,13 +681,18 @@ export class ImageEnhancementService {
     // Bleed extension — only on actual saves, not on previews (capEdge is undefined).
     if (options.bleed && printInches && !capEdge) {
       const bleedPx = Math.round((BLEED_MM / 25.4) * effectiveDpi);
-      const bg = this.hexToRgb(options.bleedColor ?? '#ffffff');
+      const mode = options.bleedMode ?? 'solid';
       pipe = pipe.extend({
         top: bleedPx,
         bottom: bleedPx,
         left: bleedPx,
         right: bleedPx,
-        background: bg,
+        ...(mode === 'solid'
+          ? {
+              extendWith: 'background',
+              background: this.hexToRgb(options.bleedColor ?? '#ffffff'),
+            }
+          : { extendWith: mode === 'mirror' ? 'mirror' : 'copy' }),
       });
     }
 
