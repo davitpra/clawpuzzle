@@ -14,6 +14,7 @@ import {
 } from "@shopify/polaris";
 import {
   adminApi,
+  AdminOrderDetail,
   BleedMode,
   EnhanceInfo,
   EnhanceOptions,
@@ -32,6 +33,7 @@ import {
 import { PrintStudioStage } from "./PrintStudioStage";
 import { PrintStudioControls } from "./PrintStudioControls";
 import { PrintSizeSelect } from "./PrintSizeSelect";
+import { OrderSummaryCard } from "./OrderSummaryCard";
 
 // Id fijo: un nuevo guardado reemplaza al anterior en vez de apilarse.
 const SAVED_TOAST_ID = "print-studio-saved";
@@ -117,6 +119,22 @@ export default function PrintStudioWorkspace({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, itemId]);
+
+  // Pedido del ítem para la tarjeta de contexto. Va aparte de enhanceInfo para
+  // no retrasar el estudio; si falla, la tarjeta simplemente no se muestra.
+  const [order, setOrder] = useState<AdminOrderDetail | null>(null);
+  const [orderFailed, setOrderFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    adminApi.orders
+      .detail(orderId)
+      .then((data) => active && setOrder(data))
+      .catch(() => active && setOrderFailed(true));
+    return () => {
+      active = false;
+    };
+  }, [orderId]);
+  const orderItem = order?.items.find((i) => i.id === itemId) ?? null;
 
   // Reset measured dimensions when the current image URL changes.
   useEffect(() => {
@@ -351,46 +369,55 @@ export default function PrintStudioWorkspace({
               </Card>
             </Layout.Section>
             <Layout.Section variant="oneThird">
-              <PrintStudioControls
-                err={err}
-                setErr={setErr}
-                hasSource={hasSource}
-                currentDpi={currentDpi}
-                currentKind={currentKind}
-                printInches={printInches}
-                info={info}
-                upscaleFactor={effectiveUpscale}
-                upscaleMax={upscaleMax}
-                setUpscaleFactor={setUpscaleFactor}
-                upscaleResultPx={upscaleResultPx}
-                upscaleResultDpi={upscaleResultDpi}
-                upscaleUseful={upscaleUseful}
-                framedDpi={framedDpi}
-                canAct={canAct}
-                upscaling={upscaling}
-                onUpscale={handleUpscale}
-                bleedEnabled={bleedEnabled}
-                printSizeControl={
-                  <PrintSizeSelect
-                    orderId={orderId}
-                    itemId={itemId}
-                    info={info}
-                    onInfoChange={setInfo}
-                    markUnsaved={markUnsaved}
+              <BlockStack gap="400">
+                {!orderFailed && !(order && !orderItem) && (
+                  <OrderSummaryCard
+                    order={order}
+                    item={orderItem}
+                    onZoom={setZoom}
                   />
-                }
-                setBleedEnabled={setBleedEnabled}
-                bleedMode={bleedMode}
-                onBleedModeChange={updateBleedMode}
-                bleedThumbUrl={displayUrl}
-                bleedHsb={bleedHsb}
-                bleedColor={bleedColor}
-                onBleedColorChange={updateBleedColor}
-                reverting={reverting}
-                busy={busy}
-                onRevert={handleRevert}
-                markUnsaved={markUnsaved}
-              />
+                )}
+                <PrintStudioControls
+                  err={err}
+                  setErr={setErr}
+                  hasSource={hasSource}
+                  currentDpi={currentDpi}
+                  currentKind={currentKind}
+                  printInches={printInches}
+                  info={info}
+                  upscaleFactor={effectiveUpscale}
+                  upscaleMax={upscaleMax}
+                  setUpscaleFactor={setUpscaleFactor}
+                  upscaleResultPx={upscaleResultPx}
+                  upscaleResultDpi={upscaleResultDpi}
+                  upscaleUseful={upscaleUseful}
+                  framedDpi={framedDpi}
+                  canAct={canAct}
+                  upscaling={upscaling}
+                  onUpscale={handleUpscale}
+                  bleedEnabled={bleedEnabled}
+                  printSizeControl={
+                    <PrintSizeSelect
+                      orderId={orderId}
+                      itemId={itemId}
+                      info={info}
+                      onInfoChange={setInfo}
+                      markUnsaved={markUnsaved}
+                    />
+                  }
+                  setBleedEnabled={setBleedEnabled}
+                  bleedMode={bleedMode}
+                  onBleedModeChange={updateBleedMode}
+                  bleedThumbUrl={displayUrl}
+                  bleedHsb={bleedHsb}
+                  bleedColor={bleedColor}
+                  onBleedColorChange={updateBleedColor}
+                  reverting={reverting}
+                  busy={busy}
+                  onRevert={handleRevert}
+                  markUnsaved={markUnsaved}
+                />
+              </BlockStack>
             </Layout.Section>
           </Layout>
         )}
