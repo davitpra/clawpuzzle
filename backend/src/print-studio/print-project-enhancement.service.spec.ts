@@ -1,19 +1,19 @@
 import { BadRequestException } from '@nestjs/common';
 import sharp from 'sharp';
-import { ImageEnhancementService } from './image-enhancement.service';
+import { PrintProjectEnhancementService } from './print-project-enhancement.service';
 
 jest.mock('uuid', () => ({ v4: () => 'test-uuid' }));
 
-describe('ImageEnhancementService generation source', () => {
+describe('PrintProjectEnhancementService', () => {
   const generationUrl = 'https://cdn.example.com/generation.png';
-  const productImageUrl = 'https://cdn.example.com/product.png';
+  const uploadUrl = 'https://cdn.example.com/upload.png';
 
   const prisma = {
-    orderItem: {
-      findFirst: jest.fn(),
+    printProject: {
+      findUnique: jest.fn(),
       update: jest.fn<Promise<unknown>, [unknown]>(),
     },
-    order: { findUnique: jest.fn() },
+    orderItem: { update: jest.fn<Promise<unknown>, [unknown]>() },
     productFormatVariant: { findMany: jest.fn() },
     orderEvent: { create: jest.fn() },
   };
@@ -22,28 +22,44 @@ describe('ImageEnhancementService generation source', () => {
     delete: jest.fn(),
   };
 
-  let service: ImageEnhancementService;
+  let service: PrintProjectEnhancementService;
 
-  function item(overrides: Record<string, unknown> = {}) {
+  function orderItem(overrides: Record<string, unknown> = {}) {
     return {
       id: 'item-1',
       orderId: 'order-1',
-      imageUrl: productImageUrl,
       variantTitle: '500 pieces · 48x36 cm',
+      printImageUrl: null,
+      printImageStorageKey: null,
+      printSourceUrl: null,
+      printSourceStorageKey: null,
+      productVariant: {
+        printConfig: { widthCm: 48, heightCm: 36, bleedMm: 5 },
+      },
+      order: { userId: 'user-1' },
+      ...overrides,
+    };
+  }
+
+  function project(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'project-1',
+      title: 'Proyecto',
+      orderItemId: 'item-1',
       generationId: 'generation-1',
       generation: {
         resultUrl: generationUrl,
         resultStorageKey: 'generation.png',
       },
-      productVariant: {
-        printConfig: { widthCm: 48, heightCm: 36, bleedMm: 5 },
-      },
+      sourceUrl: generationUrl,
+      sourceStorageKey: null,
+      upscaledUrl: null,
+      upscaledStorageKey: null,
       printImageUrl: null,
       printImageStorageKey: null,
-      printSourceUrl: null,
-      printSourceStorageKey: null,
-      printUpscaledUrl: null,
-      printUpscaledStorageKey: null,
+      printConfig: null,
+      printCrop: null,
+      orderItem: orderItem(),
       ...overrides,
     };
   }
@@ -51,7 +67,10 @@ describe('ImageEnhancementService generation source', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.productFormatVariant.findMany.mockResolvedValue([]);
-    service = new ImageEnhancementService(
+    prisma.printProject.update.mockResolvedValue({});
+    prisma.orderItem.update.mockResolvedValue({});
+    storage.delete.mockResolvedValue(undefined);
+    service = new PrintProjectEnhancementService(
       prisma as never,
       storage as never,
       {} as never,
@@ -66,90 +85,124 @@ describe('ImageEnhancementService generation source', () => {
       .mockResolvedValue('#ffffff' as never);
   });
 
-  it('prefers the linked generation over the product image', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(item());
+  function stubSave(masterUrl = 'https://cdn.example.com/master.jpg') {
+    storage.upload.mockResolvedValue(masterUrl);
+    const download = jest
+      .spyOn(service as never, 'download' as never)
+      .mockResolvedValue(Buffer.from('source') as never);
+    jest
+      .spyOn(service as never, 'buildPrintImage' as never)
+      .mockResolvedValue(Buffer.from('print') as never);
+    return download;
+  }
 
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
+  it('uses the current image of the generation as source', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(project());
+
+    const result = await service.getEnhanceInfo('project-1');
 
     expect(result.sourceUrl).toBe(generationUrl);
-    expect(result.sourceUrl).not.toBe(productImageUrl);
+  });
+
+  it('uses the uploaded image when there is no generation', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({
+        generationId: null,
+        generation: null,
+        sourceUrl: uploadUrl,
+        sourceStorageKey: 'upload.png',
+      }),
+    );
+
+    const result = await service.getEnhanceInfo('project-1');
+
+    expect(result.sourceUrl).toBe(uploadUrl);
   });
 
   // El tamaño físico gobierna el DPI y, con él, la recomendación de upscale y
   // el bleed. ClawAndSoul lo sacaba del título de la variante, que solo casaba
-  // con el símbolo ″: un título métrico daba null en silencio. Estos dos tests
-  // fijan el orden printConfig → título. El Format no entra: solo es la
+  // con el símbolo ″: un título métrico daba null en silencio. Estos tests
+  // fijan el orden proyecto → variante → título. El Format no entra: solo es la
   // proporción de la imagen, no el tamaño físico.
-  it('takes the print size from printConfig, in centimetres', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(item());
+  it('takes the print size from the linked variant, in centimetres', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(project());
 
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
+    const result = await service.getEnhanceInfo('project-1');
 
     expect(result.printInches?.width).toBeCloseTo(48 / 2.54, 2);
     expect(result.printInches?.height).toBeCloseTo(36 / 2.54, 2);
+    expect(result.printConfigSource).toBe('variant');
   });
 
   it('parses a metric variant title as a last resort', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({ productVariant: { printConfig: null } }),
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({
+        orderItem: orderItem({ productVariant: { printConfig: null } }),
+      }),
     );
 
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
+    const result = await service.getEnhanceInfo('project-1');
 
     expect(result.printInches?.width).toBeCloseTo(48 / 2.54, 2);
   });
 
-  it('returns no source when no original IA art exists', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({ generationId: null, generation: null }),
+  it('prefers the project print size over the variant', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({ printConfig: { widthCm: 20, heightCm: 30 } }),
     );
 
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
+    const result = await service.getEnhanceInfo('project-1');
+
+    expect(result.printInches?.width).toBeCloseTo(20 / 2.54, 2);
+    expect(result.printConfigSource).toBe('project');
+  });
+
+  it('has no print size when unlinked and unset', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({ orderItemId: null, orderItem: null }),
+    );
+
+    const result = await service.getEnhanceInfo('project-1');
+
+    expect(result.printInches).toBeNull();
+    expect(result.printConfigSource).toBeNull();
+  });
+
+  it('returns no source when the project has no image', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({ generationId: null, generation: null, sourceUrl: null }),
+    );
+
+    const result = await service.getEnhanceInfo('project-1');
 
     expect(result.sourceUrl).toBeNull();
     expect(result.printImageUrl).toBeNull();
   });
 
-  it('rejects saving when no original IA art exists', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({ generationId: null, generation: null }),
+  it('rejects saving when the project has no image', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({ generationId: null, generation: null, sourceUrl: null }),
     );
 
     await expect(
-      service.applyEnhance('order-1', 'item-1', { format: 'jpeg' }),
+      service.applyEnhance('project-1', { format: 'jpeg' }),
     ).rejects.toThrow(BadRequestException);
   });
 
   // Sin tamaño de impresión la sangre no se puede medir. Antes se omitía en
   // silencio y el máster salía sin bleed aunque el admin lo pidiera.
-  it('rejects bleed when the variant has no print size', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({ variantTitle: 'Perro', productVariant: { printConfig: null } }),
+  it('rejects bleed when there is no print size', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({ orderItemId: null, orderItem: null }),
     );
 
     await expect(
-      service.applyEnhance('order-1', 'item-1', {
-        format: 'jpeg',
-        bleed: true,
-      }),
+      service.applyEnhance('project-1', { format: 'jpeg', bleed: true }),
     ).rejects.toThrow(BadRequestException);
   });
 
-  // El tamaño elegido en el Print Studio para la línea manda sobre el de la
-  // variante, sin tocar el catálogo.
-  it('prefers the item print size over the variant', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({ printConfig: { widthCm: 20, heightCm: 30 } }),
-    );
-
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
-
-    expect(result.printInches?.width).toBeCloseTo(20 / 2.54, 2);
-    expect(result.printConfigSource).toBe('item');
-  });
-
   it('offers distinct catalogue sizes as presets', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(item());
+    prisma.printProject.findUnique.mockResolvedValue(project());
     prisma.productFormatVariant.findMany.mockResolvedValue([
       { printConfig: { widthCm: 20, heightCm: 30, bleedMm: 3, minDpi: 300 } },
       { printConfig: { widthCm: 20, heightCm: 30, bleedMm: 3 } },
@@ -157,16 +210,102 @@ describe('ImageEnhancementService generation source', () => {
       { printConfig: { minDpi: 300 } },
     ]);
 
-    const result = await service.getEnhanceInfo('order-1', 'item-1');
+    const result = await service.getEnhanceInfo('project-1');
 
     expect(result.printSizePresets).toEqual([{ widthCm: 20, heightCm: 30 }]);
   });
 
-  it('rejects an item print size without width and height', async () => {
+  it('rejects a print size without width and height', async () => {
     await expect(
-      service.setItemPrintConfig('order-1', 'item-1', { widthCm: 20 }),
+      service.setPrintConfig('project-1', { widthCm: 20 }),
     ).rejects.toThrow(BadRequestException);
+    expect(prisma.printProject.update).not.toHaveBeenCalled();
+  });
+
+  it('copies the master to the linked item', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(project());
+    stubSave('https://cdn.example.com/master.jpg');
+
+    await service.applyEnhance('project-1', { format: 'jpeg' });
+
+    expect(prisma.orderItem.update).toHaveBeenCalledWith({
+      where: { id: 'item-1' },
+      data: {
+        printImageUrl: 'https://cdn.example.com/master.jpg',
+        printImageStorageKey: null,
+      },
+    });
+    expect(prisma.orderEvent.create).toHaveBeenCalled();
+  });
+
+  it('saves an unlinked project without touching any order', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({
+        orderItemId: null,
+        orderItem: null,
+        printConfig: { widthCm: 20, heightCm: 30 },
+      }),
+    );
+    stubSave();
+
+    await service.applyEnhance('project-1', { format: 'jpeg' });
+
+    expect(prisma.printProject.update).toHaveBeenCalled();
     expect(prisma.orderItem.update).not.toHaveBeenCalled();
+    expect(prisma.orderEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('drops a stale base when the generation image changed', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({
+        sourceUrl: 'https://cdn.example.com/old-generation.png',
+        upscaledUrl: 'https://cdn.example.com/stale-base.jpg',
+        upscaledStorageKey: 'stale-base.jpg',
+      }),
+    );
+    const download = stubSave();
+
+    await service.applyEnhance('project-1', { format: 'jpeg' });
+
+    expect(download).toHaveBeenCalledWith(generationUrl);
+    expect(download).not.toHaveBeenCalledWith(
+      'https://cdn.example.com/stale-base.jpg',
+    );
+    expect(storage.delete).toHaveBeenCalledWith('stale-base.jpg');
+    const updateCall: unknown = prisma.printProject.update.mock.calls[0]?.[0];
+    expect(updateCall).toMatchObject({
+      where: { id: 'project-1' },
+      data: {
+        sourceUrl: generationUrl,
+        upscaledUrl: null,
+        upscaledStorageKey: null,
+      },
+    });
+  });
+
+  it('restores the manual upload of the item on revert', async () => {
+    prisma.printProject.findUnique.mockResolvedValue(
+      project({
+        printImageUrl: 'https://cdn.example.com/master.jpg',
+        printImageStorageKey: 'master.jpg',
+        orderItem: orderItem({
+          printImageUrl: 'https://cdn.example.com/master.jpg',
+          printSourceUrl: 'https://cdn.example.com/manual.jpg',
+          printSourceStorageKey: 'manual.jpg',
+        }),
+      }),
+    );
+
+    await service.revertEnhance('project-1');
+
+    expect(storage.delete).toHaveBeenCalledWith('master.jpg');
+    expect(prisma.orderItem.update).toHaveBeenCalledWith({
+      where: { id: 'item-1' },
+      data: {
+        printImageUrl: 'https://cdn.example.com/manual.jpg',
+        printImageStorageKey: 'manual.jpg',
+      },
+    });
   });
 
   // La sangre es fija de 3 mm, aunque la variante guarde otro bleedMm.
@@ -232,46 +371,6 @@ describe('ImageEnhancementService generation source', () => {
     },
   );
 
-  it('drops a stale base and saves the generation as the print source', async () => {
-    prisma.orderItem.findFirst.mockResolvedValue(
-      item({
-        printSourceUrl: productImageUrl,
-        printUpscaledUrl: 'https://cdn.example.com/stale-base.jpg',
-        printUpscaledStorageKey: 'stale-base.jpg',
-      }),
-    );
-    prisma.orderItem.update.mockResolvedValue({});
-    storage.upload.mockResolvedValue(
-      'https://cdn.example.com/generation-print.jpg',
-    );
-    storage.delete.mockResolvedValue(undefined);
-    const download = jest
-      .spyOn(service as never, 'download' as never)
-      .mockResolvedValue(Buffer.from('source') as never);
-    jest
-      .spyOn(service as never, 'buildPrintImage' as never)
-      .mockResolvedValue(Buffer.from('print') as never);
-    jest
-      .spyOn(service as never, 'recordEvent' as never)
-      .mockResolvedValue(undefined as never);
-
-    await service.applyEnhance('order-1', 'item-1', { format: 'jpeg' });
-
-    expect(download).toHaveBeenCalledWith(generationUrl);
-    expect(download).not.toHaveBeenCalledWith(
-      'https://cdn.example.com/stale-base.jpg',
-    );
-    const updateCall: unknown = prisma.orderItem.update.mock.calls[0]?.[0];
-    expect(updateCall).toMatchObject({
-      where: { id: 'item-1' },
-      data: {
-        printSourceUrl: generationUrl,
-        printSourceStorageKey: null,
-        printUpscaledUrl: null,
-        printUpscaledStorageKey: null,
-      },
-    });
-  });
   // El máster se limita a 300 DPI cubriendo el área de impresión: una fuente
   // 3:4 a 20×30 cm (2:3) no puede quedar por debajo en el eje que se recorta.
   describe('buildPrintImage DPI cap', () => {

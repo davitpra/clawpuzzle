@@ -56,8 +56,8 @@ export interface PrintConfigShape {
   minDpi?: number;
 }
 
-/** De dónde sale el tamaño de impresión efectivo de una línea. */
-export type PrintConfigSource = 'item' | 'variant' | 'title';
+/** De dónde sale el tamaño de impresión efectivo de un proyecto. */
+export type PrintConfigSource = 'project' | 'variant' | 'title';
 
 /** Un tamaño ya configurado en el catálogo, ofrecido como opción en el Print Studio. */
 export interface PrintSizePreset {
@@ -82,7 +82,7 @@ export interface EnhanceInfo {
   printImageUrl: string | null;
   /** Detected dominant colour of the source image border — used as bleed default. */
   bleedColor: string;
-  /** printConfig efectivo (item → variante); null si el tamaño sale del título o no hay. */
+  /** printConfig efectivo (proyecto → variante); null si el tamaño sale del título o no hay. */
   printConfig: PrintConfigShape | null;
   printConfigSource: PrintConfigSource | null;
   /** Tamaños distintos configurados en las variantes del catálogo. */
@@ -95,9 +95,36 @@ export interface EnhanceInfo {
   printCrop: PrintCrop | null;
 }
 
+/** Lo que el estudio necesita de un proyecto y de la línea vinculada. */
+export const PROJECT_INCLUDE = {
+  generation: { select: { resultUrl: true, resultStorageKey: true } },
+  orderItem: {
+    select: {
+      id: true,
+      orderId: true,
+      variantTitle: true,
+      printImageUrl: true,
+      printImageStorageKey: true,
+      printSourceUrl: true,
+      printSourceStorageKey: true,
+      productVariant: { select: { printConfig: true } },
+      order: { select: { userId: true } },
+    },
+  },
+} satisfies Prisma.PrintProjectInclude;
+
+export type LoadedProject = Prisma.PrintProjectGetPayload<{
+  include: typeof PROJECT_INCLUDE;
+}>;
+
+/**
+ * Pipeline del Estudio de impresión sobre un PrintProject: tamaño, encuadre,
+ * upscale con IA, sangrado y máster. Si el proyecto está vinculado a una línea
+ * de pedido, cada guardado actualiza su imagen para impresión.
+ */
 @Injectable()
-export class ImageEnhancementService {
-  private readonly logger = new Logger(ImageEnhancementService.name);
+export class PrintProjectEnhancementService {
+  private readonly logger = new Logger(PrintProjectEnhancementService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -109,20 +136,18 @@ export class ImageEnhancementService {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  async getEnhanceInfo(orderId: string, itemId: string): Promise<EnhanceInfo> {
-    const item = await this.loadItem(orderId, itemId);
-    const original = this.resolveGeneratedArt(item);
-    const printInches = this.resolvePrintInches(item);
-    const sourceMatchesPrint = this.sourceMatchesPrint(item, original);
+  async getEnhanceInfo(projectId: string): Promise<EnhanceInfo> {
+    const project = await this.loadProject(projectId);
+    const original = this.resolveSource(project);
+    const printInches = this.resolvePrintInches(project);
+    const sourceMatches = this.sourceMatches(project, original);
 
-    const sourcePx = original?.storageKey
-      ? await this.probeDimensions(original.storageKey)
-      : null;
+    const sourcePx = original ? await this.getSourcePixels(original) : null;
     const sourceDpi = this.dpiFor(sourcePx, printInches);
     const bleedColor = original
       ? await this.detectBorderColor(original.url)
       : '#ffffff';
-    const resolved = this.resolvePrintConfig(item);
+    const resolved = this.resolvePrintConfig(project);
     const printConfigSource: PrintConfigSource | null = resolved
       ? resolved.source
       : printInches
@@ -134,29 +159,25 @@ export class ImageEnhancementService {
       sourcePx,
       printInches,
       sourceDpi,
-      printImageUrl: sourceMatchesPrint ? item.printImageUrl : null,
+      printImageUrl: sourceMatches ? project.printImageUrl : null,
       bleedColor,
       printConfig: resolved?.cfg ?? null,
       printConfigSource,
       printSizePresets: await this.loadPrintSizePresets(),
       recommendedUpscale: this.recommendUpscale(sourceDpi),
-      alreadyEnhanced:
-        sourceMatchesPrint &&
-        Boolean(item.printImageUrl) &&
-        item.printImageUrl !== item.printSourceUrl,
-      hasUpscaledBase: sourceMatchesPrint && Boolean(item.printUpscaledUrl),
-      printCrop: sourceMatchesPrint ? parsePrintCrop(item.printCrop) : null,
+      alreadyEnhanced: sourceMatches && Boolean(project.printImageUrl),
+      hasUpscaledBase: sourceMatches && Boolean(project.upscaledUrl),
+      printCrop: sourceMatches ? parsePrintCrop(project.printCrop) : null,
     };
   }
 
   /**
-   * Fija (o borra, con `cfg = null`) el tamaño de impresión de una sola línea.
-   * Anula el printConfig de la variante sin tocar el catálogo. Devuelve el
-   * EnhanceInfo recalculado para que el estudio se refresque de una vez.
+   * Fija (o borra, con `cfg = null`) el tamaño de impresión del proyecto.
+   * Anula el printConfig de la variante vinculada sin tocar el catálogo.
+   * Devuelve el EnhanceInfo recalculado para que el estudio se refresque.
    */
-  async setItemPrintConfig(
-    orderId: string,
-    itemId: string,
+  async setPrintConfig(
+    projectId: string,
     cfg: PrintConfigDto | null,
     adminUserId?: string,
   ): Promise<EnhanceInfo> {
@@ -165,23 +186,19 @@ export class ImageEnhancementService {
         'El tamaño de impresión necesita ancho y alto',
       );
     }
-    await this.loadItem(orderId, itemId);
-    await this.prisma.orderItem.update({
-      where: { id: itemId },
+    const project = await this.loadProject(projectId);
+    await this.prisma.printProject.update({
+      where: { id: projectId },
       data: {
         printConfig: cfg
           ? ({ ...cfg } as unknown as Prisma.InputJsonValue)
           : Prisma.DbNull,
       },
     });
-    await this.recordEvent(
-      orderId,
-      itemId,
-      'print_config_updated',
-      adminUserId,
-      { printConfig: cfg ? { ...cfg } : null },
-    );
-    return this.getEnhanceInfo(orderId, itemId);
+    await this.recordEvent(project, 'print_config_updated', adminUserId, {
+      printConfig: cfg ? { ...cfg } : null,
+    });
+    return this.getEnhanceInfo(projectId);
   }
 
   /** DPI of an image at a given print size (limited by the tighter edge). */
@@ -201,38 +218,36 @@ export class ImageEnhancementService {
    * Two paths depending on whether `options.upscaleFactor` (or `upscale` /
    * `targetDpi`) is set:
    *
-   * • Upscale path — runs fal.ai, saves a raw high-res BASE (printUpscaledUrl)
-   *   so future "adjust-only" saves can re-apply colour/bleed without re-running
+   * • Upscale path — runs fal.ai, saves a raw high-res BASE (upscaledUrl)
+   *   so future "adjust-only" saves can re-apply bleed without re-running
    *   the AI. Then applies adjustments on top and saves the master.
    *
-   * • Adjust-only path — partitions from the raw upscaled base when one exists,
-   *   otherwise from the original source. Never calls fal.ai.
+   * • Adjust-only path — starts from the raw upscaled base when one exists,
+   *   otherwise from the source. Never calls fal.ai.
    *
-   * The original source art (printSourceUrl / generation / Shopify image) is
-   * NEVER deleted or overwritten.
+   * The source art (upload or generation) is NEVER deleted or overwritten.
    */
   async applyEnhance(
-    orderId: string,
-    itemId: string,
+    projectId: string,
     options: EnhanceDto,
     adminUserId?: string,
   ): Promise<{ printImageUrl: string }> {
-    const item = await this.loadItem(orderId, itemId);
-    const original = this.resolveGeneratedArt(item);
+    const project = await this.loadProject(projectId);
+    const original = this.resolveSource(project);
     if (!original) {
-      throw new BadRequestException('Item has no generated artwork');
+      throw new BadRequestException('El proyecto no tiene imagen de origen');
     }
-    const sourceMatchesPrint = this.sourceMatchesPrint(item, original);
-    const printInches = this.resolvePrintInches(item);
+    const sourceMatches = this.sourceMatches(project, original);
+    const printInches = this.resolvePrintInches(project);
     // Sin tamaño de impresión no hay DPI con el que medir la sangre: antes se
     // omitía en silencio y el máster salía sin bleed.
     if (options.bleed && !printInches) {
       throw new BadRequestException(
-        'La variante no tiene tamaño de impresión: no se puede añadir bleed',
+        'El proyecto no tiene tamaño de impresión: no se puede añadir bleed',
       );
     }
     const ext = options.format === 'png' ? 'png' : 'jpg';
-    const masterKey = `orders/${orderId}/items/${itemId}/print/${uuidv4()}.${ext}`;
+    const masterKey = `print-projects/${projectId}/print/${uuidv4()}.${ext}`;
 
     const wantsUpscale = Boolean(
       options.upscaleFactor || options.upscale || options.targetDpi,
@@ -242,7 +257,6 @@ export class ImageEnhancementService {
     let baseBytes: Buffer;
     let newUpscaledUrl: string | null = null;
     let newUpscaledKey: string | null = null;
-    let oldUpscaledKey: string | null = null;
 
     if (wantsUpscale) {
       // ── Upscale path ────────────────────────────────────────────────────
@@ -264,23 +278,16 @@ export class ImageEnhancementService {
           },
         });
         baseBytes = result.imageBuffer;
-        this.logger.log(`Upscaled item x${factor} (req ${result.requestId})`);
+        this.logger.log(
+          `Upscaled project ${projectId} x${factor} (req ${result.requestId})`,
+        );
 
-        const loadedItem = item as typeof item & {
-          orderId: string;
-          generationId: string | null;
-          order?: { userId?: string | null };
-        };
-        const orderWithUser = await this.prisma.order.findUnique({
-          where: { id: orderId },
-          select: { userId: true },
-        });
         this.expensesService
           .recordUpscaleCost({
-            orderId,
-            orderItemId: itemId,
-            userId: orderWithUser?.userId ?? undefined,
-            generationId: loadedItem.generationId ?? undefined,
+            orderId: project.orderItem?.orderId,
+            orderItemId: project.orderItem?.id,
+            userId: project.orderItem?.order.userId ?? undefined,
+            generationId: project.generationId ?? undefined,
             model: UPSCALE_MODEL,
             factor,
             sourcePx,
@@ -288,7 +295,7 @@ export class ImageEnhancementService {
           })
           .catch((err) => {
             this.logger.warn(
-              `Failed to record upscale cost for item ${itemId}: ${(err as Error).message}`,
+              `Failed to record upscale cost for project ${projectId}: ${(err as Error).message}`,
             );
           });
       } else {
@@ -304,7 +311,7 @@ export class ImageEnhancementService {
       // the raw upscale at print size can be tens of MB as PNG, exceeding the
       // storage provider's per-file limit. JPEG keeps it bounded while staying a
       // faithful high-res reference for later adjust-only saves.
-      const baseKey = `orders/${orderId}/items/${itemId}/print/base/${uuidv4()}.jpg`;
+      const baseKey = `print-projects/${projectId}/print/base/${uuidv4()}.jpg`;
       const baseBuffer = await this.buildPrintImage(baseBytes, printInches, {
         format: 'jpeg',
       });
@@ -314,18 +321,17 @@ export class ImageEnhancementService {
         'image/jpeg',
       );
       newUpscaledKey = baseKey;
-      oldUpscaledKey = item.printUpscaledStorageKey ?? null;
     } else {
       // ── Adjust-only path ─────────────────────────────────────────────────
-      // Prefer the saved high-res base; fall back to original source.
-      if (sourceMatchesPrint && item.printUpscaledUrl) {
-        baseBytes = await this.download(item.printUpscaledUrl);
+      // Prefer the saved high-res base; fall back to the source.
+      if (sourceMatches && project.upscaledUrl) {
+        baseBytes = await this.download(project.upscaledUrl);
       } else {
         baseBytes = await this.download(original.url);
       }
     }
 
-    // Build the print master (colour/bleed adjustments applied on the base).
+    // Build the print master (crop/bleed applied on the base).
     const outputBuffer = await this.buildPrintImage(
       baseBytes,
       printInches,
@@ -338,132 +344,148 @@ export class ImageEnhancementService {
       contentType,
     );
     this.logger.log(
-      `Enhanced item → ${masterKey} (${outputBuffer.byteLength} bytes)`,
+      `Enhanced project → ${masterKey} (${outputBuffer.byteLength} bytes)`,
     );
 
-    // Delete old master (never the source, never the upscaled base we just created).
-    const safeKeys = new Set(
-      [item.printSourceStorageKey, original.storageKey, newUpscaledKey].filter(
-        Boolean,
-      ),
-    );
-    if (item.printImageStorageKey && !safeKeys.has(item.printImageStorageKey)) {
-      await this.storageService
-        .delete(item.printImageStorageKey)
-        .catch(() => null);
+    // Borrar el máster anterior (solo si es del proyecto) y la base que ya no
+    // vale: la reemplazada por una nueva, o la de otra fuente.
+    const staleKeys = [project.printImageStorageKey];
+    if (newUpscaledKey !== null || !sourceMatches) {
+      staleKeys.push(project.upscaledStorageKey);
     }
+    await this.deleteKeys(staleKeys);
 
-    // Delete old upscaled base when we just created a new one.
-    if (
-      oldUpscaledKey &&
-      oldUpscaledKey !== item.printSourceStorageKey &&
-      oldUpscaledKey !== newUpscaledKey
-    ) {
-      await this.storageService.delete(oldUpscaledKey).catch(() => null);
-    }
-
-    const dbData: Record<string, unknown> = {
+    const data: Prisma.PrintProjectUpdateInput = {
       printImageUrl,
       printImageStorageKey: masterKey,
+      sourceUrl: original.url,
+      // El encuadre se recuerda para que los guardados siguientes lo mantengan.
+      printCrop:
+        options.fitToFormat && options.crop
+          ? ({ ...options.crop } as unknown as Prisma.InputJsonValue)
+          : Prisma.DbNull,
     };
-    dbData.printSourceUrl = original.url;
-    // La Generation es dueña del asset. No copiar su key al pedido: la
-    // sustitución manual elimina printSourceStorageKey y borraría el original.
-    dbData.printSourceStorageKey = null;
-    // El encuadre se recuerda para que los guardados siguientes lo mantengan.
-    dbData.printCrop =
-      options.fitToFormat && options.crop
-        ? ({ ...options.crop } as unknown as Prisma.InputJsonValue)
-        : Prisma.DbNull;
     if (newUpscaledKey !== null) {
-      dbData.printUpscaledUrl = newUpscaledUrl;
-      dbData.printUpscaledStorageKey = newUpscaledKey;
-    } else if (!sourceMatchesPrint) {
-      dbData.printUpscaledUrl = null;
-      dbData.printUpscaledStorageKey = null;
+      data.upscaledUrl = newUpscaledUrl;
+      data.upscaledStorageKey = newUpscaledKey;
+    } else if (!sourceMatches) {
+      data.upscaledUrl = null;
+      data.upscaledStorageKey = null;
     }
+    await this.prisma.printProject.update({ where: { id: projectId }, data });
 
-    await this.prisma.orderItem.update({
-      where: { id: itemId },
-      data: dbData,
+    if (project.orderItem) {
+      await this.pushMasterToItem(project.orderItem, printImageUrl);
+    }
+    await this.recordEvent(project, 'print_image_enhanced', adminUserId, {
+      options: options as unknown as Record<string, unknown>,
+      printImageUrl,
     });
-
-    if (
-      !sourceMatchesPrint &&
-      item.printUpscaledStorageKey &&
-      item.printUpscaledStorageKey !== newUpscaledKey &&
-      item.printUpscaledStorageKey !== item.printSourceStorageKey
-    ) {
-      await this.storageService
-        .delete(item.printUpscaledStorageKey)
-        .catch(() => null);
-    }
-
-    await this.recordEvent(
-      orderId,
-      itemId,
-      'print_image_enhanced',
-      adminUserId,
-      {
-        options: options as unknown as Record<string, unknown>,
-        printImageUrl,
-      },
-    );
 
     return { printImageUrl };
   }
 
-  /**
-   * Drop the enhanced print image. Restores the manual-upload source art when
-   * present; otherwise clears it to fall back to the generation/Shopify image.
-   */
+  /** Borra la base y el máster del proyecto y vuelve a la imagen de origen. */
   async revertEnhance(
-    orderId: string,
-    itemId: string,
+    projectId: string,
     adminUserId?: string,
-  ): Promise<{ printImageUrl: string | null }> {
-    const item = await this.loadItem(orderId, itemId);
+  ): Promise<{ printImageUrl: null }> {
+    const project = await this.loadProject(projectId);
+    await this.resetDerived(project);
+    await this.recordEvent(project, 'print_image_reverted', adminUserId, {});
+    return { printImageUrl: null };
+  }
 
-    // Delete print master (never the source).
+  /**
+   * Descarta todo lo derivado de la fuente (base, máster y encuadre). Si la
+   * línea vinculada sigue mostrando este máster, vuelve a su subida manual o a
+   * nada. Se usa al revertir y al cambiar la imagen de origen.
+   */
+  async resetDerived(project: LoadedProject): Promise<void> {
+    await this.deleteKeys([
+      project.printImageStorageKey,
+      project.upscaledStorageKey,
+    ]);
+    await this.prisma.printProject.update({
+      where: { id: project.id },
+      data: {
+        printImageUrl: null,
+        printImageStorageKey: null,
+        upscaledUrl: null,
+        upscaledStorageKey: null,
+        printCrop: Prisma.DbNull,
+      },
+    });
+    const item = project.orderItem;
+    if (
+      item &&
+      project.printImageUrl &&
+      item.printImageUrl === project.printImageUrl
+    ) {
+      await this.prisma.orderItem.update({
+        where: { id: item.id },
+        data: {
+          printImageUrl: item.printSourceUrl,
+          printImageStorageKey: item.printSourceStorageKey,
+        },
+      });
+    }
+  }
+
+  async loadProject(projectId: string): Promise<LoadedProject> {
+    const project = await this.prisma.printProject.findUnique({
+      where: { id: projectId },
+      include: PROJECT_INCLUDE,
+    });
+    if (!project) throw new NotFoundException('Proyecto no encontrado');
+    return project;
+  }
+
+  /**
+   * El máster pasa a ser la imagen para impresión de la línea. La key queda en
+   * el proyecto, que es su dueño; un máster anterior que la línea heredó al
+   * desvincularse otro proyecto se borra (nunca su subida manual).
+   */
+  async pushMasterToItem(
+    item: NonNullable<LoadedProject['orderItem']>,
+    printImageUrl: string,
+  ): Promise<void> {
     if (
       item.printImageStorageKey &&
       item.printImageStorageKey !== item.printSourceStorageKey
     ) {
-      await this.storageService
-        .delete(item.printImageStorageKey)
-        .catch(() => null);
+      await this.deleteKeys([item.printImageStorageKey]);
     }
-
-    // Delete upscaled base (never the source).
-    if (
-      item.printUpscaledStorageKey &&
-      item.printUpscaledStorageKey !== item.printSourceStorageKey
-    ) {
-      await this.storageService
-        .delete(item.printUpscaledStorageKey)
-        .catch(() => null);
-    }
-
     await this.prisma.orderItem.update({
-      where: { id: itemId },
+      where: { id: item.id },
+      data: { printImageUrl, printImageStorageKey: null },
+    });
+  }
+
+  /** OrderEvent en la línea vinculada; sin vínculo no hay historial que llevar. */
+  async recordEvent(
+    project: { orderItem: { id: string; orderId: string } | null },
+    eventType: string,
+    adminUserId: string | undefined,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    if (!project.orderItem) return;
+    await this.prisma.orderEvent.create({
       data: {
-        printImageUrl: item.printSourceUrl,
-        printImageStorageKey: item.printSourceStorageKey,
-        printUpscaledUrl: null,
-        printUpscaledStorageKey: null,
-        printCrop: Prisma.DbNull,
+        orderId: project.orderItem.orderId,
+        orderItemId: project.orderItem.id,
+        eventType,
+        source: 'admin',
+        userId: adminUserId ?? null,
+        payload: payload as Prisma.InputJsonValue,
       },
     });
+  }
 
-    await this.recordEvent(
-      orderId,
-      itemId,
-      'print_image_reverted',
-      adminUserId,
-      {},
-    );
-
-    return { printImageUrl: item.printSourceUrl };
+  private async deleteKeys(keys: (string | null)[]): Promise<void> {
+    for (const key of new Set(keys.filter((k): k is string => Boolean(k)))) {
+      await this.storageService.delete(key).catch(() => null);
+    }
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
@@ -717,48 +739,32 @@ export class ImageEnhancementService {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private async loadItem(orderId: string, itemId: string) {
-    const item = await this.prisma.orderItem.findFirst({
-      where: { id: itemId, orderId },
-      include: {
-        generation: { select: { resultUrl: true, resultStorageKey: true } },
-        productVariant: {
-          select: { printConfig: true },
-        },
-      },
-    });
-    if (!item) throw new NotFoundException('Order item not found');
-    return item;
-  }
-
-  /** El arte IA original de la línea. Nunca un derivado ni un preview. */
-  private resolveGeneratedArt(item: {
-    generation: {
-      resultUrl: string | null;
-      resultStorageKey: string | null;
-    } | null;
-  }): { url: string; storageKey: string | null } | null {
-    if (item.generation?.resultUrl) {
-      return {
-        url: item.generation.resultUrl,
-        storageKey: item.generation.resultStorageKey,
-      };
+  /**
+   * La imagen de origen del proyecto. Con generación, la imagen actual de la
+   * generación (puede haberse reemplazado); si no, la subida al proyecto.
+   */
+  private resolveSource(
+    project: LoadedProject,
+  ): { url: string; storageKey: string | null } | null {
+    if (project.generationId) {
+      return project.generation?.resultUrl
+        ? {
+            url: project.generation.resultUrl,
+            storageKey: project.generation.resultStorageKey,
+          }
+        : null;
     }
-    return null;
+    return project.sourceUrl
+      ? { url: project.sourceUrl, storageKey: project.sourceStorageKey }
+      : null;
   }
 
-  private sourceMatchesPrint(
-    item: {
-      printSourceUrl: string | null;
-      generation: { resultUrl: string | null } | null;
-    },
-    original: { url: string; storageKey: string | null } | null,
+  /** La base y el máster guardados salieron de la fuente actual. */
+  private sourceMatches(
+    project: LoadedProject,
+    original: { url: string } | null,
   ): boolean {
-    if (!original) return false;
-    if (item.printSourceUrl) return item.printSourceUrl === original.url;
-
-    // Los resultados legacy no guardaban printSourceUrl.
-    return item.generation?.resultUrl === original.url;
+    return Boolean(original) && project.sourceUrl === original?.url;
   }
 
   /**
@@ -771,14 +777,10 @@ export class ImageEnhancementService {
    * upscale y el bleed. Aquí el dato sale de la base de datos y el parser es
    * el último recurso, no el primero.
    */
-  private resolvePrintInches(item: {
-    variantTitle?: string | null;
-    printConfig?: Prisma.JsonValue | null;
-    productVariant: {
-      printConfig: Prisma.JsonValue | null;
-    } | null;
-  }): { width: number; height: number } | null {
-    const resolved = this.resolvePrintConfig(item);
+  private resolvePrintInches(
+    project: LoadedProject,
+  ): { width: number; height: number } | null {
+    const resolved = this.resolvePrintConfig(project);
     if (resolved) {
       return {
         width: resolved.cfg.widthCm / 2.54,
@@ -786,28 +788,23 @@ export class ImageEnhancementService {
       };
     }
 
-    return this.parseInchesFromTitle(item.variantTitle ?? null);
+    return this.parseInchesFromTitle(project.orderItem?.variantTitle ?? null);
   }
 
   /**
-   * printConfig efectivo de la línea: el elegido en el Print Studio para este
-   * item manda sobre el de la variante. Solo cuenta si trae ancho y alto.
+   * printConfig efectivo: el elegido en el estudio para el proyecto manda
+   * sobre el de la variante vinculada. Solo cuenta si trae ancho y alto.
    */
-  private resolvePrintConfig(item: {
-    printConfig?: Prisma.JsonValue | null;
-    productVariant: {
-      printConfig: Prisma.JsonValue | null;
-    } | null;
-  }): {
+  private resolvePrintConfig(project: LoadedProject): {
     cfg: PrintConfigShape & { widthCm: number; heightCm: number };
-    source: 'item' | 'variant';
+    source: 'project' | 'variant';
   } | null {
     const candidates: [
       Prisma.JsonValue | null | undefined,
-      'item' | 'variant',
+      'project' | 'variant',
     ][] = [
-      [item.printConfig, 'item'],
-      [item.productVariant?.printConfig, 'variant'],
+      [project.printConfig, 'project'],
+      [project.orderItem?.productVariant?.printConfig, 'variant'],
     ];
     for (const [raw, source] of candidates) {
       const cfg = raw as PrintConfigShape | null | undefined;
@@ -903,24 +900,5 @@ export class ImageEnhancementService {
     if (sourceDpi >= TARGET_DPI) return 0;
     const factor = Math.ceil(TARGET_DPI / sourceDpi);
     return factor <= 1 ? 0 : factor <= 2 ? 2 : 4;
-  }
-
-  private async recordEvent(
-    orderId: string,
-    orderItemId: string,
-    eventType: string,
-    adminUserId: string | undefined,
-    payload: Record<string, unknown>,
-  ): Promise<void> {
-    await this.prisma.orderEvent.create({
-      data: {
-        orderId,
-        orderItemId,
-        eventType,
-        source: 'admin',
-        userId: adminUserId ?? null,
-        payload: payload as Prisma.InputJsonValue,
-      },
-    });
   }
 }

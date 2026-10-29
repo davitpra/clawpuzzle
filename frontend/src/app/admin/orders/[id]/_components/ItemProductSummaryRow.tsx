@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { Badge, Text, InlineStack, BlockStack } from "@shopify/polaris";
 import { AdminOrderItem } from "@/entities/admin/api";
 import { fmtCurrency } from "@/entities/admin/lib/order-format";
-import { ItemMediaRow } from "./ItemMediaRow";
+import { ItemMediaRow } from "@/app/admin/_components/ItemMediaRow";
 
 type ItemProductSummaryRowProps = {
   item: AdminOrderItem;

@@ -88,7 +88,10 @@ The application follows NestJS modular architecture with domain-driven modules:
 - **generations**: Core AI generation engine (images/videos), status tracking, provider abstraction
 - **storage**: Cloudinary file upload/retrieval service (global module)
 - **prisma**: Database service (global module)
-- **orders**: Shopify order ingestion, production status machine, print masters
+- **orders**: Shopify order ingestion, production status machine
+- **print-studio**: `PrintProject`s — print masters (crop, AI upscale, bleed)
+  built in the admin Print Studio, optionally linked to one order item; saving
+  a linked project updates that item's `printImageUrl`
 - **products** / **formats**: local catalog mirrored from Shopify; `Format` is
   the aspect ratio of the generated image
 - **credits**: idempotent credit ledger

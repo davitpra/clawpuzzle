@@ -447,6 +447,7 @@ model Generation {
   productRef     ProductReference? @relation(fields: [productRefId], references: [id], onDelete: SetNull)
   orderItems     OrderItem[]
   expenses       Expense[]
+  printProjects  PrintProject[]
 
   @@index([userId])
   @@index([petId])
@@ -586,6 +587,7 @@ model OrderItem {
   generation     Generation?           @relation(fields: [generationId], references: [id], onDelete: SetNull)
   events         OrderEvent[]
   expenses       Expense[]
+  printProject   PrintProject?
 
   @@unique([orderId, shopifyLineItemId])
   @@index([generationId])
@@ -596,6 +598,43 @@ model OrderItem {
   @@index([shippedAt(sort: Desc)])
   @@index([deliveredAt(sort: Desc)])
   @@map("order_items")
+}
+
+// Proyecto del Estudio de impresión: una imagen preparada para imprimir
+// (fuente, base agrandada con IA, máster, encuadre y tamaño). Puede vincularse
+// a una línea de pedido (como mucho un proyecto por línea); al guardar, el
+// máster pasa a ser la imagen para impresión de esa línea.
+model PrintProject {
+  id                   String   @id @default(uuid())
+  title                String
+  orderItemId          String?  @unique @map("order_item_id")
+  // Fuente tomada de una generación (del ítem o de la galería del cliente). La
+  // generación es dueña del asset: sourceStorageKey queda null.
+  generationId         String?  @map("generation_id")
+  // Fuente efectiva con la que se hizo el último guardado. Si la generación
+  // cambia de imagen, la base y el máster dejan de valer.
+  sourceUrl            String?  @map("source_url")
+  // Solo si la fuente se subió al proyecto (el proyecto es su dueño).
+  sourceStorageKey     String?  @map("source_storage_key")
+  upscaledUrl          String?  @map("upscaled_url")
+  upscaledStorageKey   String?  @map("upscaled_storage_key")
+  printImageUrl        String?  @map("print_image_url")
+  // Null cuando el máster ya no es del proyecto (al desvincular lo hereda el ítem).
+  printImageStorageKey String?  @map("print_image_storage_key")
+  // { widthCm, heightCm }: anula el tamaño de la variante del ítem vinculado.
+  printConfig          Json?    @map("print_config")
+  // { x, y, zoom } del encuadre "Ajustar al formato". Null = centrado.
+  printCrop            Json?    @map("print_crop")
+  createdById          String?  @map("created_by_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+
+  orderItem  OrderItem?  @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  generation Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@index([generationId])
+  @@index([updatedAt(sort: Desc)])
+  @@map("print_projects")
 }
 
 model OrderEvent {

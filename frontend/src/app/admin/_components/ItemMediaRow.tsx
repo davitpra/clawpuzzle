@@ -34,7 +34,8 @@ type ItemMediaRowProps = {
 };
 
 // Fila reutilizable "thumbnail + contenido" usada para la imagen de producto,
-// la imagen generada y la imagen de impresión del item.
+// la imagen generada y la imagen de impresión del item, y en el Estudio de
+// impresión.
 export function ItemMediaRow({ image, alt, onZoom, children }: ItemMediaRowProps) {
   return (
     <InlineStack gap="400" blockAlign="start">

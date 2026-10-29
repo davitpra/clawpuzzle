@@ -128,16 +128,15 @@ export function PrintStudioControls({
     currentKind === "saved" ? "La imagen guardada" : "La imagen original";
   // DPI bajo el mínimo: el medido de la imagen actual o, mientras no se ha
   // medido, el de origen que calcula el backend.
-  const lowDpi =
-    !printInches
-      ? null
-      : currentDpi !== null
-        ? currentDpi < GOOD_DPI
-          ? { label: currentLabel, dpi: currentDpi }
-          : null
-        : info?.sourceDpi != null && info.sourceDpi < GOOD_DPI
-          ? { label: "La imagen de origen", dpi: info.sourceDpi }
-          : null;
+  const lowDpi = !printInches
+    ? null
+    : currentDpi !== null
+      ? currentDpi < GOOD_DPI
+        ? { label: currentLabel, dpi: currentDpi }
+        : null
+      : info?.sourceDpi != null && info.sourceDpi < GOOD_DPI
+        ? { label: "La imagen de origen", dpi: info.sourceDpi }
+        : null;
   // Con el encuadre actual el máster ya llega a PRINT_DPI sin agrandar.
   const sourceIsEnough = framedDpi !== null && framedDpi >= PRINT_DPI;
   const upscaleExpanded = upscaleOpen ?? !sourceIsEnough;
@@ -153,11 +152,11 @@ export function PrintStudioControls({
 
         {!hasSource && (
           <Banner tone="warning">
-            Este item no tiene una imagen de IA original disponible.
+            Este proyecto aún no tiene imagen de origen.
           </Banner>
         )}
 
-        {/* Tamaño de impresión del item */}
+        {/* Tamaño de impresión del proyecto */}
         <StepCard title="Formato de impresión">{printSizeControl}</StepCard>
 
         {/* Bleed — sin tamaño de impresión el backend no puede medirlo. */}

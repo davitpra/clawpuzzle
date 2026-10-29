@@ -162,8 +162,9 @@ export class ExpensesService {
   }
 
   async recordUpscaleCost(input: {
-    orderId: string;
-    orderItemId: string;
+    // Sin pedido cuando el proyecto del Estudio de impresión no está vinculado.
+    orderId?: string;
+    orderItemId?: string;
     userId?: string;
     generationId?: string;
     model: string;

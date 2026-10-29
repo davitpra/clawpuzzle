@@ -16,22 +16,22 @@ import { fmtDate } from "@/entities/admin/lib/order-format";
 
 type GenerationPickerModalProps = {
   userId: string;
-  orderId: string;
-  itemId: string;
   currentGenerationId: string | null;
+  title?: string;
+  // Qué hacer con la generación elegida; si lanza, el error se muestra en el modal.
+  onPick: (generation: AdminUserGeneration) => Promise<void>;
   onClose: () => void;
-  onLinked: () => void;
 };
 
-// Modal para re-vincular el item a otra generación del cliente. Lista las
-// generaciones del usuario (paginadas) y permite elegir una.
+// Modal para elegir una generación del cliente. Lista las generaciones del
+// usuario (paginadas); lo usan el pedido (re-vincular el item) y el Estudio de
+// impresión (imagen de origen del proyecto).
 export function GenerationPickerModal({
   userId,
-  orderId,
-  itemId,
   currentGenerationId,
+  title = "Cambiar generación",
+  onPick,
   onClose,
-  onLinked,
 }: GenerationPickerModalProps) {
   const [generations, setGenerations] = useState<AdminUserGeneration[]>([]);
   const [page, setPage] = useState(1);
@@ -67,8 +67,7 @@ export function GenerationPickerModal({
     setLinkingId(gen.id);
     setErr(null);
     try {
-      await adminApi.orders.linkGeneration(orderId, itemId, gen.id);
-      onLinked();
+      await onPick(gen);
       onClose();
     } catch (e) {
       setErr((e as Error).message);
@@ -81,7 +80,7 @@ export function GenerationPickerModal({
     <Modal
       open
       onClose={onClose}
-      title="Cambiar generación"
+      title={title}
       secondaryActions={[{ content: "Cerrar", onAction: onClose }]}
     >
       <Modal.Section>

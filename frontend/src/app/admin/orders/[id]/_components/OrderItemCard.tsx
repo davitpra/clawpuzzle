@@ -17,12 +17,12 @@ import ImagePreviewModal from "@/app/admin/_components/ImagePreviewModal";
 import { Modal } from "@shopify/polaris";
 import { ItemActionsBar } from "./ItemActionsBar";
 import { ItemFulfillmentControl } from "./ItemFulfillmentControl";
-import { ItemMediaRow } from "./ItemMediaRow";
+import { ItemMediaRow } from "@/app/admin/_components/ItemMediaRow";
 import { ItemProductPreview } from "./ItemProductPreview";
 import { ItemProductSummaryRow } from "./ItemProductSummaryRow";
 import { ItemStatusSelect } from "./ItemStatusSelect";
 import { GenerationActionsBar } from "./GenerationActionsBar";
-import { GenerationPickerModal } from "./GenerationPickerModal";
+import { GenerationPickerModal } from "@/app/admin/_components/GenerationPickerModal";
 
 type OrderItemCardProps = {
   item: AdminOrderItem;
@@ -217,11 +217,12 @@ export function OrderItemCard({
       {showPicker && userId && (
         <GenerationPickerModal
           userId={userId}
-          orderId={orderId}
-          itemId={item.id}
           currentGenerationId={item.generation?.id ?? null}
+          onPick={async (gen) => {
+            await adminApi.orders.linkGeneration(orderId, item.id, gen.id);
+            onUpdate();
+          }}
           onClose={() => setShowPicker(false)}
-          onLinked={onUpdate}
         />
       )}
       {pendingGenFile && (
@@ -273,8 +274,9 @@ export function OrderItemCard({
         >
           <Modal.Section>
             <Text as="p">
-              Esto borra la imagen para impresión, incluido lo procesado en el
-              Print Studio. El item vuelve a usar la imagen generada. ¿Continuar?
+              Esto borra la imagen para impresión del item, que vuelve a usar la
+              imagen generada. El proyecto del Estudio de impresión, si lo hay,
+              conserva su trabajo. ¿Continuar?
             </Text>
           </Modal.Section>
         </Modal>
@@ -331,14 +333,13 @@ export function OrderItemCard({
               <Text variant="bodySm" tone="subdued" as="span">
                 {item.id}
               </Text>
-              {generatedSource && (
-                <Button
-                  size="micro"
-                  url={`/admin/orders/${orderId}/items/${item.id}/print-studio`}
-                >
-                  Preparar para impresión
-                </Button>
-              )}
+              {/* Sin generación también: en el estudio se puede subir la imagen. */}
+              <Button
+                size="micro"
+                url={`/admin/orders/${orderId}/items/${item.id}/print-studio`}
+              >
+                Preparar para impresión
+              </Button>
             </BlockStack>
           </ItemMediaRow>
 

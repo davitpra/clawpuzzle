@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   BlockStack,
@@ -19,6 +20,7 @@ import {
   EnhanceInfo,
   EnhanceOptions,
   PrintCrop,
+  PrintProject,
 } from "@/entities/admin/api";
 import { cloudinaryDownloadUrl } from "@/shared/lib/cloudinary";
 import { hexToHsb, hsbToHex, HsbColor } from "@/lib/colorUtils";
@@ -33,18 +35,23 @@ import {
 import { PrintStudioStage } from "./PrintStudioStage";
 import { PrintStudioControls } from "./PrintStudioControls";
 import { PrintSizeSelect } from "./PrintSizeSelect";
-import { OrderSummaryCard } from "./OrderSummaryCard";
+import { OrderLinkCard } from "./OrderLinkCard";
+import { SourceImageCard } from "./SourceImageCard";
+import { RenameProjectModal } from "./RenameProjectModal";
+import { DeleteProjectModal } from "./DeleteProjectModal";
 
 // Id fijo: un nuevo guardado reemplaza al anterior en vez de apilarse.
 const SAVED_TOAST_ID = "print-studio-saved";
 
 export default function PrintStudioWorkspace({
-  orderId,
-  itemId,
+  projectId,
 }: {
-  orderId: string;
-  itemId: string;
+  projectId: string;
 }) {
+  const router = useRouter();
+  const [project, setProject] = useState<PrintProject | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [info, setInfo] = useState<EnhanceInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   // URL guardada durante esta sesión para mostrar el resultado inmediatamente.
@@ -81,33 +88,41 @@ export default function PrintStudioWorkspace({
   const framing = Boolean(info?.printInches);
   const displayUrl = framing ? sourceUrl : currentImageUrl;
 
+  // Inicializa los controles desde lo guardado. Solo en la primera carga y al
+  // cambiar la imagen de origen; los refresh posteriores actualizan la imagen
+  // sin pisar los ajustes del admin.
+  const initControls = useCallback((data: EnhanceInfo) => {
+    setCrop(data.printCrop ?? CENTER_CROP);
+    if (data.bleedColor) {
+      setBleedColor(data.bleedColor);
+      setBleedHsb(hexToHsb(data.bleedColor));
+    }
+    // Only suggest an upscale when the image hasn't been enhanced yet.
+    if (!data.alreadyEnhanced) {
+      setUpscaleFactor(
+        data.recommendedUpscale > 0
+          ? data.recommendedUpscale
+          : DEFAULT_UPSCALE_FACTOR,
+      );
+    } else {
+      // Already enhanced — reset slider to 1 so the user must explicitly
+      // choose a factor before re-running the AI upscale.
+      setUpscaleFactor(1);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
-    const firstLoad = !info;
     (async () => {
       try {
-        const data = await adminApi.orders.enhanceInfo(orderId, itemId);
+        const [proj, data] = await Promise.all([
+          adminApi.printProjects.get(projectId),
+          adminApi.printProjects.enhanceInfo(projectId),
+        ]);
         if (!active) return;
+        setProject(proj);
         setInfo(data);
-        // Solo inicializa controles en la primera carga; los refresh posteriores
-        // actualizan la imagen sin pisar los ajustes del admin.
-        if (firstLoad) {
-          if (data.printCrop) setCrop(data.printCrop);
-          if (data.bleedColor) {
-            setBleedColor(data.bleedColor);
-            setBleedHsb(hexToHsb(data.bleedColor));
-          }
-          // Only suggest an upscale when the image hasn't been enhanced yet.
-          if (!data.alreadyEnhanced) {
-            if (data.recommendedUpscale > 0) {
-              setUpscaleFactor(data.recommendedUpscale);
-            }
-          } else {
-            // Already enhanced — reset slider to 1 so the user must explicitly
-            // choose a factor before re-running the AI upscale.
-            setUpscaleFactor(1);
-          }
-        }
+        initControls(data);
       } catch (e) {
         if (active) setErr((e as Error).message);
       } finally {
@@ -117,15 +132,39 @@ export default function PrintStudioWorkspace({
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, itemId]);
+  }, [projectId, initControls]);
 
-  // Pedido del ítem para la tarjeta de contexto. Va aparte de enhanceInfo para
-  // no retrasar el estudio; si falla, la tarjeta simplemente no se muestra.
+  // Tras cambiar la imagen de origen o el vínculo: lo derivado puede haber
+  // cambiado, así que se recarga y los controles vuelven a lo guardado.
+  async function handleProjectChange(next: PrintProject) {
+    setProject(next);
+    setLoadingInfo(true);
+    try {
+      const data = await adminApi.printProjects.enhanceInfo(projectId);
+      setInfo(data);
+      setSavedUrl(null);
+      initControls(data);
+      markUnsaved();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoadingInfo(false);
+    }
+  }
+
+  // Pedido vinculado para la tarjeta de contexto. Va aparte de enhanceInfo para
+  // no retrasar el estudio.
+  const orderId = project?.orderItem?.orderId ?? null;
+  const itemId = project?.orderItem?.id ?? null;
   const [order, setOrder] = useState<AdminOrderDetail | null>(null);
   const [orderFailed, setOrderFailed] = useState(false);
   useEffect(() => {
+    if (!orderId) {
+      setOrder(null);
+      return;
+    }
     let active = true;
+    setOrderFailed(false);
     adminApi.orders
       .detail(orderId)
       .then((data) => active && setOrder(data))
@@ -134,7 +173,10 @@ export default function PrintStudioWorkspace({
       active = false;
     };
   }, [orderId]);
-  const orderItem = order?.items.find((i) => i.id === itemId) ?? null;
+  const orderItem =
+    order?.id === orderId
+      ? (order?.items.find((i) => i.id === itemId) ?? null)
+      : null;
 
   // Reset measured dimensions when the current image URL changes.
   useEffect(() => {
@@ -213,9 +255,8 @@ export default function PrintStudioWorkspace({
         bleedColor:
           applyBleed && bleedMode === "solid" ? bleedColor : undefined,
       };
-      const { printImageUrl } = await adminApi.orders.enhance(
-        orderId,
-        itemId,
+      const { printImageUrl } = await adminApi.printProjects.enhance(
+        projectId,
         opts,
       );
       setInfo((prev) =>
@@ -250,9 +291,8 @@ export default function PrintStudioWorkspace({
         bleedColor:
           applyBleed && bleedMode === "solid" ? bleedColor : undefined,
       };
-      const { printImageUrl } = await adminApi.orders.enhance(
-        orderId,
-        itemId,
+      const { printImageUrl } = await adminApi.printProjects.enhance(
+        projectId,
         opts,
       );
       setInfo((prev) =>
@@ -270,8 +310,8 @@ export default function PrintStudioWorkspace({
   async function handleRevert() {
     setReverting(true);
     try {
-      await adminApi.orders.enhanceRevert(orderId, itemId);
-      const data = await adminApi.orders.enhanceInfo(orderId, itemId);
+      await adminApi.printProjects.enhanceRevert(projectId);
+      const data = await adminApi.printProjects.enhanceInfo(projectId);
       setInfo(data);
       setSavedUrl(null);
       markUnsaved();
@@ -286,7 +326,7 @@ export default function PrintStudioWorkspace({
     const href = cloudinaryDownloadUrl(
       currentImageUrl,
       "jpg",
-      `impresion-${itemId}`,
+      `impresion-${projectId}`,
     );
     const a = document.createElement("a");
     a.href = href;
@@ -300,9 +340,12 @@ export default function PrintStudioWorkspace({
   // del estado del estudio, se rendericen en la misma línea que el título.
   return (
     <Page
-      backAction={{ url: `/admin/orders/${orderId}`, content: "Pedido" }}
-      title="Estudio de impresión"
-      subtitle="Imagen generada"
+      backAction={{
+        url: "/admin/print-studio",
+        content: "Estudio de impresión",
+      }}
+      title={project?.title ?? "Estudio de impresión"}
+      subtitle="Estudio de impresión"
       fullWidth
       primaryAction={{
         content: "Guardar cambios",
@@ -316,8 +359,33 @@ export default function PrintStudioWorkspace({
           disabled: !currentImageUrl || loadingInfo,
           onAction: handleDownload,
         },
+        {
+          content: "Renombrar",
+          disabled: !project,
+          onAction: () => setRenaming(true),
+        },
+        {
+          content: "Eliminar proyecto",
+          destructive: true,
+          disabled: !project || busy,
+          onAction: () => setDeleting(true),
+        },
       ]}
     >
+      {renaming && project && (
+        <RenameProjectModal
+          project={project}
+          onRenamed={setProject}
+          onClose={() => setRenaming(false)}
+        />
+      )}
+      {deleting && project && (
+        <DeleteProjectModal
+          project={project}
+          onDeleted={() => router.push("/admin/print-studio")}
+          onClose={() => setDeleting(false)}
+        />
+      )}
       {zoom && (
         <ImagePreviewModal
           src={zoom.src}
@@ -370,11 +438,27 @@ export default function PrintStudioWorkspace({
             </Layout.Section>
             <Layout.Section variant="oneThird">
               <BlockStack gap="400">
-                {!orderFailed && !(order && !orderItem) && (
-                  <OrderSummaryCard
-                    order={order}
+                {project && (
+                  <OrderLinkCard
+                    project={project}
+                    order={orderFailed ? null : order}
                     item={orderItem}
+                    loading={Boolean(orderId) && !orderItem && !orderFailed}
+                    disabled={busy}
                     onZoom={setZoom}
+                    onChange={handleProjectChange}
+                  />
+                )}
+                {project && (
+                  <SourceImageCard
+                    project={project}
+                    sourceUrl={sourceUrl}
+                    item={orderItem}
+                    userId={order?.userId ?? null}
+                    alreadyEnhanced={Boolean(info?.alreadyEnhanced)}
+                    disabled={busy}
+                    onZoom={setZoom}
+                    onChange={handleProjectChange}
                   />
                 )}
                 <PrintStudioControls
@@ -398,8 +482,7 @@ export default function PrintStudioWorkspace({
                   bleedEnabled={bleedEnabled}
                   printSizeControl={
                     <PrintSizeSelect
-                      orderId={orderId}
-                      itemId={itemId}
+                      projectId={projectId}
                       info={info}
                       onInfoChange={setInfo}
                       markUnsaved={markUnsaved}

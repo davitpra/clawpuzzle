@@ -14,10 +14,10 @@ import { OrdersIngestProcessor } from './processors/orders-ingest.processor';
 import { ShopifyHmacGuard } from '../common/guards/shopify-hmac.guard';
 import { ShopifySyncModule } from '../shopify-sync/shopify-sync.module';
 import { GenerationsModule } from '../generations/generations.module';
-import { ImageEnhancementService } from './image-enhancement.service';
 import { ExpensesModule } from '../expenses/expenses.module';
 import { CreditsModule } from '../credits/credits.module';
 import { FxModule } from '../fx/fx.module';
+import { PrintStudioModule } from '../print-studio/print-studio.module';
 
 @Module({
   imports: [
@@ -27,6 +27,7 @@ import { FxModule } from '../fx/fx.module';
     ExpensesModule,
     CreditsModule,
     FxModule,
+    PrintStudioModule,
   ],
   controllers: [
     ShopifyOrdersWebhookController,
@@ -41,7 +42,6 @@ import { FxModule } from '../fx/fx.module';
     UserOrdersService,
     OrdersIngestProcessor,
     ShopifyHmacGuard,
-    ImageEnhancementService,
   ],
   exports: [OrdersService, AdminOrdersService],
 })

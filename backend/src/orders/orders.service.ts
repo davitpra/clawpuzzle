@@ -1342,12 +1342,19 @@ export class OrdersService {
       },
     });
 
-    const ownPrefix = `orders/${orderId}/items/${itemId}/`;
+    // Un máster del Estudio de impresión que la línea heredó al desvincularse
+    // su proyecto también es suyo.
+    const ownPrefixes = [
+      `orders/${orderId}/items/${itemId}/`,
+      'print-projects/',
+    ];
     const oldKeys = [
       item.printImageStorageKey,
       item.printSourceStorageKey,
       item.printUpscaledStorageKey,
-    ].filter((k): k is string => !!k && k.startsWith(ownPrefix));
+    ].filter(
+      (k): k is string => !!k && ownPrefixes.some((p) => k.startsWith(p)),
+    );
     for (const oldKey of new Set(oldKeys)) {
       await this.storageService.delete(oldKey).catch(() => null);
     }

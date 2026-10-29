@@ -19,7 +19,7 @@ type Px = { w: number; h: number };
 type Inches = { width: number; height: number };
 
 // ── Encuadre ("Ajustar al formato") ───────────────────────────────────────
-// Réplica de backend/src/orders/print-crop.util.ts — editar ambos juntos.
+// Réplica de backend/src/print-studio/print-crop.util.ts — editar ambos juntos.
 export const CENTER_CROP: PrintCrop = { x: 0.5, y: 0.5, zoom: 1 };
 export const MAX_CROP_ZOOM = 3;
 

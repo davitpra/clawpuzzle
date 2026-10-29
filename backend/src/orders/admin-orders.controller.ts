@@ -4,7 +4,6 @@ import {
   Get,
   Patch,
   Post,
-  Put,
   Param,
   Query,
   Body,
@@ -40,9 +39,7 @@ import { AdminOrdersService } from './admin-orders.service';
 import { OrdersService } from './orders.service';
 import { OrdersSyncService } from './orders-sync.service';
 import { ShopifyApiService } from '../shopify-sync/shopify-api.service';
-import { ImageEnhancementService } from './image-enhancement.service';
-import { EnhanceDto } from './dto/enhance.dto';
-import { PrintConfigDto } from '../products/dto/print-config.dto';
+import { PrintProjectsService } from '../print-studio/print-projects.service';
 
 @ApiTags('admin-orders')
 @ApiBearerAuth()
@@ -55,7 +52,7 @@ export class AdminOrdersController {
     private readonly ordersService: OrdersService,
     private readonly ordersSyncService: OrdersSyncService,
     private readonly shopifyApiService: ShopifyApiService,
-    private readonly imageEnhancementService: ImageEnhancementService,
+    private readonly printProjectsService: PrintProjectsService,
   ) {}
 
   @Get()
@@ -351,88 +348,17 @@ export class AdminOrdersController {
     );
   }
 
-  @Get(':id/items/:itemId/enhance-info')
-  @ApiOperation({
-    summary:
-      'Print-readiness info (source, pixel dims, print size, DPI) for an item',
-  })
-  getEnhanceInfo(
-    @Param('id') orderId: string,
-    @Param('itemId') itemId: string,
-  ) {
-    return this.imageEnhancementService.getEnhanceInfo(orderId, itemId);
-  }
-
-  @Put(':id/items/:itemId/print-config')
-  @ApiOperation({
-    summary:
-      'Set the print size for this item only (overrides the variant printConfig)',
-  })
-  setItemPrintConfig(
-    @Param('id') orderId: string,
-    @Param('itemId') itemId: string,
-    @Body() cfg: PrintConfigDto,
-    @CurrentUser() user?: JwtPayload,
-  ) {
-    return this.imageEnhancementService.setItemPrintConfig(
-      orderId,
-      itemId,
-      cfg,
-      user?.sub,
-    );
-  }
-
-  @Delete(':id/items/:itemId/print-config')
-  @ApiOperation({
-    summary: 'Drop the item print size and fall back to the variant/title',
-  })
-  clearItemPrintConfig(
-    @Param('id') orderId: string,
-    @Param('itemId') itemId: string,
-    @CurrentUser() user?: JwtPayload,
-  ) {
-    return this.imageEnhancementService.setItemPrintConfig(
-      orderId,
-      itemId,
-      null,
-      user?.sub,
-    );
-  }
-
-  @Post(':id/items/:itemId/enhance')
+  @Post(':id/items/:itemId/print-project')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
-      'Enhance/upscale the print image and persist it for POD submission',
+      "Open the item's print project, creating a linked one if it has none",
   })
-  enhance(
-    @Param('id') orderId: string,
-    @Param('itemId') itemId: string,
-    @Body() options: EnhanceDto,
-    @CurrentUser() user?: JwtPayload,
-  ) {
-    return this.imageEnhancementService.applyEnhance(
-      orderId,
-      itemId,
-      options,
-      user?.sub,
-    );
-  }
-
-  @Post(':id/items/:itemId/enhance/revert')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Revert to the original image (drop the enhanced print image)',
-  })
-  enhanceRevert(
+  openPrintProject(
     @Param('id') orderId: string,
     @Param('itemId') itemId: string,
     @CurrentUser() user?: JwtPayload,
   ) {
-    return this.imageEnhancementService.revertEnhance(
-      orderId,
-      itemId,
-      user?.sub,
-    );
+    return this.printProjectsService.openForItem(orderId, itemId, user?.sub);
   }
 }

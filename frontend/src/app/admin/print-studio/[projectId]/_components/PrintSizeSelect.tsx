@@ -17,15 +17,15 @@ import {
 } from "@/entities/admin/api";
 import { inchesToCm } from "./printStudio";
 
-// Tamaño de impresión de la línea. Se guarda solo en el item (anula el
-// printConfig de la variante sin tocar el catálogo): sin tamaño no hay DPI,
-// guías ni bleed.
+// Tamaño de impresión del proyecto. Se guarda en el proyecto (anula el
+// printConfig de la variante vinculada sin tocar el catálogo): sin tamaño no
+// hay DPI, guías ni bleed.
 
 const SOURCE_LABEL: Record<
   NonNullable<EnhanceInfo["printConfigSource"]>,
   string
 > = {
-  item: "Elegido para este item.",
+  project: "Elegido para este proyecto.",
   variant: "Configurado en la variante del producto.",
   title: "Leído del título de la variante.",
 };
@@ -48,14 +48,12 @@ const num = (v: string): number | undefined => {
 };
 
 export function PrintSizeSelect({
-  orderId,
-  itemId,
+  projectId,
   info,
   onInfoChange,
   markUnsaved,
 }: {
-  orderId: string;
-  itemId: string;
+  projectId: string;
   info: EnhanceInfo | null;
   onInfoChange: (info: EnhanceInfo) => void;
   markUnsaved: () => void;
@@ -65,11 +63,11 @@ export function PrintSizeSelect({
 
   // Opción que corresponde al tamaño efectivo actual.
   const presetIndex =
-    source === "item"
+    source === "project"
       ? presets.findIndex((p) => sameSize(info?.printConfig ?? null, p))
       : -1;
   const current =
-    source === "item"
+    source === "project"
       ? presetIndex >= 0
         ? `preset:${presetIndex}`
         : CUSTOM
@@ -108,8 +106,8 @@ export function PrintSizeSelect({
       : []),
     ...presets.map((p, i) => ({ label: sizeLabel(p), value: `preset:${i}` })),
     { label: "Personalizado…", value: CUSTOM },
-    ...(source === "item"
-      ? [{ label: "Quitar el tamaño del item", value: CLEAR }]
+    ...(source === "project"
+      ? [{ label: "Quitar el tamaño del proyecto", value: CLEAR }]
       : []),
   ];
 
@@ -117,8 +115,8 @@ export function PrintSizeSelect({
     setSaving(true);
     try {
       const next = cfg
-        ? await adminApi.orders.setItemPrintConfig(orderId, itemId, cfg)
-        : await adminApi.orders.clearItemPrintConfig(orderId, itemId);
+        ? await adminApi.printProjects.setPrintConfig(projectId, cfg)
+        : await adminApi.printProjects.clearPrintConfig(projectId);
       onInfoChange(next);
       markUnsaved();
       setCustomOpen(false);

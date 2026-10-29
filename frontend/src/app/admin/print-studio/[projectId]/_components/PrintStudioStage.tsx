@@ -493,7 +493,7 @@ export function PrintStudioStage({
                     <Text as="span" variant="bodySm" fontWeight="semibold">
                       {currentKind === "saved"
                         ? "Máster guardado"
-                        : "Original de IA"}
+                        : "Imagen de origen"}
                     </Text>
                   </BlockStack>
                   <InfoRow label="Píxeles">

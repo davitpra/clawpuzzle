@@ -1489,29 +1489,10 @@ export const adminApi = {
       adminFetch(`/admin/orders/${orderId}/items/${itemId}/unlink-generation`, {
         method: "POST",
       }),
-    enhanceInfo: (orderId: string, itemId: string) =>
-      adminFetch<EnhanceInfo>(
-        `/admin/orders/${orderId}/items/${itemId}/enhance-info`,
-      ),
-    // Tamaño de impresión solo de esta línea (anula el de la variante).
-    setItemPrintConfig: (orderId: string, itemId: string, cfg: PrintConfig) =>
-      adminFetch<EnhanceInfo>(
-        `/admin/orders/${orderId}/items/${itemId}/print-config`,
-        { method: "PUT", body: JSON.stringify(cfg) },
-      ),
-    clearItemPrintConfig: (orderId: string, itemId: string) =>
-      adminFetch<EnhanceInfo>(
-        `/admin/orders/${orderId}/items/${itemId}/print-config`,
-        { method: "DELETE" },
-      ),
-    enhance: (orderId: string, itemId: string, options: EnhanceOptions) =>
-      adminFetch<{ printImageUrl: string }>(
-        `/admin/orders/${orderId}/items/${itemId}/enhance`,
-        { method: "POST", body: JSON.stringify(options) },
-      ),
-    enhanceRevert: (orderId: string, itemId: string) =>
-      adminFetch<{ printImageUrl: null }>(
-        `/admin/orders/${orderId}/items/${itemId}/enhance/revert`,
+    // Proyecto del Estudio de impresión de la línea: el existente o uno nuevo.
+    openPrintProject: (orderId: string, itemId: string) =>
+      adminFetch<PrintProject>(
+        `/admin/orders/${orderId}/items/${itemId}/print-project`,
         { method: "POST" },
       ),
     expenses: (orderId: string) =>
@@ -1526,6 +1507,77 @@ export const adminApi = {
       }),
     deleteExpense: (id: string) =>
       adminFetch(`/admin/expenses/${id}`, { method: "DELETE" }),
+  },
+  printProjects: {
+    list: (
+      params: { page?: number; limit?: number; q?: string } = {},
+    ): Promise<Paginated<PrintProjectListItem>> => {
+      const p = new URLSearchParams();
+      if (params.page) p.set("page", String(params.page));
+      if (params.limit) p.set("limit", String(params.limit));
+      if (params.q) p.set("q", params.q);
+      return adminFetch<Paginated<PrintProjectListItem>>(
+        `/admin/print-projects?${p}`,
+      );
+    },
+    create: (body: { title?: string; orderItemId?: string } = {}) =>
+      adminFetch<PrintProject>("/admin/print-projects", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    get: (id: string) =>
+      adminFetch<PrintProject>(`/admin/print-projects/${id}`),
+    rename: (id: string, title: string) =>
+      adminFetch<PrintProject>(`/admin/print-projects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+      }),
+    remove: (id: string) =>
+      adminFetch(`/admin/print-projects/${id}`, { method: "DELETE" }),
+    uploadSource: (id: string, file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return adminFetch<PrintProject>(`/admin/print-projects/${id}/source`, {
+        method: "POST",
+        body: form,
+      });
+    },
+    setGenerationSource: (id: string, generationId: string) =>
+      adminFetch<PrintProject>(
+        `/admin/print-projects/${id}/source/generation`,
+        { method: "PUT", body: JSON.stringify({ generationId }) },
+      ),
+    link: (id: string, orderItemId: string) =>
+      adminFetch<PrintProject>(`/admin/print-projects/${id}/link`, {
+        method: "PUT",
+        body: JSON.stringify({ orderItemId }),
+      }),
+    unlink: (id: string) =>
+      adminFetch<PrintProject>(`/admin/print-projects/${id}/link`, {
+        method: "DELETE",
+      }),
+    enhanceInfo: (id: string) =>
+      adminFetch<EnhanceInfo>(`/admin/print-projects/${id}/enhance-info`),
+    // Tamaño de impresión del proyecto (anula el de la variante vinculada).
+    setPrintConfig: (id: string, cfg: PrintConfig) =>
+      adminFetch<EnhanceInfo>(`/admin/print-projects/${id}/print-config`, {
+        method: "PUT",
+        body: JSON.stringify(cfg),
+      }),
+    clearPrintConfig: (id: string) =>
+      adminFetch<EnhanceInfo>(`/admin/print-projects/${id}/print-config`, {
+        method: "DELETE",
+      }),
+    enhance: (id: string, options: EnhanceOptions) =>
+      adminFetch<{ printImageUrl: string }>(
+        `/admin/print-projects/${id}/enhance`,
+        { method: "POST", body: JSON.stringify(options) },
+      ),
+    enhanceRevert: (id: string) =>
+      adminFetch<{ printImageUrl: null }>(
+        `/admin/print-projects/${id}/enhance/revert`,
+        { method: "POST" },
+      ),
   },
   expenses: {
     summary: (period: "7d" | "30d" | "90d" | "all" = "30d") =>
@@ -1582,7 +1634,7 @@ export type BleedMode = "extend" | "mirror" | "solid";
 
 /**
  * Encuadre de "Ajustar al formato": centro del recorte (fracción 0–1 de la
- * imagen) y acercamiento sobre "cubrir" (1–3). Ver print-crop.util.ts del backend.
+ * imagen) y acercamiento sobre "cubrir" (1–3). Ver print-studio/print-crop.util.ts del backend.
  */
 export interface PrintCrop {
   x: number;
@@ -1596,17 +1648,45 @@ export interface PrintSizePreset {
   heightCm: number;
 }
 
+/** Proyecto del Estudio de impresión, con vínculo opcional a una línea de pedido. */
+export interface PrintProject {
+  id: string;
+  title: string;
+  orderItem: { id: string; orderId: string } | null;
+  generation: {
+    id: string;
+    resultUrl: string | null;
+    thumbnailUrl: string | null;
+  } | null;
+  /** De dónde sale la imagen de origen; null = aún no tiene. */
+  sourceKind: "generation" | "upload" | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrintProjectListItem {
+  id: string;
+  title: string;
+  thumbnailUrl: string | null;
+  orderItem: {
+    id: string;
+    title: string;
+    order: { id: string; orderNumber: string; customerName: string | null };
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface EnhanceInfo {
-  isPod: boolean;
   sourceUrl: string | null;
   sourcePx: { width: number; height: number } | null;
   printInches: { width: number; height: number } | null;
   sourceDpi: number | null;
   printImageUrl: string | null;
   bleedColor: string;
-  /** printConfig efectivo (item → variante); null si el tamaño sale del título o no hay. */
+  /** printConfig efectivo (proyecto → variante); null si el tamaño sale del título o no hay. */
   printConfig: PrintConfig | null;
-  printConfigSource: "item" | "variant" | "title" | null;
+  printConfigSource: "project" | "variant" | "title" | null;
   /** Tamaños distintos configurados en las variantes del catálogo. */
   printSizePresets: PrintSizePreset[];
   recommendedUpscale: 0 | 2 | 4;
