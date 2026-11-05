@@ -1,0 +1,19 @@
+# Caddy termina el HTTPS (pide y renueva el certificado de Let's Encrypt solo) y
+# reenvía todo a la API. Con API_DOMAIN=localhost usa su CA interna, para probar
+# en local.
+{
+	email {$ACME_EMAIL}
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# Caddy añade X-Forwarded-For con la IP real del cliente. Es el único proxy
+	# delante de la API, que coincide con el `trust proxy 1` de app.setup.ts.
+	reverse_proxy backend:3001
+
+	log {
+		output stdout
+		format console
+	}
+}
