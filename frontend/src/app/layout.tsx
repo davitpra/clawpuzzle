@@ -35,6 +35,13 @@ export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: "ClawPuzzle",
   description: "Rompecabezas personalizados con el arte de tu mascota, impresos en MDF de 3 mm y enviados a todo Ecuador.",
+  // Verificación del dominio clawpuzzle.com en Meta Business. Next la emite en
+  // el HTML del servidor (Meta no acepta la etiqueta si la inyecta JS).
+  verification: {
+    other: {
+      "facebook-domain-verification": "jhnn81ctg8smqwvzeqby3mbbog0zzr",
+    },
+  },
 };
 
 export default function RootLayout({
