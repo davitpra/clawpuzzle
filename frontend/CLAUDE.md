@@ -134,6 +134,8 @@ copy it to `.env.local` and fill in real values.
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | yes | Google OAuth web client ID; same value as the backend's `GOOGLE_CLIENT_ID`. `app/layout.tsx` |
 | `NEXT_PUBLIC_LAUNCH_MODE` | yes | `"true"` enables launch mode (see below). `shared/config/launch.ts` |
 | `NEXT_PUBLIC_SITE_URL` | yes | Canonical public origin for metadata, Open Graph, robots and sitemap. `shared/config/seo.ts` |
+| `NEXT_PUBLIC_META_PIXEL_ID` | yes | Meta Pixel ID (ClawPuzzle). Empty = no Meta script. Production only on Vercel. `shared/config/analytics.ts` (see `../TRACKING.md`) |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | yes | GA4 measurement ID (`G-…`). Empty = no Google script. Production only on Vercel. `shared/config/analytics.ts` |
 
 `NEXT_PUBLIC_*` values are **inlined at build time**, so changing one requires a
 rebuild — restart `npm run dev`, or redeploy on Vercel.

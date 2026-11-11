@@ -6,6 +6,8 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { SITE_URL } from "@/shared/config/seo";
+import { AnalyticsScripts } from "@/shared/lib/analytics/AnalyticsScripts";
+import { PageViewTracker } from "@/shared/lib/analytics/PageViewTracker";
 import { Toaster } from "@/shared/ui/Toaster";
 
 // Epilogue es variable: sin `weight` next/font emite un solo @font-face con
@@ -76,10 +78,14 @@ export default function RootLayout({
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}
         >
           <AuthProvider>
+            {/* Dentro de AuthProvider: la identificación del usuario para
+                Meta/GA4 (TRACKING.md, paso 4) necesita useAuth. */}
+            <PageViewTracker />
             <CartProvider>{children}</CartProvider>
           </AuthProvider>
         </GoogleOAuthProvider>
         <Toaster />
+        <AnalyticsScripts />
       </body>
     </html>
   );
