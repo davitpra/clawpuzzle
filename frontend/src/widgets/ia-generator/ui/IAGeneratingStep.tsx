@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Container } from "@/shared/ui/Container";
 import { useGenerationStatus } from "@/hooks/useGenerationStatus";
@@ -8,6 +8,8 @@ import { useRotatingMessage } from "@/hooks/useRotatingMessage";
 import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
 import type { CartItem } from "@/context/CartContext";
 import { formatPrice } from "@/entities/product/lib/variantPresentation";
+import { trackEvent } from "@/shared/lib/analytics/track";
+import { generateArtEvent } from "@/shared/lib/analytics/events";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
 import { FormatArtwork } from "./FormatArtwork";
 
@@ -62,6 +64,16 @@ export function IAGeneratingStep({
   const { status, imageUrl } = useGenerationStatus(generationId);
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  // GenerateArt / generate_art cuando la vista previa aparece, una vez por
+  // generación (también tras un reintento, que trae otro `generationId`).
+  const trackedGenerationId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!generationId || !imageUrl) return;
+    if (trackedGenerationId.current === generationId) return;
+    trackedGenerationId.current = generationId;
+    trackEvent(generateArtEvent(generationId, styleName));
+  }, [generationId, imageUrl, styleName]);
 
   const isFailed = status === "failed";
   const isGenerating = !!generationId && !imageUrl && !isFailed;

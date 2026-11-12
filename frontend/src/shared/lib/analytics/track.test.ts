@@ -13,9 +13,13 @@ vi.mock("@/shared/config/analytics", () => ({
 }));
 
 import {
+  LEAVE_DELAY_MS,
   clearUser,
+  flushAuthEvent,
   identifyUser,
   isTrackedPath,
+  queueAuthEvent,
+  trackBeforeLeaving,
   trackEvent,
   trackPageView,
 } from "./track";
@@ -132,5 +136,40 @@ describe("identifyUser / clearUser", () => {
   it("clearUser borra el user_id de GA4", () => {
     clearUser();
     expect(gtag).toHaveBeenCalledWith("set", { user_id: null });
+  });
+});
+
+describe("queueAuthEvent / flushAuthEvent", () => {
+  it("no manda nada hasta el flush, y lo manda una sola vez", () => {
+    queueAuthEvent({ ga: { name: "sign_up", params: { method: "Google" } } });
+    expect(gtag).not.toHaveBeenCalled();
+    flushAuthEvent();
+    flushAuthEvent();
+    expect(gtag).toHaveBeenCalledOnce();
+    expect(gtag).toHaveBeenCalledWith("event", "sign_up", { method: "Google" });
+  });
+});
+
+describe("trackBeforeLeaving", () => {
+  it("espera para que el píxel salga", async () => {
+    vi.useFakeTimers();
+    let done = false;
+    const p = trackBeforeLeaving({ meta: { name: "InitiateCheckout" } }).then(() => {
+      done = true;
+    });
+    expect(fbq).toHaveBeenCalledWith("track", "InitiateCheckout", {});
+    await vi.advanceTimersByTimeAsync(LEAVE_DELAY_MS - 1);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await p;
+    expect(done).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("no espera sin píxel (bloqueador)", async () => {
+    vi.stubGlobal("window", { gtag, location: { href: HREF } });
+    vi.useFakeTimers();
+    await trackBeforeLeaving({ meta: { name: "InitiateCheckout" } });
+    vi.useRealTimers();
   });
 });

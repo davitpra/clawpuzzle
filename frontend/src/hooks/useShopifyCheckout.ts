@@ -5,6 +5,8 @@ import { shopifyFetch, GRAPHQL_QUERIES } from "@/lib/shopify";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { buildCheckoutLines } from "@/hooks/lib/checkoutLines";
+import { checkoutEvent } from "@/shared/lib/analytics/events";
+import { trackBeforeLeaving } from "@/shared/lib/analytics/track";
 
 /**
  * Resultado de `startCheckout`. `redirect` significa que ya se está navegando a
@@ -96,6 +98,9 @@ export function useShopifyCheckout() {
           // checkout. Con `source` explícito no se ha vendido el carrito
           // local, así que se deja intacto.
           if (!source) await clearCart();
+          // InitiateCheckout / begin_checkout. Espera ~300 ms (solo con el
+          // píxel cargado) para que Meta lo reciba antes de salir del sitio.
+          await trackBeforeLeaving(checkoutEvent(cartItems));
           window.location.href = cart.checkoutUrl;
           return { status: "redirect" };
         }

@@ -31,10 +31,10 @@ Paso 1 (tú) y pasos 2–4 + 6 (código) pueden ir en paralelo. El paso 5 necesi
 ## Paso 1 — Cuentas e IDs · 👤 tú (paneles)
 
 - [x] **Meta**: Business Manager → Events Manager → _Conectar datos_ → Web → crear un Dataset/Píxel **nuevo** llamado `ClawPuzzle` → copiar el Pixel ID.
-- [x] **Meta**: verificar el dominio `clawpuzzle.com` (Business Settings → Brand safety → Domains; se hace con un registro TXT en el DNS).
+- [] **Meta**: verificar el dominio `clawpuzzle.com` (Business Settings → Brand safety → Domains; se hace con un registro TXT en el DNS).
 - [ ] **Meta**: Events Manager → píxel ClawPuzzle → Settings → activar _Automatic advanced matching_ (Email y External ID).
 - [x] **Google**: analytics.google.com → crear cuenta `ClawPuzzle` → propiedad `clawpuzzle.com` (zona horaria Ecuador, moneda USD) → flujo de datos **Web** para `clawpuzzle.com` → copiar el `G-XXXX`.
-- [ ] **Google**: en ese flujo → _Medición mejorada_ (engranaje) → _Vistas de página_ → Mostrar configuración avanzada → **desmarcar** "La página cambia en función de los eventos del historial del navegador". Las vistas las manda el código (paso 3); si se deja marcado, se cuentan dobles.
+- [x] **Google**: en ese flujo → _Medición mejorada_ (engranaje) → _Vistas de página_ → Mostrar configuración avanzada → **desmarcar** "La página cambia en función de los eventos del historial del navegador". Las vistas las manda el código (paso 3); si se deja marcado, se cuentan dobles.
 - [x] **Shopify**: **no** tocar la app "Facebook & Instagram" (sigue en el píxel de Puzzle Salvaje) y **no** instalar "Google & YouTube".
 
 ## Paso 2 — Variables de entorno · 🤖 código + 👤 tú (Vercel)
@@ -43,7 +43,7 @@ Paso 1 (tú) y pasos 2–4 + 6 (código) pueden ir en paralelo. El paso 5 necesi
   - `NEXT_PUBLIC_META_PIXEL_ID`
   - `NEXT_PUBLIC_GA_MEASUREMENT_ID`
 - [x] Nuevo `frontend/src/shared/config/analytics.ts` que las exporte (`META_PIXEL_ID`, `GA_MEASUREMENT_ID`), igual que `shared/config/launch.ts`. El resto del código lee de ahí.
-- [ ] 👤 Vercel → proyecto del frontend → Settings → Environment Variables → añadir las dos **solo en Production** → Redeploy (las `NEXT_PUBLIC_*` se inlinean en build).
+- [x] 👤 Vercel → proyecto del frontend → Settings → Environment Variables → añadir las dos **solo en Production** → Redeploy (las `NEXT_PUBLIC_*` se inlinean en build).
 
 Sin IDs no se carga ningún script: dev, previews y e2e quedan limpios.
 
@@ -71,36 +71,37 @@ No hay Content-Security-Policy en el proyecto, así que no hay que permitir domi
 
 Es lo que permite a Meta unir la visita en `clawpuzzle.com` con la compra en el checkout de Shopify.
 
-- [ ] Componente `AnalyticsIdentity` (o dentro de `PageViewTracker`): `useAuth()` → cuando `user` pasa a existir, `identifyUser`; cuando pasa a `null`, `clearUser`. Cubre el login nuevo **y** al usuario que vuelve con sesión (`checkAuth`).
-- [ ] `identifyUser` hace `fbq('init', PIXEL_ID, { em: email.trim().toLowerCase(), external_id: user.id })`. El píxel hashea en SHA-256; el email no sale en claro.
-- [ ] GA4: solo `gtag('set', { user_id: user.id })`. **Nunca** el email (GA4 prohíbe datos personales).
-- [ ] No identificar si `user.role === 'admin'`.
+- [x] Componente `AnalyticsIdentity` (o dentro de `PageViewTracker`): `useAuth()` → cuando `user` pasa a existir, `identifyUser`; cuando pasa a `null`, `clearUser`. Cubre el login nuevo **y** al usuario que vuelve con sesión (`checkAuth`).
+- [x] `identifyUser` hace `fbq('init', PIXEL_ID, { em: email.trim().toLowerCase(), external_id: user.id })`. El píxel hashea en SHA-256; el email no sale en claro.
+- [x] GA4: solo `gtag('set', { user_id: user.id })`. **Nunca** el email (GA4 prohíbe datos personales).
+- [x] No identificar si `user.role === 'admin'`.
 
 ## Paso 4b — Eventos del embudo · 🤖 código
 
 | ✔   | Momento                    | Dónde exactamente                                                                                                                                             | Meta                                                                          | GA4                                  |
 | --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------ |
-| [ ] | Vista de página            | `PageViewTracker`                                                                                                                                             | `PageView`                                                                    | `page_view`                          |
-| [ ] | Ver la ficha en la landing | `widgets/studio-landing/ui/LandingProductDetailsClient.tsx`, `useEffect` al montar (la landing es server component; este es el client que ya tiene `product`) | `ViewContent` (`content_ids`, `content_type: 'product'`, `value`, `currency`) | `view_item`                          |
-| [ ] | Elegir tema                | mismo archivo: envolver `setSelectedVariantId` y disparar solo si el id **cambia** (no en el montaje: `ProductDetails` lo fija solo al cargar formatos)       | `SelectTheme` (custom, `theme: 'Perro' \| 'Gato'`)                            | `select_item`                        |
-| [ ] | Registro / login           | `context/AuthContext.tsx`, en `loginWithGoogle` y `loginWithGoogleCode` tras `setUser` (no en `checkAuth`)                                                    | `CompleteRegistration` solo si es cuenta nueva                                | `sign_up` si es nueva, `login` si no |
-| [ ] | Arte IA listo              | `widgets/ia-generator/ui/IAGeneratingStep.tsx`: `useEffect` cuando `imageUrl` pasa a tener valor, una vez por `generationId`                                  | `GenerateArt` (custom)                                                        | `generate_art`                       |
-| [ ] | Ir al checkout             | `hooks/useShopifyCheckout.ts`, cuando `cartCreate` devuelve `checkoutUrl`, antes de `window.location.href`                                                    | `InitiateCheckout` (`value`, `currency: 'USD'`, `num_items`, `content_ids`)   | `begin_checkout`                     |
-| [ ] | Compra                     | Shopify → píxel personalizado (paso 5)                                                                                                                        | `Purchase`                                                                    | — (ver admin)                        |
+| [x] | Vista de página            | `PageViewTracker`                                                                                                                                             | `PageView`                                                                    | `page_view`                          |
+| [x] | Ver la ficha en la landing | `widgets/studio-landing/ui/LandingProductDetailsClient.tsx`, `useEffect` al montar (la landing es server component; este es el client que ya tiene `product`) | `ViewContent` (`content_ids`, `content_type: 'product'`, `value`, `currency`) | `view_item`                          |
+| [x] | Elegir tema                | mismo archivo: envolver `setSelectedVariantId` y disparar solo si el id **cambia** (no en el montaje: `ProductDetails` lo fija solo al cargar formatos)       | `SelectTheme` (custom, `theme: 'Perro' \| 'Gato'`)                            | `select_item`                        |
+| [x] | Registro / login           | `context/AuthContext.tsx`, en `loginWithGoogle` y `loginWithGoogleCode` tras `setUser` (no en `checkAuth`)                                                    | `CompleteRegistration` solo si es cuenta nueva                                | `sign_up` si es nueva, `login` si no |
+| [x] | Arte IA listo              | `widgets/ia-generator/ui/IAGeneratingStep.tsx`: `useEffect` cuando `imageUrl` pasa a tener valor, una vez por `generationId`                                  | `GenerateArt` (custom)                                                        | `generate_art`                       |
+| [x] | Ir al checkout             | `hooks/useShopifyCheckout.ts`, cuando `cartCreate` devuelve `checkoutUrl`, antes de `window.location.href`                                                    | `InitiateCheckout` (`value`, `currency: 'USD'`, `num_items`, `content_ids`)   | `begin_checkout`                     |
+| [x] | Compra                     | Shopify → píxel personalizado (paso 5)                                                                                                                        | `Purchase`                                                                    | — (ver admin)                        |
 
 Detalles:
 
-- [ ] **Cuenta nueva vs. login** — hoy el backend no lo dice. Añadir `isNewUser: boolean` a la respuesta de `loginWithGoogle` en `backend/src/auth/auth.service.ts` (ya distingue: `findUnique` por email y `user.create` si no existe), al tipo `AuthResponse` de `frontend/src/lib/auth/client.ts`, y usarlo en `AuthContext`. Sin esto, `CompleteRegistration` se inflaría con cada login.
-- [ ] **Checkout** — `value` = suma de `price * quantity` de los `CartItem`. Con GA4 usar `transport_type: 'beacon'`; tras disparar ambos, esperar ~300 ms antes de redirigir para que el píxel de Meta alcance a salir. Cubre los tres puntos que llaman a `startCheckout` (arte IA, packs de créditos, carrito).
-- [ ] Añadir un caso al test de `hooks/lib/checkoutLines` o del hook si el cambio toca el contrato; los attributes de las líneas **no** cambian.
+- [x] **Cuenta nueva vs. login** — hoy el backend no lo dice. Añadir `isNewUser: boolean` a la respuesta de `loginWithGoogle` en `backend/src/auth/auth.service.ts` (ya distingue: `findUnique` por email y `user.create` si no existe), al tipo `AuthResponse` de `frontend/src/lib/auth/client.ts`, y usarlo en `AuthContext`. Sin esto, `CompleteRegistration` se inflaría con cada login.
+- [x] **Checkout** — `value` = suma de `price * quantity` de los `CartItem`. Con GA4 usar `transport_type: 'beacon'`; tras disparar ambos, esperar ~300 ms antes de redirigir para que el píxel de Meta alcance a salir. Cubre los tres puntos que llaman a `startCheckout` (arte IA, packs de créditos, carrito).
+- [x] Añadir un caso al test de `hooks/lib/checkoutLines` o del hook si el cambio toca el contrato; los attributes de las líneas **no** cambian. (No hizo falta: el contrato no cambió. Los nombres y parámetros de cada evento se prueban en `shared/lib/analytics/events.test.ts`.)
+- Cómo quedó: los eventos se arman en `shared/lib/analytics/events.ts`. `sign_up`/`login` se encolan en `AuthContext` y salen desde `AnalyticsIdentity` justo después de `identifyUser`, así llevan email y external_id. `SelectTheme` solo cuenta cambios hechos por el visitante (click o tecla dentro de la ficha).
 
 ## Paso 5 — `Purchase` de ClawPuzzle con un píxel personalizado de Shopify · 👤 tú (panel) + 🤖 script
 
 Los píxeles personalizados son independientes de la app de Facebook; puede haber varios en la misma tienda.
 
-- [ ] Shopify Admin → **Configuración → Eventos de clientes → Añadir píxel personalizado** → nombre `ClawPuzzle Meta`.
-- [ ] Privacidad del cliente: _Permiso: No requerido_ (si no hay banner de cookies en la tienda) o _Marketing_ (si lo hay). Venta de datos: _Los datos recopilados no se consideran venta_.
-- [ ] Pegar el script con el Pixel ID de ClawPuzzle → **Guardar** → **Conectar**.
+- [x] Shopify Admin → **Configuración → Eventos de clientes → Añadir píxel personalizado** → nombre `ClawPuzzle Meta`.
+- [x] Privacidad del cliente: _Permiso: No requerido_ (si no hay banner de cookies en la tienda) o _Marketing_ (si lo hay). Venta de datos: _Los datos recopilados no se consideran venta_.
+- [x] Pegar el script con el Pixel ID de ClawPuzzle → **Guardar** → **Conectar**.
 
 ```js
 // Píxel personalizado de Shopify: Purchase SOLO para pedidos de ClawPuzzle.
@@ -188,7 +189,6 @@ analytics.subscribe("checkout_completed", (event) => {
 ## Paso 6 — Privacidad (Ecuador, LOPDP) · 🤖 código
 
 - [ ] `frontend/src/app/privacy/page.tsx`: nueva sección "Cookies y medición": Google Analytics (analítica de visitas), píxel de Meta (medición de anuncios), y que el email se comparte **hasheado** con Meta. Ajustar la sección "Seguridad", que hoy solo menciona cookies de sesión.
-- [ ] (Opcional, decisión tuya) Banner de consentimiento + Google Consent Mode v2 + `fbq('consent', …)`. Sin banner, el tracking corre para todos los visitantes desde la primera carga.
 
 ## Paso 7 — Verificación
 

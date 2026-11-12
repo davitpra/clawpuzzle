@@ -71,3 +71,34 @@ export function identifyUser({ id, email }: { id: string; email: string }) {
 export function clearUser() {
   gtag("set", { user_id: null });
 }
+
+// Evento del login (`sign_up`/`login`) en espera. `AuthContext` lo deja aquí
+// en vez de mandarlo directamente: así sale justo después de `identifyUser`
+// (lo vacía `AnalyticsIdentity`) y Meta lo recibe con email y external_id.
+let pendingAuthEvent: TrackEventInput | null = null;
+
+export function queueAuthEvent(input: TrackEventInput) {
+  pendingAuthEvent = input;
+}
+
+export function flushAuthEvent() {
+  const input = pendingAuthEvent;
+  pendingAuthEvent = null;
+  if (input) trackEvent(input);
+}
+
+/** Lo que espera `trackBeforeLeaving` para que el píxel de Meta alcance a salir. */
+export const LEAVE_DELAY_MS = 300;
+
+/**
+ * Para eventos justo antes de salir del sitio (checkout de Shopify): GA4 va
+ * por beacon, pero el píxel de Meta necesita unos ms antes de que la página se
+ * descargue. Sin píxel cargado no espera nada.
+ */
+export async function trackBeforeLeaving(input: TrackEventInput) {
+  trackEvent(input);
+  if (!input.meta || !META_PIXEL_ID || typeof window === "undefined" || !window.fbq) {
+    return;
+  }
+  await new Promise((resolve) => setTimeout(resolve, LEAVE_DELAY_MS));
+}

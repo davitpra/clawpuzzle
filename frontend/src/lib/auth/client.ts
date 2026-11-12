@@ -12,7 +12,10 @@ export interface AuthResponse {
     id: string;
     email: string;
     fullName?: string;
+    role?: 'user' | 'premium' | 'admin';
   };
+  /** Solo en el login con Google: `true` si la cuenta se acaba de crear. */
+  isNewUser?: boolean;
 }
 
 export interface RefreshTokenDto {
@@ -89,6 +92,7 @@ async function postGoogleAuth(
     // Backend returns user only, tokens are in httpOnly cookies
     return {
       user: json.data?.user,
+      isNewUser: json.data?.isNewUser === true,
       accessToken: '', // Not used anymore
       refreshToken: '', // Not used anymore
     };

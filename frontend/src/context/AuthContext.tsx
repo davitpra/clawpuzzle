@@ -7,8 +7,22 @@ import {
   loginWithGoogle as apiLoginWithGoogle,
   loginWithGoogleCode as apiLoginWithGoogleCode,
   logout as apiLogout,
+  type AuthResponse,
 } from "@/lib/auth/client";
 import { ensureFreshToken } from "@/lib/auth/fetch-with-refresh";
+import { authEvent } from "@/shared/lib/analytics/events";
+import { queueAuthEvent } from "@/shared/lib/analytics/track";
+
+/**
+ * `sign_up`/`login` (y `CompleteRegistration` si la cuenta es nueva) tras un
+ * login con Google. Va a la cola: sale cuando `AnalyticsIdentity` identifica
+ * al usuario, así Meta lo recibe con email y external_id. El admin no se mide.
+ * No se llama desde `checkAuth`: volver con sesión no es un login.
+ */
+function queueGoogleAuthEvent(response: AuthResponse) {
+  if (response.user?.role === "admin") return;
+  queueAuthEvent(authEvent(response.isNewUser === true));
+}
 
 export interface User {
   id: string;
@@ -162,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Tokens are now in httpOnly cookies (set by backend)
       // Set user from response
+      queueGoogleAuthEvent(response);
       setUser(response.user);
 
       return Promise.resolve();
@@ -174,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Flujo auth-code (botón "Sign up" del navbar): mismo resultado que loginWithGoogle.
   const loginWithGoogleCode = async (code: string) => {
     const response = await apiLoginWithGoogleCode(code);
+    queueGoogleAuthEvent(response);
     setUser(response.user);
   };
 
