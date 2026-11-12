@@ -86,7 +86,7 @@ AWS · us-east-1 (todo creado con CDK)                         ▼
 
 Qué **no** cambia respecto al plan de Lightsail:
 
-- La aplicación, el `backend/Dockerfile` (targets `runtime` y `migrate`) y casi
+- La aplicación, el `backend/compose.Dockerfile` (targets `runtime` y `migrate`) y casi
   todo el `docker-compose.yml` y el `Caddyfile`.
 - El dominio `api.clawpuzzle.com`: no hay que tocar los webhooks de Shopify,
   CORS, cookies ni OAuth de Google.

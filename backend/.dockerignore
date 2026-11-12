@@ -10,5 +10,5 @@ test
 docs
 shopify-app
 .claude
-Dockerfile
+compose.Dockerfile
 .dockerignore

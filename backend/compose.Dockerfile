@@ -2,6 +2,10 @@
 #
 # Imagen del backend para el despliegue con Docker Compose (deploy/).
 #
+# No se llama `Dockerfile` a propósito: Railway usa cualquier `Dockerfile` del
+# root dir en lugar de Railpack, y la imagen runtime no lleva el CLI de prisma
+# ni prisma/, así que el preDeployCommand (`prisma migrate deploy`) falla.
+#
 # Targets:
 #   runtime (default) -> la API: solo dependencias de producción y dist/.
 #   migrate           -> corre `prisma migrate deploy` y termina. Necesita el
