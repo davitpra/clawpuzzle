@@ -15,6 +15,7 @@ Implements the complete authentication flow with JWT tokens stored in httpOnly c
 | Method | Endpoint                        | Auth Required | Description                                          |
 | :----- | :------------------------------ | :------------ | :--------------------------------------------------- |
 | `POST` | `/api/auth/google`              | No            | Sign in / sign up with a Google ID token (the only way to create accounts). Responds `{ user, isNewUser }`; the frontend uses `isNewUser` to tell sign-ups from logins in analytics. |
+| `POST` | `/api/auth/guest`               | No            | Guest session (role `guest`, 1 credit) for the free generation without login. Turnstile-checked, 5/h per IP, global daily cap (`GUEST_DAILY_CAP`), off unless `GUEST_GENERATION_ENABLED=true`. Reuses the browser's guest if its refresh cookie is still valid. |
 | `POST` | `/api/auth/login`               | No            | Password login, **admin accounts only**. Returns user data + sets cookies. |
 | `POST` | `/api/auth/refresh`             | No            | Refresh access token from httpOnly cookie.           |
 | `POST` | `/api/auth/logout`              | No            | Revoke refresh token and clear cookies.              |
@@ -22,6 +23,23 @@ Implements the complete authentication flow with JWT tokens stored in httpOnly c
 | `GET`  | `/api/auth/sessions`            | Yes           | List all active sessions for current user.           |
 | `POST` | `/api/auth/sessions/revoke/:id` | Yes           | Revoke a specific session by token ID.               |
 | `POST` | `/api/auth/sessions/revoke-all` | Yes           | Revoke all sessions except the current one.          |
+
+## Guest sessions
+
+A guest is a real `User` with role `guest` and a synthetic
+`guest-<uuid>@guest.clawpuzzle.invalid` email, so pets, generations, credits
+and checkout work unchanged. Its refresh token lives `GUEST_SESSION_DAYS`
+(30) instead of 7. On Google login (`/auth/google`, `/auth/google/code`) the
+controller reads the guest id from the refresh cookie:
+
+- **new email** → `upgradeGuest`: same row becomes the account (`role: user`,
+  `isNewUser: true`) and gets `signup_bonus` of 4 (5 − the guest's 1).
+- **existing email** → `mergeGuestInto`: pets, generations, orders and the
+  purchased credits move to that account; no bonus; the guest is deleted.
+
+A new account also adopts guests whose orders carry its email. Stale guests
+without orders are purged daily (`GUEST_RETENTION_DAYS`). See
+`src/users/guest-account.service.ts`.
 
 ## Features
 

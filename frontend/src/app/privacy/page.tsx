@@ -32,7 +32,9 @@ export default function PrivacyPolicyPage() {
           <li>
             <strong>Fotos y datos de tu mascota</strong>: las imágenes que
             subes al generador de arte, junto con el nombre y los datos de tu
-            mascota que guardes con ellas.
+            mascota que guardes con ellas. Para tu primera vista previa no
+            necesitas cuenta: guardamos la foto y el arte en una sesión de
+            invitado ligada a tu navegador.
           </li>
           <li>
             <strong>Arte generado</strong>: las vistas previas creadas a partir
@@ -47,7 +49,9 @@ export default function PrivacyPolicyPage() {
             <strong>Datos técnicos</strong>: información de sesión y datos
             básicos de uso necesarios para mantener tu sesión abierta y que el
             servicio funcione, además de los datos de medición que se explican
-            en &quot;Cookies y medición&quot;.
+            en &quot;Cookies y medición&quot;. Para evitar abusos de la vista
+            previa sin cuenta usamos Cloudflare Turnstile, que analiza señales
+            técnicas del navegador para comprobar que eres una persona.
           </li>
         </ul>
       </section>
@@ -68,7 +72,9 @@ export default function PrivacyPolicyPage() {
           Algunas partes del servicio funcionan con terceros que actúan en
           nuestro nombre: Shopify para la tienda y el pago, Cloudinary para
           alojar las imágenes y los proveedores de IA que generan tu arte. Solo
-          reciben lo que necesitan para cumplir su función.
+          reciben lo que necesitan para cumplir su función. Cloudflare
+          comprueba que la vista previa sin cuenta la pide una persona y no un
+          programa automático.
         </p>
       </section>
 
@@ -109,7 +115,10 @@ export default function PrivacyPolicyPage() {
         <h2>Conservación de tus datos</h2>
         <p>
           Tus fotos, tu arte y tus pedidos permanecen en tu cuenta hasta que los
-          borres o nos pidas cerrar tu cuenta. Los registros de pedidos pueden
+          borres o nos pidas cerrar tu cuenta. Si creaste una vista previa sin
+          cuenta y no hiciste ningún pedido, borramos la foto y el arte a los 30
+          días sin actividad; si antes inicias sesión con Google, pasan a tu
+          cuenta. Los registros de pedidos pueden
           conservarse más tiempo cuando lo exigen normas contables o
           tributarias.
         </p>

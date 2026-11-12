@@ -30,6 +30,7 @@ Swagger UI: `http://localhost:3001/api/docs`
 |--------|----------|-------------|---------------|------|--------|
 | POST | `/auth/register` | Registro de usuario | `{ email, password, full_name }` | Público | `listo` |
 | POST | `/auth/login` | Login, devuelve access + refresh en cookies | `{ email, password }` | Público | `listo` |
+| POST | `/auth/guest` | Sesión de invitado: 1 crédito para la imagen gratis sin login. Reutiliza la del navegador si ya hay una. 503 apagado, 429 tope diario o >5/h por IP, 403 captcha | `{ turnstileToken? }` | Público | `listo` |
 | POST | `/auth/refresh` | Renueva access token vía cookie | Cookie: `refresh_token` | Público | `listo` |
 | POST | `/auth/logout` | Revoca refresh token | Cookie: `refresh_token` | Público | `listo` |
 | GET | `/auth/me` | Devuelve el usuario autenticado actual | — | JWT | `listo` |
