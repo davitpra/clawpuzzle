@@ -14,7 +14,7 @@ Implements the complete authentication flow with JWT tokens stored in httpOnly c
 
 | Method | Endpoint                        | Auth Required | Description                                          |
 | :----- | :------------------------------ | :------------ | :--------------------------------------------------- |
-| `POST` | `/api/auth/google`              | No            | Sign in / sign up with a Google ID token (the only way to create accounts). |
+| `POST` | `/api/auth/google`              | No            | Sign in / sign up with a Google ID token (the only way to create accounts). Responds `{ user, isNewUser }`; the frontend uses `isNewUser` to tell sign-ups from logins in analytics. |
 | `POST` | `/api/auth/login`               | No            | Password login, **admin accounts only**. Returns user data + sets cookies. |
 | `POST` | `/api/auth/refresh`             | No            | Refresh access token from httpOnly cookie.           |
 | `POST` | `/api/auth/logout`              | No            | Revoke refresh token and clear cookies.              |

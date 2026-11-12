@@ -174,7 +174,7 @@ export class AuthController {
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
     // Return user data only (no tokens in response body)
-    return { user: result.user };
+    return { user: result.user, isNewUser: result.isNewUser };
   }
 
   @Public()
@@ -200,7 +200,7 @@ export class AuthController {
 
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
-    return { user: result.user };
+    return { user: result.user, isNewUser: result.isNewUser };
   }
 
   @Public()

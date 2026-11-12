@@ -195,6 +195,9 @@ export class AuthService {
 
     // Find-or-create / link by email
     let user = await this.prisma.user.findUnique({ where: { email } });
+    // El frontend lo usa para medir altas (CompleteRegistration / sign_up)
+    // separadas de los logins: ver TRACKING.md, paso 4b.
+    const isNewUser = !user;
 
     if (user) {
       // El estado se comprueba ANTES de tocar nada: una cuenta suspendida o dada
@@ -268,6 +271,7 @@ export class AuthService {
 
     return {
       user: this.sanitizeUser(user),
+      isNewUser,
       ...tokens,
     };
   }
