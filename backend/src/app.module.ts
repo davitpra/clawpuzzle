@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 import type { RedisOptions } from 'ioredis';
@@ -11,6 +12,7 @@ import redisConfig from './config/redis.config';
 import jwtConfig from './config/jwt.config';
 import aiConfig from './config/ai.config';
 import googleConfig from './config/google.config';
+import guestConfig from './config/guest.config';
 
 // Module imports
 import { PrismaModule } from './prisma/prisma.module';
@@ -46,12 +48,24 @@ import { HealthController } from './health/health.controller';
     // Global configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, redisConfig, jwtConfig, aiConfig, googleConfig],
+      load: [
+        databaseConfig,
+        redisConfig,
+        jwtConfig,
+        aiConfig,
+        googleConfig,
+        guestConfig,
+      ],
       envFilePath: ['.env.local', '.env'],
     }),
 
     // Schedule module for cron jobs
     ScheduleModule.forRoot(),
+
+    // Rate limit en memoria (una sola réplica). Sin guard global: solo lo usan
+    // las rutas con `@UseGuards(ThrottlerGuard)`, hoy `POST /auth/guest`, que
+    // fijan su propio límite con `@Throttle`.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
 
     // BullMQ - conexión global a Redis
     BullModule.forRootAsync({

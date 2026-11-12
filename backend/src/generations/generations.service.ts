@@ -112,6 +112,12 @@ export class GenerationsService {
       select: { role: true },
     });
     const isExempt = dbUser?.role === 'admin';
+    // El invitado gastó su imagen gratis: el siguiente paso es registrarse, no
+    // comprar créditos.
+    const outOfCreditsMessage =
+      dbUser?.role === 'guest'
+        ? 'Ya usaste tu imagen gratis. Regístrate con Google y recibe 4 créditos más.'
+        : undefined;
 
     // Crear la generación y descontar 1 crédito en la misma transacción: si el
     // usuario no tiene saldo, spendForGeneration lanza 402 y la fila se revierte.
@@ -143,7 +149,12 @@ export class GenerationsService {
       });
 
       if (!isExempt) {
-        await this.creditsService.spendForGeneration(tx, userId, gen.id);
+        await this.creditsService.spendForGeneration(
+          tx,
+          userId,
+          gen.id,
+          outOfCreditsMessage,
+        );
       }
 
       return gen;

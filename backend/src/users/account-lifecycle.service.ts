@@ -69,7 +69,8 @@ export class AccountLifecycleService {
     const candidates = await this.prisma.user.findMany({
       where: {
         status: 'active',
-        role: { not: 'admin' },
+        // Los invitados tienen su propia purga (`GuestAccountService`).
+        role: { notIn: ['admin', 'guest'] },
         OR: [
           { lastLoginAt: { lt: cutoff } },
           { lastLoginAt: null, createdAt: { lt: cutoff } },

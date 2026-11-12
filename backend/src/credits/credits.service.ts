@@ -11,6 +11,7 @@ type PrismaClientLike = PrismaService | Prisma.TransactionClient;
 
 export type CreditReason =
   | 'signup_bonus'
+  | 'guest_bonus'
   | 'order_bonus'
   | 'pack_purchase'
   | 'admin_grant'
@@ -139,6 +140,7 @@ export class CreditsService {
     tx: Prisma.TransactionClient,
     userId: string,
     generationId: string,
+    outOfCreditsMessage = 'Te quedaste sin créditos de generación. Compra un producto para conseguir más.',
   ): Promise<void> {
     const res = await tx.user.updateMany({
       where: { id: userId, generationCredits: { gte: 1 } },
@@ -146,10 +148,7 @@ export class CreditsService {
     });
 
     if (res.count === 0) {
-      throw new HttpException(
-        'Te quedaste sin créditos de generación. Compra un producto para conseguir más.',
-        HttpStatus.PAYMENT_REQUIRED,
-      );
+      throw new HttpException(outOfCreditsMessage, HttpStatus.PAYMENT_REQUIRED);
     }
 
     await tx.creditTransaction.create({

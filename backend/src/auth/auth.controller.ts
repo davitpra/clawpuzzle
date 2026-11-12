@@ -9,7 +9,9 @@ import {
   Req,
   Param,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -17,6 +19,7 @@ import type { DeviceInfo } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { GoogleCodeLoginDto } from './dto/google-code-login.dto';
+import { GuestSessionDto } from './dto/guest-session.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from './strategies/jwt.strategy';
@@ -63,6 +66,7 @@ export class AuthController {
     res: Response,
     accessToken: string,
     refreshToken: string,
+    refreshMaxAgeMs = 7 * 24 * 60 * 60 * 1000,
   ) {
     const options = this.cookieOptions();
 
@@ -73,7 +77,8 @@ export class AuthController {
 
     res.cookie('refreshToken', refreshToken, {
       ...options,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // 7 días para una cuenta; un invitado lleva la suya (GUEST_SESSION_DAYS).
+      maxAge: refreshMaxAgeMs,
     });
   }
 
@@ -168,10 +173,16 @@ export class AuthController {
     const result = await this.authService.loginWithGoogle(
       googleLoginDto.idToken,
       this.extractDeviceInfo(req),
+      await this.guestIdOf(req),
     );
 
     // Set tokens in httpOnly cookies
-    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+    this.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      result.refreshMaxAgeMs,
+    );
 
     // Return user data only (no tokens in response body)
     return { user: result.user, isNewUser: result.isNewUser };
@@ -196,11 +207,59 @@ export class AuthController {
     const result = await this.authService.loginWithGoogleCode(
       googleCodeLoginDto.code,
       this.extractDeviceInfo(req),
+      await this.guestIdOf(req),
     );
 
-    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+    this.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      result.refreshMaxAgeMs,
+    );
 
     return { user: result.user, isNewUser: result.isNewUser };
+  }
+
+  // Rate limit por IP propio de esta ruta (el ThrottlerModule no tiene guard
+  // global). `trust proxy` (app.setup.ts) hace que `req.ip` sea la del cliente.
+  @Public()
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60 * 60 * 1000 } })
+  @Post('guest')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Start a guest session (one free generation, no login)',
+  })
+  @ApiResponse({ status: 200, description: 'Guest session started' })
+  @ApiResponse({ status: 403, description: 'Captcha verification failed' })
+  @ApiResponse({ status: 429, description: 'Rate limit or daily cap reached' })
+  @ApiResponse({ status: 503, description: 'Guest generation is disabled' })
+  async guestSession(
+    @Body() dto: GuestSessionDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.startGuestSession(
+      dto.turnstileToken,
+      this.extractDeviceInfo(req),
+      await this.guestIdOf(req),
+    );
+
+    this.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      result.refreshMaxAgeMs,
+    );
+
+    return { user: result.user };
+  }
+
+  /** Invitado de este navegador, según su cookie de refresh token. */
+  private guestIdOf(req: Request): Promise<string | null> {
+    return this.authService.guestIdFromRefreshToken(
+      req.cookies?.refreshToken as string | undefined,
+    );
   }
 
   @Public()
@@ -223,7 +282,12 @@ export class AuthController {
     const result = await this.authService.refreshToken(refreshToken);
 
     // Set new tokens in httpOnly cookies
-    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+    this.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      result.refreshMaxAgeMs,
+    );
 
     return { message: 'Token refreshed successfully' };
   }
