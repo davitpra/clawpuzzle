@@ -47,6 +47,9 @@ export default defineConfig({
         FRONTEND_URL: WEB_URL,
         // Sin URL pública no re-registra los webhooks de Shopify al arrancar.
         APP_PUBLIC_URL: "",
+        // Imagen gratis sin login, sin captcha (e2e/launch-funnel.spec.ts).
+        GUEST_GENERATION_ENABLED: "true",
+        TURNSTILE_SECRET_KEY: "",
       },
     },
     {
@@ -66,6 +69,7 @@ export default defineConfig({
         // tests no ensucian los datos de medición (TRACKING.md, paso 7).
         NEXT_PUBLIC_META_PIXEL_ID: "",
         NEXT_PUBLIC_GA_MEASUREMENT_ID: "",
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "",
       },
     },
   ],

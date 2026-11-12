@@ -12,7 +12,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     fullName?: string;
-    role?: 'user' | 'premium' | 'admin';
+    role?: 'user' | 'premium' | 'admin' | 'guest';
   };
   /** Solo en el login con Google: `true` si la cuenta se acaba de crear. */
   isNewUser?: boolean;
@@ -103,6 +103,41 @@ async function postGoogleAuth(
     console.error('Error en login con Google:', error);
     throw new AuthError(500, 'Error de conexión al servidor');
   }
+}
+
+/**
+ * Sesión de invitado: la imagen gratis sin login. Falla (503 apagado, 429 tope
+ * o rate limit, 403 captcha) cuando el backend no la concede; el llamador cae
+ * entonces al paso de cuenta.
+ */
+export async function createGuestSession(
+  turnstileToken?: string,
+): Promise<AuthResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/auth/guest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(turnstileToken ? { turnstileToken } : {}),
+    });
+  } catch {
+    throw new AuthError(500, 'Error de conexión al servidor');
+  }
+
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new AuthError(
+      response.status,
+      json.message || 'No se pudo iniciar la sesión de invitado',
+    );
+  }
+
+  return {
+    user: json.data?.user,
+    accessToken: '',
+    refreshToken: '',
+  };
 }
 
 export function loginWithGoogle(idToken: string): Promise<AuthResponse> {

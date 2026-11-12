@@ -67,17 +67,13 @@ export function IAHeader({
           </div>
         )}
 
-        <div className="flex items-center gap-3">
-          <button className="hidden md:flex items-center justify-center px-4 h-9 rounded-lg border border-[#E5E0D8] text-sm font-bold text-slate-dark hover:bg-gray-50 transition-colors">
-            Ayuda
-          </button>
-          <Link
-            href="/"
-            className="flex items-center justify-center size-9 rounded-lg border border-[#E5E0D8] text-slate-dark hover:bg-gray-50 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </Link>
-        </div>
+        <Link
+          href="/"
+          aria-label="Salir y volver al inicio"
+          className="flex items-center justify-center size-9 rounded-lg border border-[#E5E0D8] text-slate-dark hover:bg-gray-50 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[20px]">close</span>
+        </Link>
       </div>
 
       {/* Mobile progress bar */}

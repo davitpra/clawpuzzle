@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useAuth } from "@/context/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { usePhotoManager } from "./upload-step/usePhotoManager";
@@ -32,7 +33,8 @@ interface IAPhotoStepProps {
  *
  * Reglas de oro de este paso:
  * 1. Sin sesión no se hace **ninguna** llamada autenticada. `usePetsList` y
- *    `useCredits` se gatean solos por `isAuthenticated`; un 401 aquí acabaría en
+ *    `useCredits` se gatean solos por `isAuthenticated` (falso también para un
+ *    invitado, que sí tiene sesión: ver `hasSession`); un 401 aquí acabaría en
  *    el `window.location.href = "/login"` de `fetchWithRefresh` y el visitante
  *    perdería la foto recién subida.
  * 2. Solo se piden foto y nombre. Raza y edad se editan luego desde `/user`:
@@ -55,7 +57,9 @@ export function IAPhotoStep({
   error,
   outOfCredits,
 }: IAPhotoStepProps) {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isGuest } = useAuth();
+  // El invitado que ya usó su imagen gratis no compra créditos: se registra.
+  const { signIn, pending: signingIn } = useGoogleSignIn();
   const { balance: creditBalance } = useCredits();
   const { pets } = usePetsList();
 
@@ -197,7 +201,22 @@ export function IAPhotoStep({
             {error && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-600">{error}</p>
-                {outOfCredits && (
+                {outOfCredits && isGuest && (
+                  <button
+                    type="button"
+                    onClick={signIn}
+                    disabled={signingIn}
+                    className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-primary underline disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      auto_awesome
+                    </span>
+                    {signingIn
+                      ? "Abriendo Google…"
+                      : "Registrarme y recibir 4 vistas previas"}
+                  </button>
+                )}
+                {outOfCredits && !isGuest && (
                   <Link
                     href="/credits"
                     className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-primary underline"

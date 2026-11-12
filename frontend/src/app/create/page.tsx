@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -32,6 +39,10 @@ import { useCredits } from "@/hooks/useCredits";
 import { useCart } from "@/context/CartContext";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import { clearDraft, loadDraft, saveDraft } from "@/shared/lib/create-draft";
+import { TURNSTILE_SITE_KEY } from "@/shared/config/guest";
+import { getTurnstileToken } from "@/shared/lib/turnstile";
+import { trackEvent } from "@/shared/lib/analytics/track";
+import { uploadPhotoEvent } from "@/shared/lib/analytics/events";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -48,7 +59,10 @@ const STEP_UPLOAD = 2;
 const STEP_THANKS = 3;
 
 // Flujo de lanzamiento (entrada desde la landing con un estilo): la foto va antes
-// que la cuenta, para que el visitante invierta algo antes de registrarse.
+// que la cuenta, para que el visitante invierta algo antes de registrarse. Sin
+// sesión, la primera imagen se genera con una sesión de invitado y el paso de
+// cuenta se salta; solo aparece si el backend no concede esa sesión (apagada,
+// tope diario, captcha).
 const STEP_PHOTO = 1;
 const STEP_ACCOUNT = 2;
 const STEP_GENERATING = 3;
@@ -134,7 +148,12 @@ function StyleFirstResolver({
 
 function IAGeneratorContent() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const {
+    isAuthenticated,
+    hasSession,
+    isLoading: isAuthLoading,
+    startGuestSession,
+  } = useAuth();
   const searchParams = useSearchParams();
 
   const productRefId = searchParams.get("product_ref_id");
@@ -172,6 +191,12 @@ function IAGeneratorContent() {
   const [petName, setPetName] = useState("");
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  // Sesión de invitado en curso (captcha + POST /auth/guest).
+  const [startingGuest, setStartingGuest] = useState(false);
+  // El backend no concedió la sesión de invitado: se vuelve al paso de cuenta.
+  const [guestUnavailable, setGuestUnavailable] = useState(false);
+  // Contenedor del widget de Turnstile; solo se ve si Cloudflare pide un clic.
+  const turnstileRef = useRef<HTMLDivElement>(null);
 
   const { generate } = useGenerateImage();
   const { refresh: refreshCredits } = useCredits();
@@ -399,14 +424,52 @@ function IAGeneratorContent() {
     style,
   ]);
 
-  const handlePhotoContinue = useCallback(() => {
+  // Imagen gratis sin login: captcha (si hay site key) y sesión de invitado.
+  // Devuelve false si el backend no la concede.
+  const openGuestSession = useCallback(async (): Promise<boolean> => {
+    setStartingGuest(true);
+    try {
+      const token =
+        TURNSTILE_SITE_KEY && turnstileRef.current
+          ? await getTurnstileToken(turnstileRef.current, TURNSTILE_SITE_KEY)
+          : undefined;
+      await startGuestSession(token);
+      return true;
+    } catch (error) {
+      console.warn("Guest session unavailable:", error);
+      setGuestUnavailable(true);
+      return false;
+    } finally {
+      setStartingGuest(false);
+    }
+  }, [startGuestSession]);
+
+  const handlePhotoContinue = useCallback(async () => {
     resetSubmitError();
     // Con el estado de sesión aún sin resolver no se puede decidir si toca el
     // paso de cuenta; el botón vuelve a quedar disponible enseguida.
-    if (isAuthLoading) return;
-    if (isAuthenticated) void runSubmit();
-    else setStep(STEP_ACCOUNT);
-  }, [isAuthLoading, isAuthenticated, runSubmit, resetSubmitError]);
+    if (isAuthLoading || startingGuest) return;
+    trackEvent(uploadPhotoEvent(style?.name ?? null, !isAuthenticated));
+    if (hasSession) {
+      void runSubmit();
+      return;
+    }
+    if (!guestUnavailable && (await openGuestSession())) {
+      void runSubmit();
+      return;
+    }
+    setStep(STEP_ACCOUNT);
+  }, [
+    isAuthLoading,
+    startingGuest,
+    isAuthenticated,
+    hasSession,
+    guestUnavailable,
+    openGuestSession,
+    runSubmit,
+    resetSubmitError,
+    style,
+  ]);
 
   // Reintenta la generación fallida con el mismo payload, sin salir de la
   // pantalla de resultado. Un nuevo generationId reinicia el polling.
@@ -459,11 +522,12 @@ function IAGeneratorContent() {
 
   const blockingError = LAUNCH_MODE ? styleError : (productError ?? styleError);
 
-  // La barra de progreso cuenta solo los pasos que el usuario va a ver: con
-  // sesión abierta el de cuenta no existe.
-  const launchSteps = isAuthenticated
-    ? [STEP_PHOTO, STEP_GENERATING]
-    : [STEP_PHOTO, STEP_ACCOUNT, STEP_GENERATING];
+  // La barra de progreso cuenta solo los pasos que el usuario va a ver: el de
+  // cuenta solo existe si no hay sesión y el backend negó la de invitado.
+  const launchSteps =
+    hasSession || !guestUnavailable
+      ? [STEP_PHOTO, STEP_GENERATING]
+      : [STEP_PHOTO, STEP_ACCOUNT, STEP_GENERATING];
   const headerStep = LAUNCH_MODE
     ? needsStyle
       ? 1
@@ -522,13 +586,16 @@ function IAGeneratorContent() {
               onPetNameChange={setPetName}
               activePet={activePet}
               onSelectPet={setActivePet}
-              onContinue={handlePhotoContinue}
+              onContinue={() => void handlePhotoContinue()}
               onChangeStyle={() => void clearDraft()}
               changeStyleHref={styleStepHref}
-              submitting={submitting}
+              submitting={submitting || startingGuest}
               error={submitError}
               outOfCredits={outOfCredits}
             />
+          )}
+          {step === STEP_PHOTO && TURNSTILE_SITE_KEY && (
+            <div ref={turnstileRef} className="flex justify-center pb-6" />
           )}
 
           {step === STEP_ACCOUNT && (

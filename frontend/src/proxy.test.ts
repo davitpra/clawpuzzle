@@ -87,6 +87,12 @@ describe("proxy — modo lanzamiento", () => {
       true,
     );
   });
+
+  it("/user con sesión de invitado → redirect a /", () => {
+    const res = run("/user/generations", jwt({ sub: "g1", role: "guest" }));
+    expect(res.status).toBe(307);
+    expect(location(res)).toBe(`${ORIGIN}/`);
+  });
 });
 
 describe("proxy — tienda completa (sin lanzamiento)", () => {

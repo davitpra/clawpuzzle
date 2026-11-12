@@ -6,6 +6,7 @@ import {
   login as apiLogin,
   loginWithGoogle as apiLoginWithGoogle,
   loginWithGoogleCode as apiLoginWithGoogleCode,
+  createGuestSession as apiCreateGuestSession,
   logout as apiLogout,
   type AuthResponse,
 } from "@/lib/auth/client";
@@ -29,18 +30,28 @@ export interface User {
   email: string;
   fullName?: string;
   avatarUrl?: string | null;
-  role?: 'user' | 'premium' | 'admin';
+  role?: 'user' | 'premium' | 'admin' | 'guest';
   generationCredits?: number;
 }
 
 interface AuthContextType {
+  /**
+   * Hay una cuenta con sesión. **Falso para un invitado**: así el navbar, los
+   * créditos, la lista de mascotas y `/user` lo tratan como visitante.
+   */
   isAuthenticated: boolean;
+  /** Sesión de invitado (imagen gratis sin login). */
+  isGuest: boolean;
+  /** Hay sesión, de cuenta o de invitado: se pueden hacer llamadas autenticadas. */
+  hasSession: boolean;
   isAdmin: boolean;
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   loginWithGoogleCode: (code: string) => Promise<void>;
+  /** Abre una sesión de invitado. Lanza si el backend no la concede. */
+  startGuestSession: (turnstileToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => void;
 }
@@ -193,6 +204,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user);
   };
 
+  const startGuestSession = async (turnstileToken?: string) => {
+    const response = await apiCreateGuestSession(turnstileToken);
+    setUser(response.user);
+  };
+
   const logout = async () => {
     try {
       // Call logout API - backend will clear httpOnly cookies
@@ -216,19 +232,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAuthenticated = user !== null;
+  const isGuest = user?.role === 'guest';
+  const hasSession = user !== null;
+  const isAuthenticated = hasSession && !isGuest;
   const isAdmin = user?.role === 'admin';
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        isGuest,
+        hasSession,
         isAdmin,
         user,
         isLoading,
         login,
         loginWithGoogle,
         loginWithGoogleCode,
+        startGuestSession,
         logout,
         checkAuth,
       }}
