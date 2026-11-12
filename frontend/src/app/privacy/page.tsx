@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
     <LegalPage
       title="Política de privacidad"
       intro="Esta política explica qué datos recopilamos cuando usas ClawPuzzle, para qué los usamos y el control que tienes sobre ellos."
-      lastUpdated="26 de septiembre de 2026"
+      lastUpdated="12 de noviembre de 2026"
     >
       <section>
         <h2>Datos que recopilamos</h2>
@@ -46,7 +46,8 @@ export default function PrivacyPolicyPage() {
           <li>
             <strong>Datos técnicos</strong>: información de sesión y datos
             básicos de uso necesarios para mantener tu sesión abierta y que el
-            servicio funcione.
+            servicio funcione, además de los datos de medición que se explican
+            en &quot;Cookies y medición&quot;.
           </li>
         </ul>
       </section>
@@ -68,6 +69,39 @@ export default function PrivacyPolicyPage() {
           nuestro nombre: Shopify para la tienda y el pago, Cloudinary para
           alojar las imágenes y los proveedores de IA que generan tu arte. Solo
           reciben lo que necesitan para cumplir su función.
+        </p>
+      </section>
+
+      <section>
+        <h2>Cookies y medición</h2>
+        <p>
+          Además de las cookies de sesión, usamos dos herramientas de medición
+          que guardan sus propias cookies en tu navegador:
+        </p>
+        <ul>
+          <li>
+            <strong>Google Analytics</strong>: nos dice cuántas personas
+            visitan la web, qué páginas ven y qué pasos completan (por ejemplo,
+            generar una vista previa o iniciar una compra). Si tienes sesión
+            iniciada, le enviamos tu identificador interno de cuenta, nunca tu
+            nombre ni tu correo.
+          </li>
+          <li>
+            <strong>Píxel de Meta</strong> (Facebook e Instagram): mide si
+            nuestros anuncios llevan a visitas y compras, para saber cuáles
+            funcionan. Si tienes sesión iniciada, compartimos con Meta tu
+            identificador interno de cuenta y tu correo electrónico{" "}
+            <strong>hasheado</strong> (convertido en un código irreversible
+            antes de salir de tu navegador), que Meta usa solo para relacionar
+            esos eventos con su propia cuenta de usuario.
+          </li>
+        </ul>
+        <p>
+          Nunca compartimos tus fotos, el arte de tu mascota ni tu dirección
+          con estas herramientas. Puedes bloquear o borrar estas cookies desde
+          la configuración de tu navegador sin que la tienda deje de funcionar,
+          y gestionar los anuncios que ves desde la configuración de anuncios
+          de tu cuenta de Meta.
         </p>
       </section>
 
@@ -100,8 +134,9 @@ export default function PrivacyPolicyPage() {
       <section>
         <h2>Seguridad</h2>
         <p>
-          Las sesiones se guardan en cookies httpOnly, que los scripts de tu
-          navegador no pueden leer, y los tokens de acceso duran poco. Ningún
+          Las cookies de sesión son httpOnly, así que ningún script de tu
+          navegador puede leerlas (tampoco las herramientas de medición
+          descritas arriba), y los tokens de acceso duran poco. Ningún
           sistema es perfecto, pero tomamos medidas razonables para proteger tu
           cuenta.
         </p>

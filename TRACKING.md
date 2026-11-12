@@ -31,7 +31,7 @@ Paso 1 (tú) y pasos 2–4 + 6 (código) pueden ir en paralelo. El paso 5 necesi
 ## Paso 1 — Cuentas e IDs · 👤 tú (paneles)
 
 - [x] **Meta**: Business Manager → Events Manager → _Conectar datos_ → Web → crear un Dataset/Píxel **nuevo** llamado `ClawPuzzle` → copiar el Pixel ID.
-- [] **Meta**: verificar el dominio `clawpuzzle.com` (Business Settings → Brand safety → Domains; se hace con un registro TXT en el DNS).
+- [x] **Meta**: verificar el dominio `clawpuzzle.com` (Business Settings → Brand safety → Domains; se hace con un registro TXT en el DNS).
 - [ ] **Meta**: Events Manager → píxel ClawPuzzle → Settings → activar _Automatic advanced matching_ (Email y External ID).
 - [x] **Google**: analytics.google.com → crear cuenta `ClawPuzzle` → propiedad `clawpuzzle.com` (zona horaria Ecuador, moneda USD) → flujo de datos **Web** para `clawpuzzle.com` → copiar el `G-XXXX`.
 - [x] **Google**: en ese flujo → _Medición mejorada_ (engranaje) → _Vistas de página_ → Mostrar configuración avanzada → **desmarcar** "La página cambia en función de los eventos del historial del navegador". Las vistas las manda el código (paso 3); si se deja marcado, se cuentan dobles.
@@ -188,7 +188,7 @@ analytics.subscribe("checkout_completed", (event) => {
 
 ## Paso 6 — Privacidad (Ecuador, LOPDP) · 🤖 código
 
-- [ ] `frontend/src/app/privacy/page.tsx`: nueva sección "Cookies y medición": Google Analytics (analítica de visitas), píxel de Meta (medición de anuncios), y que el email se comparte **hasheado** con Meta. Ajustar la sección "Seguridad", que hoy solo menciona cookies de sesión.
+- [x] `frontend/src/app/privacy/page.tsx`: nueva sección "Cookies y medición": Google Analytics (analítica de visitas), píxel de Meta (medición de anuncios), y que el email se comparte **hasheado** con Meta. Ajustar la sección "Seguridad", que hoy solo menciona cookies de sesión.
 
 ## Paso 7 — Verificación
 
