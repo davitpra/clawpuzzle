@@ -5,7 +5,7 @@ Objetivo:
 - **Meta (Facebook/Instagram):** medir el embudo y las compras para optimizar los anuncios.
 - **Google Analytics 4:** solo analítica, para saber cuántas personas entran a la página y cuántas avanzan por el embudo. **No se pauta en Google por ahora** (sin Google Ads).
 
-Embudo: landing (`/`) → elegir tema Perro/Gato → `/create` (login Google + foto + arte IA) → checkout de Shopify.
+Embudo: landing (`/`) → elegir tema Perro/Gato → `/create` (foto + arte IA, **sin login**: la primera imagen sale con una sesión de invitado) → checkout de Shopify. El login con Google es opcional: sirve para guardar el arte y recibir 4 créditos más.
 
 ## Lo que condiciona todo el plan
 
@@ -84,6 +84,7 @@ Es lo que permite a Meta unir la visita en `clawpuzzle.com` con la compra en el 
 | [x] | Ver la ficha en la landing | `widgets/studio-landing/ui/LandingProductDetailsClient.tsx`, `useEffect` al montar (la landing es server component; este es el client que ya tiene `product`) | `ViewContent` (`content_ids`, `content_type: 'product'`, `value`, `currency`) | `view_item`                          |
 | [x] | Elegir tema                | mismo archivo: envolver `setSelectedVariantId` y disparar solo si el id **cambia** (no en el montaje: `ProductDetails` lo fija solo al cargar formatos)       | `SelectTheme` (custom, `theme: 'Perro' \| 'Gato'`)                            | `select_item`                        |
 | [x] | Registro / login           | `context/AuthContext.tsx`, en `loginWithGoogle` y `loginWithGoogleCode` tras `setUser` (no en `checkAuth`)                                                    | `CompleteRegistration` solo si es cuenta nueva                                | `sign_up` si es nueva, `login` si no |
+| [x] | Foto enviada               | `app/create/page.tsx`, `handlePhotoContinue` (cada envío)                                                                                                      | `UploadPhoto` (custom, `style`, `is_guest`)                                   | `upload_photo`                       |
 | [x] | Arte IA listo              | `widgets/ia-generator/ui/IAGeneratingStep.tsx`: `useEffect` cuando `imageUrl` pasa a tener valor, una vez por `generationId`                                  | `GenerateArt` (custom)                                                        | `generate_art`                       |
 | [x] | Ir al checkout             | `hooks/useShopifyCheckout.ts`, cuando `cartCreate` devuelve `checkoutUrl`, antes de `window.location.href`                                                    | `InitiateCheckout` (`value`, `currency: 'USD'`, `num_items`, `content_ids`)   | `begin_checkout`                     |
 | [x] | Compra                     | Shopify → píxel personalizado (paso 5)                                                                                                                        | `Purchase`                                                                    | — (ver admin)                        |
@@ -209,17 +210,28 @@ En producción:
 - [ ] Abrir `clawpuzzle.com/create` desde un DM de Instagram en el móvil y probar el login con Google (el navegador interno de Instagram puede bloquearlo; si falla, hay que resolverlo antes de pautar).
 - [ ] A los 2–3 días: Events Manager → _Calidad de coincidencia de eventos_ de `Purchase` ≥ 6, y GA4 → excluir tu tráfico (Admin → Flujos de datos → Configurar etiqueta → _Definir tráfico interno_ con tu IP + activar el filtro en Admin → Filtros de datos).
 
+## Imagen gratis sin login (sesiones de invitado)
+
+Desde la imagen gratis el orden del embudo cambia: el arte sale **antes** que el registro, y el registro deja de ser obligatorio.
+
+- **Nuevo evento** `UploadPhoto` / `upload_photo` al enviar la foto: es el escalón que antes marcaba el registro.
+- **`is_guest`** en `UploadPhoto`, `GenerateArt` / `generate_art` e `InitiateCheckout` / `begin_checkout`: separa la imagen gratis de las generaciones con cuenta.
+- **Identidad**: el invitado se identifica solo por `external_id` (Meta) y `user_id` (GA4), sin email (el suyo es sintético). Al registrarse conserva el id y se vuelve a identificar con el email real, así que la sesión anterior queda unida a la cuenta.
+- **`CompleteRegistration` / `sign_up`** llega más tarde y en menos casos. Si alguna campaña de Meta optimiza por registro, pasarla a `GenerateArt` o `InitiateCheckout`.
+- **Purchase**: sin cambios. El checkout del invitado lleva `_user_id` (su id de invitado) y Shopify aporta el email. Como los eventos previos van sin email, la coincidencia es más débil: la API de Conversiones (abajo) gana prioridad.
+- **GA4**: rehacer la exploración de embudo como `page_view` → `select_item` → `upload_photo` → `generate_art` → `begin_checkout`, con `sign_up` como rama y el segmento `is_guest`. Registrar `is_guest` como dimensión personalizada (Admin → Definiciones personalizadas) para poder filtrarla.
+
 ## Uso diario
 
 - **Anuncios de Meta**: el enlace del anuncio debe apuntar a `https://clawpuzzle.com/` (la raíz; en modo lanzamiento las demás rutas de tienda redirigen a `/` y pierden los parámetros), con UTM: `?utm_source=instagram&utm_medium=paid&utm_campaign=lanzamiento`.
 - **Visitas**: GA4 → Informes → _Tiempo real_ y _Adquisición → Adquisición de tráfico_.
-- **Embudo**: GA4 → Explorar → _Exploración de embudo_ con `page_view` → `select_item` → `sign_up` → `generate_art` → `begin_checkout`.
+- **Embudo**: GA4 → Explorar → _Exploración de embudo_ con `page_view` → `select_item` → `upload_photo` → `generate_art` → `begin_checkout` (ver "Imagen gratis sin login").
 - **Compras**: admin de ClawPuzzle / Shopify, y `Purchase` en Events Manager.
 
 ---
 
 ## Más adelante
 
-- **API de Conversiones** de Meta desde el backend (ver paso 5).
+- **API de Conversiones** de Meta desde el backend (ver paso 5). Prioridad alta desde la imagen gratis sin login: los eventos del invitado van sin email.
 - **Google Ads**: crear la cuenta, vincularla con GA4 y medir la compra desde el backend (Measurement Protocol), ya que GA4 no ve el checkout.
 - **Login con Facebook**, si la prueba de Instagram del paso 7 falla.

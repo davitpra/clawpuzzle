@@ -18,8 +18,9 @@ import { clearUser, flushAuthEvent, identifyUser } from "./track";
 export function AnalyticsIdentity() {
   const { user, isLoading } = useAuth();
   // Sobrevive al doble efecto de StrictMode y a cada `setUser` con el mismo
-  // usuario: el `init` de Meta sale una vez por cuenta.
-  const identifiedId = useRef<string | null>(null);
+  // usuario: el `init` de Meta sale una vez por cuenta (y otra si un invitado
+  // se registra y gana email).
+  const identifiedKey = useRef<string | null>(null);
 
   const id = user?.id;
   const email = user?.email;
@@ -27,19 +28,19 @@ export function AnalyticsIdentity() {
 
   useEffect(() => {
     const action = nextIdentityAction(
-      identifiedId.current,
+      identifiedKey.current,
       id && email ? { id, email, role } : null,
       isLoading,
     );
     if (action.type === "identify") {
       identifyUser({ id: action.id, email: action.email });
-      identifiedId.current = action.id;
+      identifiedKey.current = action.key;
     } else if (action.type === "clear") {
       clearUser();
-      identifiedId.current = null;
+      identifiedKey.current = null;
     }
     // El `sign_up`/`login` que dejó `AuthContext` sale ya identificado.
-    if (identifiedId.current) flushAuthEvent();
+    if (identifiedKey.current) flushAuthEvent();
   }, [id, email, role, isLoading]);
 
   return null;

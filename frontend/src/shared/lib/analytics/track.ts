@@ -64,9 +64,16 @@ export function trackEvent({ meta, ga }: TrackEventInput) {
  * Coincidencia avanzada de Meta: el píxel hashea el email en SHA-256 antes de
  * enviarlo. A GA4 solo va el id: prohíbe datos personales como el email.
  */
-export function identifyUser({ id, email }: { id: string; email: string }) {
+export function identifyUser({
+  id,
+  email,
+}: {
+  id: string;
+  /** null para un invitado: su email es sintético y no sirve para coincidir. */
+  email: string | null;
+}) {
   fbq("init", META_PIXEL_ID, {
-    em: email.trim().toLowerCase(),
+    ...(email ? { em: email.trim().toLowerCase() } : {}),
     external_id: id,
   });
   gtag("set", { user_id: id });
