@@ -14,8 +14,17 @@ import { Prisma } from '@prisma/client';
  * El equipo no es clientela: sus cuentas no cuentan como usuarios en ninguna
  * métrica del dashboard, o con poco tráfico las propias pruebas internas mueven
  * las cifras más que los clientes.
+ *
+ * Los invitados (rol `guest`, la imagen gratis sin login) tampoco son usuarios:
+ * no se registraron. Sí cuentan donde lo que se mide es lo que hicieron
+ * (mascotas, carritos, compras): para eso está `NOT_STAFF`.
  */
-export const CUSTOMER_ONLY = { role: { not: 'admin' } } as const;
+export const CUSTOMER_ONLY: { role: Prisma.StringFilter<'User'> } = {
+  role: { notIn: ['admin', 'guest'] },
+};
+
+/** Todo el que no es del equipo, invitados incluidos. */
+export const NOT_STAFF = { role: { not: 'admin' } } as const;
 
 /** Cuentas dadas de baja: fuera de los conteos, igual que en /admin/users. */
 export const NOT_DELETED = { status: { not: 'deleted' } } as const;
@@ -28,7 +37,8 @@ export const NOT_DELETED = { status: { not: 'deleted' } } as const;
  * crudo—, pero al menos vive aquí al lado de su versión ORM: si uno cambia, el
  * otro está a tres líneas de distancia.
  */
-export const CUSTOMER_ONLY_SQL = Prisma.sql`u.role <> 'admin'`;
+export const CUSTOMER_ONLY_SQL = Prisma.sql`u.role NOT IN ('admin', 'guest')`;
+export const NOT_STAFF_SQL = Prisma.sql`u.role <> 'admin'`;
 export const NOT_DELETED_SQL = Prisma.sql`u.status <> 'deleted'`;
 
 /**

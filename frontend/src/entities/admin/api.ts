@@ -460,6 +460,13 @@ export interface OverviewGrowth {
   conversionRate: number | null;
   abandonedCarts: number;
   abandonedAfterDays: number;
+  /** Imagen gratis sin login: sesiones de invitado de la ventana. */
+  guests: {
+    sessions: number;
+    /** De esas, las que ya son cuenta (se registraron con Google). */
+    converted: number;
+    conversionRate: number | null;
+  };
 }
 
 export interface UserRecencySegments {

@@ -153,6 +153,7 @@ export class AdminUsersService {
       order?: string;
       status?: string;
       activity?: UserActivityFilter;
+      role?: string;
     } = {},
   ) {
     const { skip, take } = getPaginationParams(page, limit);
@@ -185,6 +186,14 @@ export class AdminUsersService {
     // Sin filtro de actividad el listado sigue mostrando a todo el mundo.
     if (opts.activity) {
       and.push({ ...CUSTOMER_ONLY, ...activityWhere(opts.activity) });
+    }
+
+    // Los invitados (imagen gratis sin login) se cuentan por miles y no son
+    // cuentas con las que trabajar: solo aparecen si se buscan por rol.
+    if (opts.role) {
+      and.push({ role: opts.role });
+    } else {
+      and.push({ role: { not: 'guest' } });
     }
 
     if (and.length) {

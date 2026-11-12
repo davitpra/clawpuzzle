@@ -10,6 +10,7 @@ import {
 import { ResolvedPeriod, safeRatio } from './period.util';
 import {
   CUSTOMER_ONLY_SQL,
+  NOT_STAFF_SQL,
   LAST_SEEN_SQL,
   NOT_DELETED_SQL,
 } from './user-activity.util';
@@ -151,7 +152,7 @@ export class UsersStats {
           SELECT o.user_id, COUNT(*)::int AS paid_orders
           FROM orders o
           JOIN users u ON u.id = o.user_id
-          WHERE o.financial_status = 'paid' AND ${CUSTOMER_ONLY_SQL}
+          WHERE o.financial_status = 'paid' AND ${NOT_STAFF_SQL}
           GROUP BY o.user_id
         )
         SELECT
@@ -167,7 +168,8 @@ export class UsersStats {
       this.prisma.$queryRaw<SegmentRevenueRow[]>`
         SELECT
           CASE
-            WHEN o.user_id IS NULL THEN 'guest'
+            -- Sin cuenta: checkout sin sesión o con sesión de invitado.
+            WHEN o.user_id IS NULL OR u.role = 'guest' THEN 'guest'
             WHEN EXISTS (
               SELECT 1 FROM orders prev
               WHERE prev.user_id = o.user_id
@@ -184,7 +186,7 @@ export class UsersStats {
         WHERE o.financial_status = 'paid'
           AND o.shopify_created_at >= ${period.from}
           AND o.shopify_created_at <  ${period.to}
-          AND (o.user_id IS NULL OR ${CUSTOMER_ONLY_SQL})
+          AND (o.user_id IS NULL OR ${NOT_STAFF_SQL})
         GROUP BY 1, 2
       `,
     ]);

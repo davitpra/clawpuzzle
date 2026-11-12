@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ResolvedPeriod, deltaPct, safeRatio } from './period.util';
-import { CUSTOMER_ONLY, NOT_DELETED, activeSince } from './user-activity.util';
+import {
+  CUSTOMER_ONLY,
+  NOT_DELETED,
+  NOT_STAFF,
+  activeSince,
+} from './user-activity.util';
 
 /** Un carrito con líneas y sin tocar en este tiempo se da por abandonado. */
 const ABANDONED_AFTER_DAYS = 3;
@@ -32,6 +37,8 @@ export class GrowthStats {
       generations,
       ordersPaid,
       abandonedCarts,
+      guests,
+      guestsConverted,
     ] = await Promise.all([
       // Acumulado, no ventana. Excluye las cuentas dadas de baja igual que hace
       // `listUsers` por defecto, para que cuadre con el «N en total» que muestra
@@ -75,7 +82,8 @@ export class GrowthStats {
       this.prisma.pet.count({
         where: {
           createdAt: { gte: period.from, lt: period.to },
-          user: { ...CUSTOMER_ONLY, ...NOT_DELETED },
+          // Invitados incluidos: su mascota es el primer escalón del embudo.
+          user: { ...NOT_STAFF, ...NOT_DELETED },
         },
       }),
       this.prisma.generation.count({
@@ -99,7 +107,27 @@ export class GrowthStats {
         where: {
           updatedAt: { lt: abandonedBefore },
           items: { some: {} },
-          user: { ...CUSTOMER_ONLY, ...NOT_DELETED },
+          user: { ...NOT_STAFF, ...NOT_DELETED },
+        },
+      }),
+
+      // Sesiones de invitado abiertas en la ventana (una por imagen gratis). Se
+      // cuentan en el ledger: el `guest_bonus` sigue ahí cuando el invitado se
+      // convierte en cuenta.
+      this.prisma.creditTransaction.count({
+        where: {
+          reason: 'guest_bonus',
+          createdAt: { gte: period.from, lt: period.to },
+        },
+      }),
+      // De esas, las que ya son cuenta. Un invitado que se fusionó con una
+      // cuenta existente se borra junto a su `guest_bonus`: no aparece en
+      // ninguna de las dos cifras.
+      this.prisma.creditTransaction.count({
+        where: {
+          reason: 'guest_bonus',
+          createdAt: { gte: period.from, lt: period.to },
+          user: { role: { not: 'guest' } },
         },
       }),
     ]);
@@ -116,6 +144,11 @@ export class GrowthStats {
       conversionRate: conversion === null ? null : conversion * 100,
       abandonedCarts,
       abandonedAfterDays: ABANDONED_AFTER_DAYS,
+      guests: {
+        sessions: guests,
+        converted: guestsConverted,
+        conversionRate: guests > 0 ? (guestsConverted / guests) * 100 : null,
+      },
     };
   }
 }

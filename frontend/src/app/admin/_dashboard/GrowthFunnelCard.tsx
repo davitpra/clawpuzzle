@@ -53,7 +53,7 @@ export function GrowthFunnelCard({
         </InlineStack>
 
         {/*
-          Las cuatro líneas están acotadas al periodo pero no cuentan lo mismo:
+          Las líneas están acotadas al periodo pero no cuentan lo mismo:
           dos son volumen bruto, una es una razón y la última data el momento en
           que cada carrito se dio por perdido. Cada una lo declara en su detalle.
         */}
@@ -77,6 +77,16 @@ export function GrowthFunnelCard({
             label="Carritos abandonados"
             detail={`Cumplieron ${growth.abandonedAfterDays} días sin actividad durante los últimos ${periodLabel}`}
             value={fmtCount(growth.abandonedCarts)}
+          />
+          <StatLine
+            label="Imágenes gratis sin login"
+            detail="Sesiones de invitado abiertas en el periodo"
+            value={fmtCount(growth.guests.sessions)}
+          />
+          <StatLine
+            label="Invitados que se registraron"
+            detail="Sin los que entraron con una cuenta que ya existía"
+            value={`${fmtCount(growth.guests.converted)} · ${fmtPct(growth.guests.conversionRate)}`}
           />
         </BlockStack>
       </BlockStack>
