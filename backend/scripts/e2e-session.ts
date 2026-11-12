@@ -12,10 +12,12 @@ import jwtConfig from '../src/config/jwt.config';
 // (mismo payload, mismos secretos, refresh guardado como hash SHA-256).
 //
 //   npx ts-node --transpile-only scripts/e2e-session.ts create   → JSON por stdout
-//   npx ts-node --transpile-only scripts/e2e-session.ts cleanup
+//   npx ts-node --transpile-only scripts/e2e-session.ts cleanup [guestId…]
 //
 // `cleanup` borra el usuario (cascada: mascotas, generaciones, tokens) y las
-// fotos que el test subió a Cloudinary, que la cascada no alcanza.
+// fotos que el test subió a Cloudinary, que la cascada no alcanza. Los
+// `guestId` son los invitados que creó el test sin sesión: se borran igual,
+// solo si siguen siendo invitados.
 
 const E2E_EMAIL = 'e2e-smoke@clawpuzzle.test';
 const E2E_CREDITS = 5;
@@ -24,18 +26,25 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
 });
 
-async function cleanup(): Promise<void> {
-  const user = await prisma.user.findUnique({
-    where: { email: E2E_EMAIL },
+async function cleanup(guestIds: string[] = []): Promise<void> {
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { email: E2E_EMAIL },
+        ...(guestIds.length > 0
+          ? [{ id: { in: guestIds }, role: 'guest' }]
+          : []),
+      ],
+    },
     select: {
       id: true,
       pets: { select: { photos: { select: { photoStorageKey: true } } } },
     },
   });
-  if (!user) return;
+  if (users.length === 0) return;
 
-  const keys = user.pets.flatMap((p) =>
-    p.photos.map((ph) => ph.photoStorageKey),
+  const keys = users.flatMap((u) =>
+    u.pets.flatMap((p) => p.photos.map((ph) => ph.photoStorageKey)),
   );
   if (keys.length > 0 && process.env.CLOUDINARY_API_KEY) {
     cloudinary.config({
@@ -46,7 +55,9 @@ async function cleanup(): Promise<void> {
     await Promise.allSettled(keys.map((k) => cloudinary.uploader.destroy(k)));
   }
 
-  await prisma.user.delete({ where: { id: user.id } });
+  await prisma.user.deleteMany({
+    where: { id: { in: users.map((u) => u.id) } },
+  });
 }
 
 async function create() {
@@ -102,7 +113,7 @@ async function main() {
   if (command === 'create') {
     process.stdout.write(JSON.stringify(await create()));
   } else if (command === 'cleanup') {
-    await cleanup();
+    await cleanup(process.argv.slice(3));
   } else {
     throw new Error('Uso: e2e-session.ts create|cleanup');
   }

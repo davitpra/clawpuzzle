@@ -36,6 +36,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
+const USER_ROLES = ['user', 'premium', 'admin', 'guest'];
+
 @ApiTags('admin-users')
 @ApiBearerAuth()
 @Controller('admin/users')
@@ -81,6 +83,12 @@ export class AdminUsersController {
       '`dormant` = sin señales desde hace más de 90 días; ' +
       '`never` = registrado sin mascota ni generación.',
   })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: ['user', 'premium', 'admin', 'guest'],
+    description: 'Sin valor se listan todos los roles salvo `guest`.',
+  })
   @ApiResponse({ status: 200, description: 'Users list retrieved' })
   list(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -90,6 +98,7 @@ export class AdminUsersController {
     @Query('order') order?: string,
     @Query('status') status?: string,
     @Query('activity') activity?: string,
+    @Query('role') role?: string,
   ) {
     return this.usersService.listUsers(page, limit, {
       search,
@@ -100,6 +109,7 @@ export class AdminUsersController {
       // presentación, igual que `sort`, y un enlace viejo debe seguir abriendo
       // el listado en lugar de romperse.
       activity: isUserActivityFilter(activity) ? activity : undefined,
+      role: role && USER_ROLES.includes(role) ? role : undefined,
     });
   }
 

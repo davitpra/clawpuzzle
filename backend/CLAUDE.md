@@ -171,7 +171,7 @@ All endpoints prefixed with `/api` (configured in `main.ts`).
 - **Order** / **OrderItem** / **OrderEvent**: ingested from Shopify webhooks
 
 **Enums** (stored as strings, no native Prisma enums):
-- User role: `user`, `premium`, `admin`
+- User role: `user`, `premium`, `admin`, `guest`
 - Pet species: `dog`, `cat`, `bird`, `rabbit`, `other`
 - Generation status: `pending`, `processing`, `completed`, `failed`
 - `ProductReference.template`: `Puzzle`, `Credits`
@@ -188,6 +188,14 @@ Image generations consume **generation credits** (1 per generation). See the
 `credits` module (`src/credits/`):
 
 - Each user starts with **5 free credits** (signup bonus, granted via the ledger).
+- **Guests** (role `guest`, `POST /api/auth/guest`) get **1 credit**
+  (`guest_bonus`) for the free generation without login. Signing in with Google
+  upgrades the same row and grants the other **4** (`signup_bonus`), or merges
+  it into the existing account with that email (art, orders and purchased
+  credits move; no bonus). The out-of-credits 402 tells a guest to sign up. See
+  `src/users/guest-account.service.ts` and `src/auth/auth.md`. Admin stats keep
+  guests out of user counts (`CUSTOMER_ONLY`) but in pets, carts and revenue
+  (`NOT_STAFF`); `/admin/users` hides them unless `?role=guest`.
 - A **paid Shopify order grants +3 credits per unit** purchased on regular lines
   (reason `order_bonus`), and **credit-pack lines grant their mapped amount**
   (reason `pack_purchase`) — see the shared `grantOrderCredits` helper in
@@ -240,7 +248,7 @@ cross-site. See `docs/DEPLOY.md`.
 Target: Railway (single always-on instance). See `docs/DEPLOY.md` for the full
 procedure. Key constraints:
 
-- **Never serverless**: BullMQ workers and four `@Cron` jobs live in the API
+- **Never serverless**: BullMQ workers and five `@Cron` jobs live in the API
   process.
 - **Never more than one replica**: the crons would run duplicated.
 - Migrations run as Railway's pre-deploy command (`npm run migrate:deploy`),

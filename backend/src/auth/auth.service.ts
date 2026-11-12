@@ -4,6 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreditsService } from '../credits/credits.service';
 import { AccountStatusService } from '../users/account-status.service';
+import {
+  GUEST_BONUS_CREDITS,
+  GUEST_ROLE,
+  GuestAccountService,
+} from '../users/guest-account.service';
+import { TurnstileService } from './turnstile.service';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
@@ -30,7 +36,69 @@ export class AuthService {
     private configService: ConfigService,
     private creditsService: CreditsService,
     private accountStatus: AccountStatusService,
+    private guestAccounts: GuestAccountService,
+    private turnstile: TurnstileService,
   ) {}
+
+  /**
+   * Sesión de invitado para generar la imagen gratis sin login. Si la petición
+   * ya trae la sesión de un invitado activo se renueva esa: recargar la página
+   * no debe regalar otra imagen.
+   */
+  async startGuestSession(
+    turnstileToken: string | undefined,
+    deviceInfo?: DeviceInfo,
+    existingGuestId?: string | null,
+  ) {
+    let guest = existingGuestId
+      ? await this.guestAccounts.findActiveGuest(existingGuestId)
+      : null;
+
+    if (!guest) {
+      await this.guestAccounts.assertCapacity();
+      await this.turnstile.verify(turnstileToken, deviceInfo?.ipAddress);
+      guest = await this.guestAccounts.createGuest();
+      this.logger.log(`Guest session created: ${guest.id}`);
+    }
+
+    const tokens = await this.generateTokens(
+      guest.id,
+      guest.email,
+      guest.role,
+      deviceInfo,
+    );
+
+    return { user: this.sanitizeUser(guest), ...tokens };
+  }
+
+  /**
+   * Id del invitado dueño de este refresh token, o null si el token no es de un
+   * invitado o ya no es válido. Se lee del refresh y no del access token
+   * porque la cookie del access caduca a los 15 minutos.
+   */
+  async guestIdFromRefreshToken(
+    refreshToken: string | undefined,
+  ): Promise<string | null> {
+    if (!refreshToken) return null;
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(
+        refreshToken,
+        { secret: this.configService.get<string>('jwt.refreshSecret') },
+      );
+      if (payload.role !== GUEST_ROLE) return null;
+
+      const stored = await this.prisma.refreshToken.findUnique({
+        where: { token: this.hashToken(refreshToken) },
+        select: { userId: true, isRevoked: true },
+      });
+      if (!stored || stored.isRevoked || stored.userId !== payload.sub) {
+        return null;
+      }
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Traduce el estado de la cuenta a lo que puede hacer un login.
@@ -135,7 +203,11 @@ export class AuthService {
    * Google por tokens y delega en `loginWithGoogle` con el id_token resultante,
    * así la verificación, el link por email y el bono de registro son los mismos.
    */
-  async loginWithGoogleCode(code: string, deviceInfo?: DeviceInfo) {
+  async loginWithGoogleCode(
+    code: string,
+    deviceInfo?: DeviceInfo,
+    guestId?: string | null,
+  ) {
     const clientId = this.configService.get<string>('google.clientId');
     const clientSecret = this.configService.get<string>('google.clientSecret');
 
@@ -161,10 +233,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid Google authorization code');
     }
 
-    return this.loginWithGoogle(idToken, deviceInfo);
+    return this.loginWithGoogle(idToken, deviceInfo, guestId);
   }
 
-  async loginWithGoogle(idToken: string, deviceInfo?: DeviceInfo) {
+  /**
+   * @param guestId invitado de este navegador, si lo hay: su arte pasa a la
+   *   cuenta. Email nuevo → el invitado se convierte en la cuenta (mismo id).
+   *   Email existente → se fusiona con ella, sin bono de registro.
+   */
+  async loginWithGoogle(
+    idToken: string,
+    deviceInfo?: DeviceInfo,
+    guestId?: string | null,
+  ) {
     const clientId = this.configService.get<string>('google.clientId');
 
     if (!clientId) {
@@ -195,6 +276,9 @@ export class AuthService {
 
     // Find-or-create / link by email
     let user = await this.prisma.user.findUnique({ where: { email } });
+    const guest = guestId
+      ? await this.guestAccounts.findActiveGuest(guestId)
+      : null;
     // El frontend lo usa para medir altas (CompleteRegistration / sign_up)
     // separadas de los logins: ver TRACKING.md, paso 4b.
     const isNewUser = !user;
@@ -218,6 +302,21 @@ export class AuthService {
           data,
         });
       }
+
+      if (guest) await this.guestAccounts.mergeGuestInto(guest.id, user.id);
+    } else if (guest) {
+      // El invitado ya recibió su crédito gratis: aquí recibe el resto del bono,
+      // así el total iguala al de quien se registra directamente.
+      user = await this.guestAccounts.upgradeGuest(
+        guest.id,
+        {
+          email,
+          googleId,
+          fullName: payload.name,
+          avatarUrl: payload.picture,
+        },
+        AuthService.SIGNUP_BONUS_CREDITS - GUEST_BONUS_CREDITS,
+      );
     } else {
       // Nuevo usuario vía Google: crear y otorgar el bono en la misma transacción.
       user = await this.prisma.$transaction(async (tx) => {
@@ -241,6 +340,12 @@ export class AuthService {
         return created;
       });
       this.logger.log(`New user registered via Google: ${user.email}`);
+    }
+
+    // Compró como invitado desde otro navegador antes de tener cuenta: su
+    // pedido y su arte pasan a la cuenta nueva.
+    if (isNewUser) {
+      await this.guestAccounts.adoptGuestsByOrderEmail(email, user.id);
     }
 
     await this.prisma.user.update({
@@ -500,6 +605,12 @@ export class AuthService {
     deviceInfo?: DeviceInfo,
   ) {
     const payload = { sub: userId, email, role };
+    // Un invitado no puede volver a entrar si pierde la sesión: la suya dura
+    // más (GUEST_SESSION_DAYS) para no perder la imagen.
+    const isGuest = role === GUEST_ROLE;
+    const refreshDays = isGuest
+      ? (this.configService.get<number>('guest.sessionDays') ?? 30)
+      : 7;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
@@ -515,9 +626,9 @@ export class AuthService {
       // la sesión se perdía.
       this.jwtService.signAsync(payload, {
         secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
-        expiresIn: this.configService.getOrThrow<ExpiresIn>(
-          'jwt.refreshExpiresIn',
-        ),
+        expiresIn: isGuest
+          ? (`${refreshDays}d` as ExpiresIn)
+          : this.configService.getOrThrow<ExpiresIn>('jwt.refreshExpiresIn'),
         jwtid: randomUUID(),
       }),
     ]);
@@ -530,7 +641,7 @@ export class AuthService {
 
     // Store hashed refresh token in database (Fix 1: never store raw tokens)
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    expiresAt.setDate(expiresAt.getDate() + refreshDays);
 
     await this.prisma.refreshToken.create({
       data: {
@@ -545,6 +656,8 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      /** Vida de la cookie del refresh token. */
+      refreshMaxAgeMs: refreshDays * 24 * 60 * 60 * 1000,
     };
   }
 

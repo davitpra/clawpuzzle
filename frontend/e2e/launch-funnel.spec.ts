@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
 import { API_URL } from "../playwright.config";
-import { SESSION_FILE, type E2ESession } from "./session";
+import { GUEST_IDS_FILE, SESSION_FILE, type E2ESession } from "./session";
 
 // Embudo de lanzamiento de punta a punta: landing → tema de la ficha → estilo
 // → foto → generación (MOCK_AI) → checkout de Shopify. El cartCreate va de
@@ -27,9 +27,17 @@ interface CartLine {
 
 // Los dos temas: el orden de las variantes difiere entre la ficha y los
 // formatos del backend, así que solo probando ambos se garantiza que uno no es
-// "la primera" y que el checkout no cae a ella por defecto.
-for (const theme of ["Perro", "Gato"] as const) {
-  test(`tema ${theme}: landing → /create → generar → checkout con la variante y el arte`, async ({
+// "la primera" y que el checkout no cae a ella por defecto. El tercer caso va
+// sin sesión: la imagen gratis con sesión de invitado, sin paso de cuenta.
+const CASES = [
+  { theme: "Perro", guest: false },
+  { theme: "Gato", guest: false },
+  { theme: "Perro", guest: true },
+] as const;
+
+for (const { theme, guest } of CASES) {
+  const who = guest ? "invitado sin login" : "con sesión";
+  test(`tema ${theme}, ${who}: landing → /create → generar → checkout con la variante y el arte`, async ({
     page,
     context,
   }) => {
@@ -38,16 +46,18 @@ for (const theme of ["Perro", "Gato"] as const) {
     ) as E2ESession;
 
     // Google no se automatiza: la sesión es la de un usuario sembrado.
-    await context.addCookies(
-      (["accessToken", "refreshToken"] as const).map((name) => ({
-        name,
-        value: session[name],
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        sameSite: "Lax" as const,
-      })),
-    );
+    if (!guest) {
+      await context.addCookies(
+        (["accessToken", "refreshToken"] as const).map((name) => ({
+          name,
+          value: session[name],
+          domain: "localhost",
+          path: "/",
+          httpOnly: true,
+          sameSite: "Lax" as const,
+        })),
+      );
+    }
 
     // Sin IDs de medición no debe pedirse ningún script ni beacon de Meta/GA4.
     const trackingRequests: string[] = [];
@@ -91,7 +101,8 @@ for (const theme of ["Perro", "Gato"] as const) {
       .click();
     await page.waitForURL(/style_id=/);
 
-    // 3. Foto y nombre; con sesión abierta "Continuar" dispara la generación.
+    // 3. Foto y nombre. "Continuar" dispara la generación: con la sesión
+    // sembrada, o abriendo antes una de invitado (sin pasar por Google).
     await page.getByLabel("Subir fotos de tu mascota").setInputFiles(PET_PHOTO);
     await page.getByLabel("Nombre de tu mascota").fill("Otto");
 
@@ -100,7 +111,25 @@ for (const theme of ["Perro", "Gato"] as const) {
         res.url() === `${API_URL}/generations` &&
         res.request().method() === "POST",
     );
+    const guestResponse = guest
+      ? page.waitForResponse(
+          (res) =>
+            res.url() === `${API_URL}/auth/guest` &&
+            res.request().method() === "POST",
+        )
+      : null;
     await page.getByRole("button", { name: "Continuar" }).click();
+
+    let userId = session.userId;
+    if (guestResponse) {
+      const res = await guestResponse;
+      expect(res.status()).toBe(200);
+      userId = ((await res.json()) as { data: { user: { id: string } } }).data
+        .user.id;
+      // El teardown lo borra con sus fotos.
+      fs.appendFileSync(GUEST_IDS_FILE, `${userId}\n`);
+    }
+
     const generation = await generationResponse;
     expect(generation.status()).toBe(201);
     const generationId = ((await generation.json()) as { data: { id: string } })
@@ -129,7 +158,7 @@ for (const theme of ["Perro", "Gato"] as const) {
       line.attributes.map((a) => [a.key, a.value]),
     );
     expect(attrs._generation_id).toBe(generationId);
-    expect(attrs._user_id).toBe(session.userId);
+    expect(attrs._user_id).toBe(userId);
     expect(attrs._image_url).toMatch(/^https:\/\//);
 
     // 5. Shopify aceptó el carrito y el navegador salió hacia su checkout.

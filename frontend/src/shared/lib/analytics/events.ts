@@ -80,12 +80,35 @@ export function authEvent(isNewUser: boolean): TrackEventInput {
     : { ga: { name: "login", params: { method: "Google" } } };
 }
 
-/** La vista previa del arte IA está lista. */
+/**
+ * El visitante envió su foto para crear el arte. Es el escalón entre elegir
+ * estilo y ver el arte: sin login obligatorio ya no lo marca el registro.
+ */
+export function uploadPhotoEvent(
+  styleName: string | null,
+  isGuest: boolean,
+): TrackEventInput {
+  const params = { style: styleName ?? "", is_guest: isGuest };
+  return {
+    meta: { name: "UploadPhoto", custom: true, params },
+    ga: { name: "upload_photo", params },
+  };
+}
+
+/**
+ * La vista previa del arte IA está lista. `is_guest` separa la imagen gratis
+ * sin login de las generaciones de una cuenta.
+ */
 export function generateArtEvent(
   generationId: string,
   styleName: string | null,
+  isGuest = false,
 ): TrackEventInput {
-  const params = { generation_id: generationId, style: styleName ?? "" };
+  const params = {
+    generation_id: generationId,
+    style: styleName ?? "",
+    is_guest: isGuest,
+  };
   return {
     meta: { name: "GenerateArt", custom: true, params },
     ga: { name: "generate_art", params },
@@ -96,7 +119,10 @@ export function generateArtEvent(
  * Salida al checkout de Shopify. Solo las líneas con `variantId`: las demás
  * las descarta `buildCheckoutLines` y no llegan a Shopify.
  */
-export function checkoutEvent(items: CartItem[]): TrackEventInput {
+export function checkoutEvent(
+  items: CartItem[],
+  isGuest = false,
+): TrackEventInput {
   const lines = items.filter((item) => item.variantId);
   const value = lines.reduce((sum, item) => sum + item.price * item.quantity, 0);
   return {
@@ -108,6 +134,7 @@ export function checkoutEvent(items: CartItem[]): TrackEventInput {
         num_items: lines.reduce((n, item) => n + item.quantity, 0),
         content_ids: lines.map((item) => item.variantId),
         content_type: "product",
+        is_guest: isGuest,
       },
     },
     ga: {
@@ -117,6 +144,7 @@ export function checkoutEvent(items: CartItem[]): TrackEventInput {
         value,
         // La página se va a Shopify justo después: beacon para que salga.
         transport_type: "beacon",
+        is_guest: isGuest,
         items: lines.map((item) => ({
           item_id: item.variantId,
           item_name: item.name,

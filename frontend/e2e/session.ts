@@ -16,10 +16,20 @@ export const SESSION_FILE = path.resolve(
   "../test-results/.e2e-session.json",
 );
 
-export function runSessionScript(command: "create" | "cleanup"): string {
+// Invitados que crean los tests sin sesión (uno por línea): el teardown los
+// borra junto al usuario sembrado.
+export const GUEST_IDS_FILE = path.resolve(
+  __dirname,
+  "../test-results/.e2e-guests.txt",
+);
+
+export function runSessionScript(
+  command: "create" | "cleanup",
+  args: string[] = [],
+): string {
   return execFileSync(
     "npx",
-    ["ts-node", "--transpile-only", "scripts/e2e-session.ts", command],
+    ["ts-node", "--transpile-only", "scripts/e2e-session.ts", command, ...args],
     {
       cwd: BACKEND_DIR,
       encoding: "utf8",

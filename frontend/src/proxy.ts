@@ -80,11 +80,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const role = getJwtRole(accessToken.value);
+
   if (pathname.startsWith('/admin')) {
-    const role = getJwtRole(accessToken.value);
     if (role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url));
     }
+  }
+
+  // Un invitado (imagen gratis sin login) tiene cookie de sesión pero no
+  // cuenta: `/user` es solo para cuentas. Su arte lo ve en `/create`.
+  if (role === 'guest') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

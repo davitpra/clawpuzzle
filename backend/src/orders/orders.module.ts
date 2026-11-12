@@ -16,6 +16,7 @@ import { ShopifySyncModule } from '../shopify-sync/shopify-sync.module';
 import { GenerationsModule } from '../generations/generations.module';
 import { ExpensesModule } from '../expenses/expenses.module';
 import { CreditsModule } from '../credits/credits.module';
+import { UsersModule } from '../users/users.module';
 import { FxModule } from '../fx/fx.module';
 import { PrintStudioModule } from '../print-studio/print-studio.module';
 
@@ -26,6 +27,7 @@ import { PrintStudioModule } from '../print-studio/print-studio.module';
     GenerationsModule,
     ExpensesModule,
     CreditsModule,
+    UsersModule,
     FxModule,
     PrintStudioModule,
   ],

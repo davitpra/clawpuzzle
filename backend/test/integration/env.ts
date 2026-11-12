@@ -25,4 +25,8 @@ Object.assign(process.env, {
   COOKIE_DOMAIN: '',
   COOKIE_SAMESITE: 'lax',
   ACCOUNT_LIFECYCLE_ENABLED: 'false',
+  // Sesiones de invitado activas y sin captcha (guest.int-spec.ts).
+  GUEST_GENERATION_ENABLED: 'true',
+  GUEST_DAILY_CAP: '1000',
+  TURNSTILE_SECRET_KEY: '',
 });

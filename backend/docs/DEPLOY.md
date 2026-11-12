@@ -1,9 +1,10 @@
 # Despliegue del backend (Railway)
 
-El backend **no puede ir en serverless**. Los workers de BullMQ y los cuatro
+El backend **no puede ir en serverless**. Los workers de BullMQ y los cinco
 `@Cron` (sync de Shopify cada 6 h, órdenes cada 10 min, limpieza de tokens a las
-3 AM, ciclo de vida de cuentas a las 4 AM) corren dentro del mismo proceso que la
-API, así que necesita un contenedor siempre encendido.
+3 AM, ciclo de vida de cuentas a las 4 AM, purga de invitados a las 5 AM) corren
+dentro del mismo proceso que la API, así que necesita un contenedor siempre
+encendido.
 
 ## Reparto de dominios
 

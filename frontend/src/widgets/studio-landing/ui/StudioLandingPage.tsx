@@ -83,11 +83,11 @@ const LANDING_STEPS: ProcessStep[] = [
 const LANDING_FAQS = [
   {
     q: "¿La vista previa es gratis de verdad?",
-    a: "Sí. Al crear tu cuenta recibes 5 vistas previas gratis y no necesitas tarjeta de crédito. Solo pagas cuando decides pedir tu rompecabezas.",
+    a: "Sí. Tu primera vista previa es gratis y no necesitas cuenta ni tarjeta de crédito. Si creas tu cuenta con Google recibes 4 vistas previas gratis más. Solo pagas cuando decides pedir tu rompecabezas.",
   },
   {
     q: "¿Necesito una cuenta?",
-    a: "Sí, necesitas una cuenta gratuita para crear el arte. Así guardamos tus vistas previas y las fotos de tu mascota para que puedas volver a ellas cuando quieras.",
+    a: "No para tu primera vista previa: la creas y puedes pedir tu rompecabezas sin registrarte. Si quieres guardarla y volver a ella más adelante, crea tu cuenta gratis con Google y tendrás 4 vistas previas más.",
   },
   {
     q: "¿De qué material es el rompecabezas?",

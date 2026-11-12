@@ -39,16 +39,17 @@ export interface CheckoutResult {
  */
 export function useShopifyCheckout() {
   const { items, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isGuest } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const checkoutInFlight = useRef(false);
 
   // Líneas con los attributes que lee el webhook de órdenes: ver
-  // `buildCheckoutLines`.
+  // `buildCheckoutLines`. El invitado también manda su `_user_id`: es lo que
+  // permite al webhook enlazar su arte y, si compra con el email de una cuenta
+  // existente, fusionarlo con ella.
   const buildLines = useCallback(
-    (source: CartItem[] = items) =>
-      buildCheckoutLines(source, isAuthenticated && user ? user.id : null),
-    [items, isAuthenticated, user],
+    (source: CartItem[] = items) => buildCheckoutLines(source, user?.id ?? null),
+    [items, user],
   );
 
   const startCheckout = useCallback(
@@ -100,7 +101,7 @@ export function useShopifyCheckout() {
           if (!source) await clearCart();
           // InitiateCheckout / begin_checkout. Espera ~300 ms (solo con el
           // píxel cargado) para que Meta lo reciba antes de salir del sitio.
-          await trackBeforeLeaving(checkoutEvent(cartItems));
+          await trackBeforeLeaving(checkoutEvent(cartItems, isGuest));
           window.location.href = cart.checkoutUrl;
           return { status: "redirect" };
         }
@@ -115,7 +116,7 @@ export function useShopifyCheckout() {
         return { status: "error" };
       }
     },
-    [items, buildLines, clearCart],
+    [items, buildLines, clearCart, isGuest],
   );
 
   return { startCheckout, buildLines, isCheckingOut };

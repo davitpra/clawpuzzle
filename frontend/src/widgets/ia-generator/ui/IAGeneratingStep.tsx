@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { Container } from "@/shared/ui/Container";
 import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
@@ -12,6 +15,30 @@ import { trackEvent } from "@/shared/lib/analytics/track";
 import { generateArtEvent } from "@/shared/lib/analytics/events";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
 import { FormatArtwork } from "./FormatArtwork";
+
+/** "G" de Google en sus colores oficiales, para el botón de guardar. */
+function GoogleLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.4-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"
+      />
+    </svg>
+  );
+}
 
 /** Lo que se vende al terminar la vista previa: una variante ya resuelta. */
 export interface PuzzleOffer {
@@ -64,6 +91,8 @@ export function IAGeneratingStep({
   const { status, imageUrl } = useGenerationStatus(generationId);
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const router = useRouter();
+  const { isGuest } = useAuth();
 
   // GenerateArt / generate_art cuando la vista previa aparece, una vez por
   // generación (también tras un reintento, que trae otro `generationId`).
@@ -72,8 +101,8 @@ export function IAGeneratingStep({
     if (!generationId || !imageUrl) return;
     if (trackedGenerationId.current === generationId) return;
     trackedGenerationId.current = generationId;
-    trackEvent(generateArtEvent(generationId, styleName));
-  }, [generationId, imageUrl, styleName]);
+    trackEvent(generateArtEvent(generationId, styleName, isGuest));
+  }, [generationId, imageUrl, styleName, isGuest]);
 
   const isFailed = status === "failed";
   const isGenerating = !!generationId && !imageUrl && !isFailed;
@@ -88,6 +117,13 @@ export function IAGeneratingStep({
   const savedArtHref = generationId
     ? `/user/generations/${generationId}`
     : "/user/generations";
+
+  // El invitado no tiene dónde guardar: "Guardar" abre Google y, al volver,
+  // el arte ya es de su cuenta (mismo id si es nueva; fusionado si ya existía).
+  // `useGoogleLogin` siempre llama al `onDone` del último render.
+  const { signIn, pending: signingIn } = useGoogleSignIn({
+    onDone: () => router.push(savedArtHref),
+  });
 
   const order = async () => {
     if (!offer || !generationId || !imageUrl) return;
@@ -183,8 +219,9 @@ export function IAGeneratingStep({
                       </button>
                     ) : (
                       <p className="text-sm text-slate-dark/60">
-                        Tu arte quedó guardado en tu cuenta. Pronto podrás
-                        pedirlo impreso desde ahí.
+                        {isGuest
+                          ? "Guárdalo con tu cuenta de Google para pedirlo impreso más adelante."
+                          : "Tu arte quedó guardado en tu cuenta. Pronto podrás pedirlo impreso desde ahí."}
                       </p>
                     )}
 
@@ -197,12 +234,44 @@ export function IAGeneratingStep({
                       Envíos a todo Ecuador
                     </p>
 
-                    <Link
-                      href={savedArtHref}
-                      className="text-sm font-bold text-primary underline-offset-4 hover:underline"
-                    >
-                      Guardar y decidir después
-                    </Link>
+                    {isGuest ? (
+                      // Secundario del CTA de compra: borde de marca y logo de
+                      // Google para que se lea como acción, sin competir con
+                      // "Pedir mi rompecabezas".
+                      <div className="flex w-full flex-col items-center md:items-start gap-2">
+                        <button
+                          type="button"
+                          onClick={signIn}
+                          disabled={signingIn}
+                          aria-busy={signingIn}
+                          className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-primary bg-white px-6 py-3.5 text-base font-bold text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                        >
+                          {signingIn ? (
+                            <span className="material-symbols-outlined animate-spin text-[20px]">
+                              progress_activity
+                            </span>
+                          ) : (
+                            <GoogleLogo />
+                          )}
+                          {signingIn
+                            ? "Abriendo Google…"
+                            : "Guardar mi arte con Google"}
+                        </button>
+                        <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                          <span className="material-symbols-outlined text-[18px]">
+                            auto_awesome
+                          </span>
+                          Y recibe 4 vistas previas gratis más
+                        </p>
+                      </div>
+                    ) : (
+                      <Link
+                        href={savedArtHref}
+                        className="text-sm font-bold text-primary underline-offset-4 hover:underline"
+                      >
+                        Guardar y decidir después
+                      </Link>
+                    )}
                   </div>
                 )}
 

@@ -20,6 +20,7 @@ import {
   transitionsFor,
 } from './production-status.util';
 import { orderItemKind } from './order-item-kind.util';
+import { GuestAccountService } from '../users/guest-account.service';
 
 @Injectable()
 export class OrdersService {
@@ -30,6 +31,7 @@ export class OrdersService {
     private readonly storageService: StorageService,
     private readonly shopifyApiService: ShopifyApiService,
     private readonly creditsService: CreditsService,
+    private readonly guestAccounts: GuestAccountService,
   ) {}
 
   // Créditos de generación otorgados por cada unidad comprada en una orden pagada.
@@ -64,7 +66,7 @@ export class OrdersService {
     if (userIdAttrs.length > 0) {
       const claimed = await this.prisma.user.findUnique({
         where: { id: userIdAttrs[0] },
-        select: { id: true, email: true },
+        select: { id: true, email: true, role: true },
       });
       if (claimed) {
         const orderEmail = payload.email?.toLowerCase();
@@ -75,7 +77,14 @@ export class OrdersService {
             where: { email: { equals: payload.email!, mode: 'insensitive' } },
             select: { id: true },
           });
-          if (conflict) {
+          if (conflict && GuestAccountService.isGuest(claimed)) {
+            // Un invitado compró con el email de una cuenta que ya existe: es la
+            // misma persona sin sesión. Su arte pasa a esa cuenta antes de
+            // ingerir las líneas, así el control de dueño de `ingestLineItem`
+            // enlaza la generación.
+            await this.guestAccounts.mergeGuestInto(claimed.id, conflict.id);
+            userId = conflict.id;
+          } else if (conflict) {
             this.logger.warn(
               `Order ${payload.name}: _user_id ${claimed.id} conflicts with email-matched user ${conflict.id}; ignoring _user_id.`,
             );

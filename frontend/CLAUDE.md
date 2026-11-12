@@ -136,6 +136,7 @@ copy it to `.env.local` and fill in real values.
 | `NEXT_PUBLIC_SITE_URL` | yes | Canonical public origin for metadata, Open Graph, robots and sitemap. `shared/config/seo.ts` |
 | `NEXT_PUBLIC_META_PIXEL_ID` | yes | Meta Pixel ID (ClawPuzzle). Empty = no Meta script. Production only on Vercel. `shared/config/analytics.ts` (see `../TRACKING.md`) |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | yes | GA4 measurement ID (`G-…`). Empty = no Google script. Production only on Vercel. `shared/config/analytics.ts` |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | yes | Cloudflare Turnstile site key for the guest session (free image without login). Empty = no captcha. `shared/config/guest.ts` |
 
 `NEXT_PUBLIC_*` values are **inlined at build time**, so changing one requires a
 rebuild — restart `npm run dev`, or redeploy on Vercel.
@@ -173,15 +174,23 @@ What the flag changes:
   logic for their link lists. A `NavLink` with `cta: true` renders as a primary
   button.
 - **`src/app/create/page.tsx`** — the flag picks the step order. Launch:
-  `STEP_PHOTO → STEP_ACCOUNT → STEP_GENERATING` (photo first, account skipped when
-  already signed in, then an automatic hop to `/studio`). Coming from the launch
+  `STEP_PHOTO → STEP_GENERATING`. Without a session, "Continuar" opens a
+  **guest session** (`startGuestSession` in `AuthContext`, Turnstile if
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set) and generates the free image right
+  away; `STEP_ACCOUNT` only appears when the backend refuses the guest session
+  (switched off, daily cap, captcha). A guest saves its art by signing in with
+  Google from `IAGeneratingStep` (same art, +4 credits on a new account). Coming from the launch
   product page (`product_ref_id` + `format_id`, no `style_id`) a style step comes
   first: `IAStyleStep` shows the landing's style cards (`LandingStylesView`) and
   picking one adds `style_id` to the URL. The product page itself no longer
   chooses a style (`ProductDetails` `styleSelectable`). Flag off: the classic
   `STEP_LEAD → STEP_UPLOAD → STEP_THANKS` driven by a product page. Both share the
   hooks in `widgets/ia-generator/model/`.
-  **Rule for the photo step: no authenticated call while `isAuthenticated` is
+  **Auth flags**: `isAuthenticated` is **false for a guest** (so navbar,
+  credits, pets list and `/user` treat it as a visitor); `hasSession` is true
+  for both; `isGuest` tells them apart. `proxy.ts` sends a guest token on
+  `/user` back to `/`.
+  **Rule for the photo step: no authenticated call while `hasSession` is
   false.** A 401 there ends in the `window.location.href = "/login"` of
   `lib/auth/fetch-with-refresh.ts`, which throws the visitor out of the funnel and
   loses the photo they just uploaded. `usePetsList` and `useCredits` gate

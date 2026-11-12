@@ -5,6 +5,7 @@ import {
   authEvent,
   checkoutEvent,
   generateArtEvent,
+  uploadPhotoEvent,
   selectThemeEvent,
   themeOf,
   viewContentEvent,
@@ -78,7 +79,24 @@ describe("generateArtEvent", () => {
     expect(e.meta).toMatchObject({ name: "GenerateArt", custom: true });
     expect(e.ga).toEqual({
       name: "generate_art",
-      params: { generation_id: "g1", style: "Acuarela" },
+      params: { generation_id: "g1", style: "Acuarela", is_guest: false },
+    });
+  });
+
+  it("marca la imagen gratis del invitado", () => {
+    expect(generateArtEvent("g1", null, true).ga?.params).toMatchObject({
+      is_guest: true,
+    });
+  });
+});
+
+describe("uploadPhotoEvent", () => {
+  it("UploadPhoto custom y upload_photo con estilo e is_guest", () => {
+    const e = uploadPhotoEvent("Acuarela", true);
+    expect(e.meta).toMatchObject({ name: "UploadPhoto", custom: true });
+    expect(e.ga).toEqual({
+      name: "upload_photo",
+      params: { style: "Acuarela", is_guest: true },
     });
   });
 });
@@ -103,6 +121,7 @@ describe("checkoutEvent", () => {
         num_items: 3,
         content_ids: ["v1", "v2"],
         content_type: "product",
+        is_guest: false,
       },
     });
     expect(e.ga?.name).toBe("begin_checkout");

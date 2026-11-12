@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ShopifyApiService } from '../shopify-sync/shopify-api.service';
 import { CreditsService } from '../credits/credits.service';
+import { GuestAccountService } from '../users/guest-account.service';
 import type { ShopifyOrderPayload } from './dto/shopify-order.dto';
 
 const mockPrisma = {
@@ -57,6 +58,10 @@ const mockPrisma = {
   $transaction: jest.fn(),
 };
 
+const mockGuestAccounts = {
+  mergeGuestInto: jest.fn(),
+};
+
 const mockCredits = {
   grant: jest.fn().mockResolvedValue(true),
   revoke: jest.fn().mockResolvedValue(true),
@@ -100,6 +105,7 @@ describe('OrdersService', () => {
         { provide: StorageService, useValue: {} },
         { provide: ShopifyApiService, useValue: mockShopifyApi },
         { provide: CreditsService, useValue: mockCredits },
+        { provide: GuestAccountService, useValue: mockGuestAccounts },
       ],
     }).compile();
 
