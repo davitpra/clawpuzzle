@@ -57,11 +57,11 @@ Módulo nuevo `frontend/src/shared/lib/analytics/`:
   - `identifyUser({ id, email })` / `clearUser()` (paso 4).
   - Declarar los tipos de `window.fbq`, `window.gtag`, `window.dataLayer`.
 - [x] `AnalyticsScripts.tsx` (server) — con `next/script`: los stubs de `gtag`/`fbq` van `beforeInteractive` (existen antes de hidratar, así no se pierde la primera vista) y `gtag.js` va `afterInteractive`:
-  - GA4: cargar `https://www.googletagmanager.com/gtag/js?id=…` y `gtag('config', GA_ID, { send_page_view: false })`.
+  - GA4: `gtag('config', GA_ID)` y cargar `https://www.googletagmanager.com/gtag/js?id=…` desde el propio stub. La vista de la carga completa la manda gtag (esta propiedad **ignora** `send_page_view: false`, comprobado en el paso 7). Si la carga entra por `/admin…` no se carga GA4: es la única forma de que esa vista automática no mida el admin.
   - Meta: snippet estándar + `fbq.disablePushState = true` (si no, el píxel manda su propio PageView en cada navegación) + `fbq('init', PIXEL_ID)`. **Sin** `fbq('track','PageView')` en el snippet.
   - Meta: también `fbq.allowDuplicatePageViews = true`. Sin él, fbevents descarta en silencio todo `PageView` después del primero de la carga y las navegaciones del cliente no llegan (comprobado con el píxel real).
   - No renderiza nada si falta el ID correspondiente.
-- [x] `PageViewTracker.tsx` (client) — `usePathname()` en un `useEffect`; llama a `trackPageView` en la primera carga y en cada cambio de ruta. **No** hace nada si la ruta empieza por `/admin` (cubre `/admin-login`). No usar `useSearchParams` (obligaría a un `<Suspense>` y los UTM ya los lee gtag de la URL).
+- [x] `PageViewTracker.tsx` (client) — `usePathname()` en un `useEffect`; llama a `trackPageView` en la primera carga y en cada cambio de ruta. En la primera carga (`firstLoad`) solo manda a Meta: GA4 ya la midió. **No** hace nada si la ruta empieza por `/admin` (cubre `/admin-login`). No usar `useSearchParams` (obligaría a un `<Suspense>` y los UTM ya los lee gtag de la URL).
 - [x] Montar ambos en `frontend/src/app/layout.tsx`, dentro de `<AuthProvider>` (el paso 4 necesita `useAuth`).
 - [x] Test unitario (vitest) de `track.ts`: no-op sin IDs y sin `window.fbq`; llama a `fbq`/`gtag` con los nombres correctos cuando existen.
 
@@ -194,8 +194,8 @@ analytics.subscribe("checkout_completed", (event) => {
 
 En local (`npm run dev` con los IDs en `frontend/.env.local`):
 
-- [ ] `npm run test`, `npm run typecheck` y `npm run lint` en verde.
-- [ ] `npm run test:e2e` (`e2e/launch-funnel.spec.ts`) en verde **sin** IDs: no se pide ningún script de Meta/Google.
+- [x] `npm run test`, `npm run typecheck` y `npm run lint` en verde.
+- [x] `npm run test:e2e` (`e2e/launch-funnel.spec.ts`) en verde **sin** IDs: no se pide ningún script de Meta/Google.
 - [ ] GA4 → _Tiempo real_: una sola `page_view` por navegación (no dobles), y ninguna al entrar a `/admin`.
 - [ ] GA4 → DebugView (extensión Tag Assistant): `view_item`, `select_item`, `sign_up`/`login`, `generate_art`, `begin_checkout`.
 - [ ] Meta Pixel Helper + Events Manager → _Test events_: `PageView` (uno por navegación), `ViewContent`, `SelectTheme`, `CompleteRegistration` (solo con cuenta nueva), `GenerateArt`, `InitiateCheckout` con `value`.

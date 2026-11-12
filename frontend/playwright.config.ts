@@ -61,6 +61,11 @@ export default defineConfig({
         NEXT_PUBLIC_API_URL: API_URL,
         NEXT_PUBLIC_SITE_URL: WEB_URL,
         NEXT_PUBLIC_LAUNCH_MODE: "true",
+        // Vacíos a propósito: Next no pisa una variable ya definida con la de
+        // .env.local, así que el build sale sin píxel de Meta ni GA4 y los
+        // tests no ensucian los datos de medición (TRACKING.md, paso 7).
+        NEXT_PUBLIC_META_PIXEL_ID: "",
+        NEXT_PUBLIC_GA_MEASUREMENT_ID: "",
       },
     },
   ],

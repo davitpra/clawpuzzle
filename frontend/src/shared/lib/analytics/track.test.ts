@@ -79,6 +79,12 @@ describe("trackPageView", () => {
     });
   });
 
+  it("en la carga completa solo va a Meta: GA4 ya manda su page_view", () => {
+    trackPageView("/", { firstLoad: true });
+    expect(fbq).toHaveBeenCalledWith("track", "PageView");
+    expect(gtag).not.toHaveBeenCalled();
+  });
+
   it("ignora el admin", () => {
     trackPageView("/admin/orders");
     trackPageView("/admin-login");

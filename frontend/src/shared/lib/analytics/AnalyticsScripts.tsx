@@ -9,7 +9,12 @@ import { GA_MEASUREMENT_ID, META_PIXEL_ID } from "@/shared/config/analytics";
 // así existen antes de hidratar y el primer `trackPageView` de
 // `PageViewTracker` no se pierde. Las librerías se cargan async después.
 //
-// - GA4: `send_page_view: false`, las vistas las manda `PageViewTracker`.
+// - GA4: la vista de la carga completa la manda gtag solo con el `config`.
+//   Esta propiedad ignora `send_page_view: false` (comprobado con una página
+//   HTML mínima), así que no se usa: `PageViewTracker` manda a GA4 solo las
+//   navegaciones del cliente, que gtag no detecta. Si la carga entra por
+//   `/admin…` no se carga GA4 en absoluto: es la única forma de que esa vista
+//   automática no mida el admin.
 // - Meta: `disablePushState = true` evita que el píxel mande su propio PageView
 //   en cada navegación del cliente; tampoco hay `track PageView` aquí.
 //   `allowDuplicatePageViews = true` es imprescindible: sin él fbevents descarta
@@ -21,19 +26,16 @@ export function AnalyticsScripts() {
   return (
     <>
       {GA_MEASUREMENT_ID && (
-        <>
-          <Script id="ga4-init" strategy="beforeInteractive">
-            {`window.dataLayer=window.dataLayer||[];
+        <Script id="ga4-init" strategy="beforeInteractive">
+          {`if(!location.pathname.startsWith('/admin')){
+window.dataLayer=window.dataLayer||[];
 window.gtag=function(){window.dataLayer.push(arguments);};
 window.gtag('js',new Date());
-window.gtag('config',${JSON.stringify(GA_MEASUREMENT_ID)},{send_page_view:false});`}
-          </Script>
-          <Script
-            id="ga4-lib"
-            strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`}
-          />
-        </>
+window.gtag('config',${JSON.stringify(GA_MEASUREMENT_ID)});
+var s=document.createElement('script');s.async=true;
+s.src='https://www.googletagmanager.com/gtag/js?id='+${JSON.stringify(encodeURIComponent(GA_MEASUREMENT_ID))};
+document.head.appendChild(s);}`}
+        </Script>
       )}
       {META_PIXEL_ID && (
         <Script id="meta-pixel-init" strategy="beforeInteractive">

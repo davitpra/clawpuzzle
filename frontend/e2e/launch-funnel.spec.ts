@@ -9,7 +9,15 @@ import { SESSION_FILE, type E2ESession } from "./session";
 // verdad a la Storefront API (valida variante y attributes); lo único que se
 // intercepta es la navegación final al checkout, así que nunca se paga.
 
-const PET_PHOTO = path.resolve(__dirname, "../public/puzzle/Otto.webp");
+// Dominios del píxel de Meta y de GA4. No incluye accounts.google.com (login).
+const TRACKING_HOSTS = [
+  "connect.facebook.net",
+  "facebook.com",
+  "googletagmanager.com",
+  "google-analytics.com",
+];
+
+const PET_PHOTO =path.resolve(__dirname, "../public/puzzle/Otto.webp");
 
 interface CartLine {
   merchandiseId: string;
@@ -40,6 +48,15 @@ for (const theme of ["Perro", "Gato"] as const) {
         sameSite: "Lax" as const,
       })),
     );
+
+    // Sin IDs de medición no debe pedirse ningún script ni beacon de Meta/GA4.
+    const trackingRequests: string[] = [];
+    page.on("request", (req) => {
+      const host = new URL(req.url()).hostname;
+      if (TRACKING_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) {
+        trackingRequests.push(req.url());
+      }
+    });
 
     // La navegación al checkout de Shopify se sirve en local: sin pago.
     await page.route(
@@ -118,5 +135,7 @@ for (const theme of ["Perro", "Gato"] as const) {
     // 5. Shopify aceptó el carrito y el navegador salió hacia su checkout.
     await expect(page.getByText("checkout interceptado")).toBeVisible();
     expect(new URL(page.url()).hostname).not.toBe("localhost");
+
+    expect(trackingRequests).toEqual([]);
   });
 }

@@ -28,9 +28,17 @@ export function isTrackedPath(path: string): boolean {
   return !path.startsWith("/admin");
 }
 
-export function trackPageView(path: string) {
+/**
+ * `firstLoad`: la vista de la carga completa. GA4 ya la manda solo con el
+ * `config` de `AnalyticsScripts` (con la URL y los UTM), así que solo va a Meta.
+ */
+export function trackPageView(
+  path: string,
+  { firstLoad = false }: { firstLoad?: boolean } = {},
+) {
   if (!isTrackedPath(path)) return;
   fbq("track", "PageView");
+  if (firstLoad) return;
   // `page_location` con la URL completa: así GA4 lee los UTM del anuncio.
   gtag("event", "page_view", {
     page_path: path,

@@ -16,8 +16,9 @@ export function PageViewTracker() {
 
   useEffect(() => {
     if (!pathname || lastPath.current === pathname) return;
+    const firstLoad = lastPath.current === null;
     lastPath.current = pathname;
-    trackPageView(pathname);
+    trackPageView(pathname, { firstLoad });
   }, [pathname]);
 
   return null;
