@@ -176,8 +176,8 @@ export default function ProductDetails({
         frameStyle={frameStyle}
       />
 
-      <div className="lg:col-span-5 flex flex-col h-full">
-        <div className="sticky top-24 flex flex-col gap-6">
+      <div className="lg:col-span-5 flex flex-col">
+        <div className="flex flex-col gap-6">
           {showBreadcrumb && (
             <ProductBreadcrumb
               product={product}

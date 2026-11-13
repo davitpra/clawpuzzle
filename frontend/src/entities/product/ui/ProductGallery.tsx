@@ -52,7 +52,7 @@ export default function ProductGallery({
   );
 
   return (
-    <div className="lg:col-span-7 flex flex-col gap-8">
+    <div className="lg:col-span-7 flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
       <div className={`w-full group ${isCarousel ? "" : "p-6 md:p-10"}`}>
         {isCarousel ? (
           <Carousel
