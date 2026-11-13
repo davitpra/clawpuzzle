@@ -41,6 +41,8 @@ interface ProductDetailsProps {
   styleSelectable?: boolean;
   /** El rastro lleva a `/catalog`; la landing de lanzamiento lo oculta. */
   showBreadcrumb?: boolean;
+  /** Barra fija abajo con el CTA al pasar el botón (landing de lanzamiento). */
+  stickyCta?: boolean;
 }
 
 export default function ProductDetails({
@@ -53,6 +55,7 @@ export default function ProductDetails({
   template,
   styleSelectable = false,
   showBreadcrumb = true,
+  stickyCta = false,
 }: ProductDetailsProps) {
   const selectedVariant = product.variants.edges.find(
     (v) => v.node.id === selectedVariantId,
@@ -236,6 +239,7 @@ export default function ProductDetails({
             hasBackendMapping={hasBackendMapping}
             backendError={formatsError}
             userSelections={hasOptions ? userSelections : undefined}
+            stickyBar={stickyCta}
           />
 
           <ProductPerks template={template} />
