@@ -68,7 +68,7 @@ const LANDING_STEPS: ProcessStep[] = [
     img: "/process/1. Upload Picture.png",
     alt: "Subiendo la foto de una mascota desde el celular",
     title: "2. Sube su foto",
-    text: "Cualquier foto clara sirve, desde la del celular hasta esa favorita de hace años.",
+    text: "Una foto clara de tu peludito, solito en la foto. Sirve la del celular o esa favorita de hace años.",
   },
   {
     // TODO(assets): falta una imagen del rompecabezas impreso para un paso de
@@ -76,7 +76,7 @@ const LANDING_STEPS: ProcessStep[] = [
     img: "/process/3. Final Art.png",
     alt: "Retrato de una mascota hecho con IA en una pantalla",
     title: "3. Mira la vista previa gratis",
-    text: "Si te encanta, lo imprimimos en MDF de 3 mm: 3 días de producción y unos 3 más de envío a tu ciudad.",
+    text: "Si te encanta, lo imprimimos en MDF de 3 mm: 3 días de producción y de 3 a 7 días de envío a tu ciudad.",
   },
 ];
 
@@ -95,7 +95,7 @@ const LANDING_FAQS = [
   },
   {
     q: "¿Cuánto tarda en llegar?",
-    a: "Lo producimos en 3 días y la entrega toma unos 3 días más, según tu ciudad. Te avisamos por correo cuando sale de nuestro taller.",
+    a: "Lo producimos en 3 días y el envío toma de 3 a 7 días, según tu ciudad. Te avisamos por correo cuando sale de nuestro taller.",
   },
   {
     q: "¿A dónde hacen envíos?",
@@ -104,6 +104,10 @@ const LANDING_FAQS = [
   {
     q: "¿Qué fotos funcionan mejor?",
     a: "Una foto clara y con buena luz, donde se vea bien la cara de tu mascota. Las fotos del celular y las fotos antiguas suelen funcionar muy bien.",
+  },
+  {
+    q: "¿Puedo poner a varias mascotas en un mismo rompecabezas?",
+    a: "Por ahora cada retrato es de una sola mascota, así la IA puede lucirse con sus detalles. Si tienes varias, ¡crea uno para cada una! 🐾",
   },
   {
     q: "¿Qué pasa con la foto de mi mascota?",

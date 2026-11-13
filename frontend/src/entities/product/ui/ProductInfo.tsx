@@ -73,14 +73,14 @@ export default function ProductInfo({
           </span>
         )}
       </div>
-      {/* Credit Price */}
+      {/* Una sola mascota por retrato: se avisa antes del CTA para no
+          llevarse la sorpresa recién en el paso de subir fotos. */}
       <div className="flex items-center gap-2 text-text-muted">
         <span className="material-symbols-outlined text-[20px] text-primary">
-          auto_awesome
+          pets
         </span>
         <span className="font-body">
-          Cada vista previa usa{" "}
-          <span className="font-bold text-primary">1 crédito</span>
+          Retrato de <span className="font-bold text-primary">una sola mascota</span>
         </span>
       </div>
 

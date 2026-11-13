@@ -52,9 +52,39 @@ export function PhotoUploadPanel({
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="font-display text-xl font-black text-slate-dark mb-4">
+      <h2 className="font-display text-xl font-black text-slate-dark mb-2">
         Sube fotos de tu mascota
       </h2>
+
+      {/* Aviso: el retrato es de una sola mascota (varias fotos = la misma). */}
+      <div
+        role="note"
+        className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600"
+      >
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-[20px] text-slate-dark"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            pets
+          </span>
+          <strong className="font-semibold text-slate-dark">
+            Un retrato, un peludito
+          </strong>
+        </span>
+        <span aria-hidden="true" className="h-4 w-px bg-slate-300" />
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-[20px] text-amber-400"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            star
+          </span>
+          Sube fotos de una sola mascota.
+        </span>
+      </div>
 
       {/* Main preview / drop zone */}
       <div
@@ -258,7 +288,7 @@ export function PhotoUploadPanel({
         <span className="material-symbols-outlined text-[14px] text-amber-400">
           lightbulb
         </span>
-        Upload 1 to {MAX_PHOTOS} photos · the first one will be your main photo
+        Sube de 1 a {MAX_PHOTOS} fotos · la primera será la principal
       </p>
     </div>
   );

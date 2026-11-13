@@ -84,7 +84,7 @@ Es lo que permite a Meta unir la visita en `clawpuzzle.com` con la compra en el 
 | [x] | Ver la ficha en la landing | `widgets/studio-landing/ui/LandingProductDetailsClient.tsx`, `useEffect` al montar (la landing es server component; este es el client que ya tiene `product`) | `ViewContent` (`content_ids`, `content_type: 'product'`, `value`, `currency`) | `view_item`                          |
 | [x] | Elegir tema                | mismo archivo: envolver `setSelectedVariantId` y disparar solo si el id **cambia** (no en el montaje: `ProductDetails` lo fija solo al cargar formatos)       | `SelectTheme` (custom, `theme: 'Perro' \| 'Gato'`)                            | `select_item`                        |
 | [x] | Registro / login           | `context/AuthContext.tsx`, en `loginWithGoogle` y `loginWithGoogleCode` tras `setUser` (no en `checkAuth`)                                                    | `CompleteRegistration` solo si es cuenta nueva                                | `sign_up` si es nueva, `login` si no |
-| [x] | Foto enviada               | `app/create/page.tsx`, `handlePhotoContinue` (cada envío)                                                                                                      | `UploadPhoto` (custom, `style`, `is_guest`)                                   | `upload_photo`                       |
+| [x] | Foto enviada               | `app/create/page.tsx`, `handlePhotoContinue` (cada envío)                                                                                                     | `UploadPhoto` (custom, `style`, `is_guest`)                                   | `upload_photo`                       |
 | [x] | Arte IA listo              | `widgets/ia-generator/ui/IAGeneratingStep.tsx`: `useEffect` cuando `imageUrl` pasa a tener valor, una vez por `generationId`                                  | `GenerateArt` (custom)                                                        | `generate_art`                       |
 | [x] | Ir al checkout             | `hooks/useShopifyCheckout.ts`, cuando `cartCreate` devuelve `checkoutUrl`, antes de `window.location.href`                                                    | `InitiateCheckout` (`value`, `currency: 'USD'`, `num_items`, `content_ids`)   | `begin_checkout`                     |
 | [x] | Compra                     | Shopify → píxel personalizado (paso 5)                                                                                                                        | `Purchase`                                                                    | — (ver admin)                        |
@@ -197,8 +197,8 @@ En local (`npm run dev` con los IDs en `frontend/.env.local`):
 
 - [x] `npm run test`, `npm run typecheck` y `npm run lint` en verde.
 - [x] `npm run test:e2e` (`e2e/launch-funnel.spec.ts`) en verde **sin** IDs: no se pide ningún script de Meta/Google.
-- [ ] GA4 → _Tiempo real_: una sola `page_view` por navegación (no dobles), y ninguna al entrar a `/admin`.
-- [ ] GA4 → DebugView (extensión Tag Assistant): `view_item`, `select_item`, `sign_up`/`login`, `generate_art`, `begin_checkout`.
+- [x] GA4 → _Tiempo real_: una sola `page_view` por navegación (no dobles), y ninguna al entrar a `/admin`.
+- [x] GA4 → DebugView (extensión Tag Assistant): `view_item`, `select_item`, `sign_up`/`login`, `generate_art`, `begin_checkout`.
 - [ ] Meta Pixel Helper + Events Manager → _Test events_: `PageView` (uno por navegación), `ViewContent`, `SelectTheme`, `CompleteRegistration` (solo con cuenta nueva), `GenerateArt`, `InitiateCheckout` con `value`.
 - [ ] Tras el login, los eventos de Meta muestran parámetros de coincidencia "Email" y "External ID".
 

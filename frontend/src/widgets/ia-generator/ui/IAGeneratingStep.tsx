@@ -230,7 +230,7 @@ export function IAGeneratingStep({
                     )}
 
                     <p className="text-xs leading-relaxed text-slate-dark/60">
-                      Producción en 3 días · Entrega en unos 3 días más ·
+                      Producción en 3 días · Envío de 3 a 7 días ·
                       Envíos a todo Ecuador
                     </p>
 

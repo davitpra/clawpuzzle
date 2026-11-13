@@ -150,9 +150,15 @@ export default function StudioShowcase({
                 {secondaryCta && (
                   <Link
                     href={secondaryCta.href}
-                    className="text-sm font-bold text-slate-dark/70 underline-offset-4 transition-colors hover:text-primary hover:underline"
+                    className="group flex items-center justify-center gap-2 rounded-xl border-2 border-primary/20 bg-white px-8 py-[14px] text-base font-bold text-primary transition-all hover:scale-105 hover:border-primary hover:bg-primary/5"
                   >
                     {secondaryCta.label}
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-0.5"
+                    >
+                      arrow_forward
+                    </span>
                   </Link>
                 )}
               </div>

@@ -3,11 +3,16 @@ import StudioShowcase, {
 } from "@/widgets/studio-showcase/ui/StudioShowcase";
 
 const PROOF_POINTS: ShowcaseFeature[] = [
-  { icon: "auto_awesome", text: "Arte con IA hecho a partir de tu foto" },
-  { icon: "extension", text: "Impreso como rompecabezas en MDF de 3 mm" },
-  { icon: "local_shipping", text: "Listo para armar, con envío a todo Ecuador" },
+  { icon: "visibility", text: "Vista previa gratis, sin tarjeta" },
+  { icon: "extension", text: "Impreso en MDF de 3 mm" },
+  { icon: "local_shipping", text: "Envío a todo Ecuador en 3 a 7 días" },
 ];
 
+/**
+ * CTA de cierre de la landing. El botón lleva a la ficha (`#product`) y no a
+ * `/create`: el flujo necesita producto, formato y tema (Perro | Gato)
+ * elegidos allí.
+ */
 export default function LandingShowcase({
   background,
 }: {
@@ -16,9 +21,9 @@ export default function LandingShowcase({
   return (
     <StudioShowcase
       background={background}
-      eyebrow="Así se ve impreso"
-      title="Mira la magia con tus propios ojos"
-      description="Así queda el arte de tu mascota convertido en un rompecabezas de madera, listo para armar."
+      eyebrow="Tu turno"
+      title="Convierte a tu mascota en un rompecabezas"
+      description="Sube su foto y mira la vista previa gratis en segundos. Solo pagas si te enamora."
       features={PROOF_POINTS}
       photo={{
         src: "/puzzle/Otto.webp",
@@ -26,8 +31,8 @@ export default function LandingShowcase({
         height: 1463,
         alt: "Rompecabezas de madera con el retrato IA de Otto, un perro con pañuelo de flores",
       }}
-      primaryCta={null}
-      secondaryCta={null}
+      primaryCta={{ href: "/#product", label: "Crear mi rompecabezas" }}
+      secondaryCta={{ href: "/#styles", label: "Ver estilos" }}
     />
   );
 }

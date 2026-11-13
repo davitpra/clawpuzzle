@@ -90,6 +90,7 @@ export default function LandingProductDetailsClient({
         template={normalized}
         styleSelectable
         showBreadcrumb={false}
+        stickyCta
       />
     </div>
   );
