@@ -32,8 +32,8 @@ export default function ShippingReturnsPage() {
       <section>
         <h2>Envíos</h2>
         <p>
-          Enviamos a todo Ecuador. Una vez producido, la entrega toma unos 3
-          días más, según tu ciudad. El costo del envío se muestra en el pago,
+          Enviamos a todo Ecuador. Una vez producido, el envío toma de 3 a 7
+          días, según tu ciudad. El costo del envío se muestra en el pago,
           antes de confirmar tu pedido.
         </p>
       </section>

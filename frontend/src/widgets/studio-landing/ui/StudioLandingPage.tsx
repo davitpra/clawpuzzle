@@ -76,7 +76,7 @@ const LANDING_STEPS: ProcessStep[] = [
     img: "/process/3. Final Art.png",
     alt: "Retrato de una mascota hecho con IA en una pantalla",
     title: "3. Mira la vista previa gratis",
-    text: "Si te encanta, lo imprimimos en MDF de 3 mm: 3 días de producción y unos 3 más de envío a tu ciudad.",
+    text: "Si te encanta, lo imprimimos en MDF de 3 mm: 3 días de producción y de 3 a 7 días de envío a tu ciudad.",
   },
 ];
 
@@ -95,7 +95,7 @@ const LANDING_FAQS = [
   },
   {
     q: "¿Cuánto tarda en llegar?",
-    a: "Lo producimos en 3 días y la entrega toma unos 3 días más, según tu ciudad. Te avisamos por correo cuando sale de nuestro taller.",
+    a: "Lo producimos en 3 días y el envío toma de 3 a 7 días, según tu ciudad. Te avisamos por correo cuando sale de nuestro taller.",
   },
   {
     q: "¿A dónde hacen envíos?",

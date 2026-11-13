@@ -20,7 +20,7 @@ const features: Feature[] = [
   {
     icon: "local_shipping",
     title: "Envíos a todo Ecuador",
-    text: "Producción en 3 días y entrega en unos 3 días más.",
+    text: "Producción en 3 días y envío de 3 a 7 días, según tu ciudad.",
   },
   {
     icon: "verified",
@@ -40,7 +40,10 @@ export function TrustFeatures() {
         </div>
         <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-4">
           {features.map((feature) => (
-            <div key={feature.title} className="flex flex-col items-center text-center">
+            <div
+              key={feature.title}
+              className="flex flex-col items-center text-center"
+            >
               <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <span className="material-symbols-outlined text-[28px]">
                   {feature.icon}

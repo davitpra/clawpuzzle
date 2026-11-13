@@ -11,7 +11,7 @@ const PERKS: Perk[] = [
   {
     icon: "local_shipping",
     title: "Envíos a todo Ecuador",
-    detail: "Producción en 3 días y entrega en unos 3 días más, según tu ciudad.",
+    detail: "Producción en 3 días y envío de 3 a 7 días, según tu ciudad.",
   },
   {
     icon: "visibility",

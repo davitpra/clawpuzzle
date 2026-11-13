@@ -20,7 +20,7 @@ const BENEFITS = [
   },
   {
     title: "Rápido hasta tu puerta",
-    text: "Lo producimos en 3 días y llega en unos 3 días más, según tu ciudad.",
+    text: "Lo producimos en 3 días y el envío toma de 3 a 7 días, según tu ciudad.",
   },
   {
     title: "Un plan para compartir",

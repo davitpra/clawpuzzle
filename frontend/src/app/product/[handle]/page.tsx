@@ -80,7 +80,7 @@ export default function ProductDetail({
     },
     {
       q: "¿Cuánto tarda en llegar?",
-      a: "Cada rompecabezas se hace bajo pedido: la producción toma 3 días y la entrega unos 3 días más, según tu ciudad. Enviamos a todo Ecuador.",
+      a: "Cada rompecabezas se hace bajo pedido: la producción toma 3 días y el envío de 3 a 7 días, según tu ciudad. Enviamos a todo Ecuador.",
     },
     {
       q: "¿El arte con IA es único?",

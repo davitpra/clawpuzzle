@@ -375,7 +375,7 @@ export function GenerationProductCard({
             <span className="material-symbols-outlined text-[16px] text-primary">
               local_shipping
             </span>
-            Producción en 3 días · entrega en unos 3 más
+            Producción en 3 días · envío de 3 a 7 días
           </div>
           <div className="mt-2 flex items-start justify-center gap-1 text-[11px] text-black/40">
             <span className="material-symbols-outlined text-[13px]">info</span>
