@@ -9,6 +9,7 @@ import ProductTypeSelector from "@/entities/product/ui/ProductTypeSelector";
 import ProductBreadcrumb from "@/entities/product/ui/ProductBreadcrumb";
 import ProductPerks from "@/entities/product/ui/ProductPerks";
 import PersonalizeButton from "@/features/personalize/ui/PersonalizeButton";
+import { useAuth } from "@/context/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatOptions } from "@/hooks/useFormatOptions";
 import { useStyle } from "@/hooks/useStyle";
@@ -57,6 +58,10 @@ export default function ProductDetails({
   showBreadcrumb = true,
   stickyCta = false,
 }: ProductDetailsProps) {
+  // Nota bajo el CTA: sin sesión la primera vista previa es gratis (crédito
+  // de invitado); con cuenta o con un invitado que ya la usó, cuesta 1 crédito.
+  const { hasSession, isLoading: isAuthLoading } = useAuth();
+
   const selectedVariant = product.variants.edges.find(
     (v) => v.node.id === selectedVariantId,
   )?.node;
@@ -241,6 +246,30 @@ export default function ProductDetails({
             userSelections={hasOptions ? userSelections : undefined}
             stickyBar={stickyCta}
           />
+
+          {/* Costo de la vista previa como nota del CTA (-mt-3: queda pegada al
+              botón aunque el contenedor separe con gap-6). Mientras se resuelve
+              la sesión se reserva la altura vacía para no cambiar de texto. */}
+          <p className="-mt-3 flex min-h-5 items-center justify-center gap-1.5 text-sm text-text-muted">
+            {!isAuthLoading && (
+              <>
+                <span className="material-symbols-outlined text-[18px] text-primary">
+                  auto_awesome
+                </span>
+                {hasSession ? (
+                  <span className="font-body">
+                    Cada vista previa usa{" "}
+                    <span className="font-bold text-primary">1 crédito</span>
+                  </span>
+                ) : (
+                  <span className="font-body">
+                    Tu primera vista previa es{" "}
+                    <span className="font-bold text-primary">gratis</span>
+                  </span>
+                )}
+              </>
+            )}
+          </p>
 
           <ProductPerks template={template} />
         </div>

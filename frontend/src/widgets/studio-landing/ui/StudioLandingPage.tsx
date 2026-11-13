@@ -68,7 +68,7 @@ const LANDING_STEPS: ProcessStep[] = [
     img: "/process/1. Upload Picture.png",
     alt: "Subiendo la foto de una mascota desde el celular",
     title: "2. Sube su foto",
-    text: "Cualquier foto clara sirve, desde la del celular hasta esa favorita de hace años.",
+    text: "Una foto clara de tu peludito, solito en la foto. Sirve la del celular o esa favorita de hace años.",
   },
   {
     // TODO(assets): falta una imagen del rompecabezas impreso para un paso de
@@ -104,6 +104,10 @@ const LANDING_FAQS = [
   {
     q: "¿Qué fotos funcionan mejor?",
     a: "Una foto clara y con buena luz, donde se vea bien la cara de tu mascota. Las fotos del celular y las fotos antiguas suelen funcionar muy bien.",
+  },
+  {
+    q: "¿Puedo poner a varias mascotas en un mismo rompecabezas?",
+    a: "Por ahora cada retrato es de una sola mascota, así la IA puede lucirse con sus detalles. Si tienes varias, ¡crea uno para cada una! 🐾",
   },
   {
     q: "¿Qué pasa con la foto de mi mascota?",
