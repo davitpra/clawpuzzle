@@ -267,8 +267,11 @@ export function IAGeneratingStep({
                     ) : (
                       <Link
                         href={savedArtHref}
-                        className="text-sm font-bold text-primary underline-offset-4 hover:underline"
+                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary/20 bg-white px-6 py-3.5 text-base font-bold text-primary transition-all hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 hover:shadow-md"
                       >
+                        <span className="material-symbols-outlined text-[20px]">
+                          bookmark
+                        </span>
                         Guardar y decidir después
                       </Link>
                     )}
