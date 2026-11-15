@@ -120,6 +120,11 @@ export const GET_PRODUCT = `
         }
       }
     }
+    specMascotas: metafield(namespace: "custom", key: "mascotas") { value }
+    specTamano: metafield(namespace: "custom", key: "tamano") { value }
+    specPiezas: metafield(namespace: "custom", key: "piezas") { value }
+    specArmado: metafield(namespace: "custom", key: "tiempo_de_montaje") { value }
+    specDificultad: metafield(namespace: "custom", key: "difucultad") { value }
     alternativeProducts: metafield(namespace: "custom", key: "alternative_products") {
       references(first: 12) {
         edges {

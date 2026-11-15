@@ -43,6 +43,10 @@ export interface ShopifyProductReference {
 }
 
 /** Metafield list.product_reference resuelto con `references`. */
+export interface ShopifyMetafieldValue {
+  value: string;
+}
+
 export interface ShopifyProductReferences {
   references?: {
     edges: { node: ShopifyProductReference }[];
@@ -67,6 +71,17 @@ export interface ShopifyProduct {
    * custom.alternative_products. Única fuente de la sección ArtKindAlternative.
    */
   alternativeProducts?: ShopifyProductReferences | null;
+  /**
+   * Ficha técnica de la franja de características (metafields `custom.*` con
+   * acceso de lectura en la Storefront API). Solo las pide GET_PRODUCT.
+   * `specDificultad` es un rating (`{"value":"5.0","scale_max":"6.0",…}`); la
+   * clave real en Shopify lleva la errata `difucultad`.
+   */
+  specMascotas?: ShopifyMetafieldValue | null;
+  specTamano?: ShopifyMetafieldValue | null;
+  specPiezas?: ShopifyMetafieldValue | null;
+  specArmado?: ShopifyMetafieldValue | null;
+  specDificultad?: ShopifyMetafieldValue | null;
   priceRange?: {
     minVariantPrice: ShopifyPrice;
   };

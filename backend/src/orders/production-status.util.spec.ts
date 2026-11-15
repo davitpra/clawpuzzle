@@ -88,7 +88,8 @@ describe('production-status.util', () => {
     it.each([
       ['pending', 'completed', 'pending'],
       ['authorized', 'completed', 'pending'],
-      ['partially_paid', 'completed', 'pending'],
+      ['partially_paid', 'completed', 'draft'],
+      ['partially_paid', 'processing', 'generating'],
       ['refunded', 'completed', 'refunded'],
       ['partially_refunded', 'pending', 'refunded'],
       ['voided', 'completed', 'cancelled'],

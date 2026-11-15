@@ -35,12 +35,13 @@ export class ProductionStats {
       }),
       this.prisma.orderItem.count({ where: { productionStatus: 'on_hold' } }),
 
-      // Item en estado temprano de "pago pendiente" cuya orden SÍ está pagada:
-      // la auto-asignación debería haberlo movido y no lo hizo.
+      // Item en estado temprano de "pago pendiente" cuya orden SÍ está pagada
+      // (o con el anticipo del 70%): la auto-asignación debería haberlo movido
+      // y no lo hizo.
       this.prisma.orderItem.count({
         where: {
           productionStatus: 'pending',
-          order: { financialStatus: 'paid' },
+          order: { financialStatus: { in: ['paid', 'partially_paid'] } },
         },
       }),
 

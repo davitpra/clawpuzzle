@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { templateLabel } from "@/entities/product/lib/template";
+import ProductSpecs from "@/entities/product/ui/ProductSpecs";
+
+/**
+ * Esquema de pago: anticipo del 70% al pedir (pago manual registrado en
+ * Shopify) y el 30% en efectivo al recibir. Debe coincidir con la sección
+ * "Pagos" de /shipping-returns.
+ */
+const DEPOSIT_RATE = 0.7;
+
+/** "56.00" → "56"; "55.30" → "55.30". */
+const formatAmount = (n: number) =>
+  Number.isInteger(n) ? String(n) : n.toFixed(2);
 
 interface ProductInfoProps {
   product: ShopifyProduct;
@@ -34,6 +46,12 @@ export default function ProductInfo({
   const originalAmount = compareAtPrice
     ? parseFloat(compareAtPrice.amount).toFixed(2)
     : "";
+
+  // Se redondea el anticipo a centavos y el saldo es la diferencia, para que
+  // ambos sumen exactamente el precio.
+  const priceValue = price ? parseFloat(price.amount) : 0;
+  const depositValue = Math.round(priceValue * DEPOSIT_RATE * 100) / 100;
+  const balanceValue = Math.round((priceValue - depositValue) * 100) / 100;
 
   const discount =
     price && compareAtPrice && parseFloat(compareAtPrice.amount) > 0
@@ -73,16 +91,32 @@ export default function ProductInfo({
           </span>
         )}
       </div>
-      {/* Una sola mascota por retrato: se avisa antes del CTA para no
-          llevarse la sorpresa recién en el paso de subir fotos. */}
-      <div className="flex items-center gap-2 text-text-muted">
-        <span className="material-symbols-outlined text-[20px] text-primary">
-          pets
-        </span>
-        <span className="font-body">
-          Retrato de <span className="font-bold text-primary">una sola mascota</span>
-        </span>
-      </div>
+      {/* Los packs de créditos se pagan completos: no llevan anticipo. */}
+      {priceValue > 0 && template !== "Credits" && (
+        <div className="-mt-2 flex items-center gap-3 rounded-xl bg-text-main/5 px-4 py-3">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-[20px] text-text-main"
+          >
+            account_balance_wallet
+          </span>
+          <p className="font-body text-sm text-text-muted">
+            Paga{" "}
+            <span className="font-bold text-text-main">
+              {currencySymbol}
+              {formatAmount(depositValue)}
+            </span>{" "}
+            (70%) para empezar y{" "}
+            <span className="font-bold text-text-main">
+              {currencySymbol}
+              {formatAmount(balanceValue)}
+            </span>{" "}
+            (30%) en efectivo contra entrega
+          </p>
+        </div>
+      )}
+
+      <ProductSpecs product={product} />
 
       {/* Description — click para expandir / colapsar el texto completo */}
       {product.description && (

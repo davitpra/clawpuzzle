@@ -127,6 +127,9 @@ export const CANCELLABLE_STATUSES: string[] = [
  * - Pagos no completados → `pending` (Pago pendiente).
  * - Reembolso/void → terminal correspondiente.
  * - Pagado: depende de la generación → `art_failed` / `generating` / `draft`.
+ *   `partially_paid` cuenta como pagado: el cliente paga un anticipo del 70%
+ *   (pago manual registrado en Shopify) y el 30% en efectivo al recibir, así
+ *   que el anticipo basta para iniciar la producción.
  */
 export function computeAutoEarlyStatus(
   financialStatus?: string | null,
@@ -140,10 +143,9 @@ export function computeAutoEarlyStatus(
       return 'cancelled';
     case 'pending':
     case 'authorized':
-    case 'partially_paid':
       return 'pending';
   }
-  // Pagado (`paid` u otros/ausente): el estado depende del arte.
+  // Pagado (`paid`, `partially_paid` u otros/ausente): el estado depende del arte.
   if (generationStatus === 'failed') return 'art_failed';
   if (generationStatus === 'pending' || generationStatus === 'processing') {
     return 'generating';

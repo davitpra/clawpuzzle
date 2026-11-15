@@ -18,7 +18,7 @@ export default function TermsPage() {
     <LegalPage
       title="Términos del servicio"
       intro="Estos términos cubren tu uso de ClawPuzzle: el generador de arte con IA, los créditos y los rompecabezas que nos pidas."
-      lastUpdated="26 de septiembre de 2026"
+      lastUpdated="15 de noviembre de 2026"
     >
       <section>
         <h2>Tu cuenta</h2>
@@ -66,16 +66,19 @@ export default function TermsPage() {
       <section>
         <h2>Pedidos y pagos</h2>
         <p>
-          El pago se procesa a través de Shopify. Los precios, impuestos y el
-          costo de envío se muestran antes de pagar. Consulta{" "}
+          El pedido se procesa a través de Shopify, y los precios e impuestos
+          se muestran antes de confirmarlo. Los rompecabezas se pagan en dos
+          partes: un anticipo del 70% por transferencia para iniciar la
+          producción y el 30% restante en efectivo al momento de la entrega.
+          Consulta{" "}
           <Link
             className="text-primary underline hover:text-primary-dark transition-colors"
             href="/shipping-returns"
           >
             Envíos y devoluciones
           </Link>{" "}
-          para ver los tiempos de entrega y la política de devoluciones de
-          productos personalizados.
+          para ver los pagos, los tiempos de entrega y la política de
+          devoluciones de productos personalizados.
         </p>
       </section>
 

@@ -29,6 +29,16 @@ export default function ShippingReturnsPage() {
       </section>
 
       <section>
+        <h2>Pagos</h2>
+        <p>
+          Pagas tu rompecabezas en dos partes. Para empezar, transfieres el 70%
+          del precio; con ese anticipo confirmado iniciamos la producción. El
+          30% restante lo pagas en efectivo al recibir tu pedido. Al terminar
+          tu compra verás las instrucciones para hacer la transferencia.
+        </p>
+      </section>
+
+      <section>
         <h2>Envíos</h2>
         <p>
           Enviamos a todo Ecuador. Una vez producido, el envío toma de 3 a 7
