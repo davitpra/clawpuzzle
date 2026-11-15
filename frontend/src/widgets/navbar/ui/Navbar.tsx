@@ -167,7 +167,7 @@ export default function Navbar() {
                 priority
                 className="size-9 lg:size-11 transition-transform group-hover:scale-105"
               />
-              <h2 className="font-display text-text-main text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] hidden sm:block">
+              <h2 className="font-display text-text-main text-base sm:text-lg lg:text-2xl font-black leading-tight tracking-[-0.015em] whitespace-nowrap">
                 Puzzle Salvaje
               </h2>
             </Link>
