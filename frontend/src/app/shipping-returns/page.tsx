@@ -1,5 +1,4 @@
-// TODO (contenido): el costo de envío y la ventana para reportar daños siguen
-// sin cifras; rellenarlos con los datos reales de la operación antes de
+// TODO (contenido): la ventana para reportar daños sigue sin cifra; rellenarlos con los datos reales de la operación antes de
 // producción. No inventar números aquí: esta página es una promesa al cliente.
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -18,7 +17,7 @@ export default function ShippingReturnsPage() {
     <LegalPage
       title="Envíos y devoluciones"
       intro="Cada rompecabezas se fabrica bajo pedido con la foto de tu mascota. Esto es lo que puedes esperar desde que pagas hasta que llega a tu puerta."
-      lastUpdated="26 de septiembre de 2026"
+      lastUpdated="15 de noviembre de 2026"
     >
       <section>
         <h2>Hecho bajo pedido</h2>
@@ -33,8 +32,7 @@ export default function ShippingReturnsPage() {
         <h2>Envíos</h2>
         <p>
           Enviamos a todo Ecuador. Una vez producido, el envío toma de 3 a 7
-          días, según tu ciudad. El costo del envío se muestra en el pago,
-          antes de confirmar tu pedido.
+          días, según tu ciudad. El envío es gratis a todo Ecuador.
         </p>
       </section>
 
