@@ -58,7 +58,7 @@ export function LandingStyleCard({
             src={src}
             alt={alt}
             fill
-            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
+            sizes="(max-width: 639px) 72vw, (max-width: 1023px) 33vw, 25vw"
             className="h-full w-full object-cover"
             onError={() => setFailedSrc(src)}
           />

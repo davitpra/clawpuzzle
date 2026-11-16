@@ -20,18 +20,18 @@ interface SectionProps extends LandingStylesHeading {
 
 function SectionHeading({
   eyebrow = "Estilos",
-  title = "Una foto, tu estilo",
+  title = "Elige tu estilo",
   subtitle = "Elige el look que mejor va con tu mascota. Así se verá impreso en tu rompecabezas.",
 }: LandingStylesHeading) {
   return (
-    <div className="mb-14 text-center">
-      <span className="mb-5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+    <div className="mb-6 text-center md:mb-14">
+      <span className="mb-3 inline-flex md:mb-5 items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
         {eyebrow}
       </span>
       <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
         {title}
       </h2>
-      <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-slate-dark/55">
+      <p className="mx-auto mt-4 hidden max-w-lg text-base md:block leading-relaxed text-slate-dark/55">
         {subtitle}
       </p>
     </div>
@@ -50,7 +50,7 @@ function SectionShell({
   return (
     <section
       id={sectionId}
-      className={`relative w-full scroll-mt-24 overflow-hidden py-20 ${background}`}
+      className={`relative w-full scroll-mt-24 overflow-hidden pt-12 pb-20 md:py-20 ${background}`}
     >
       {children}
     </section>
@@ -66,9 +66,12 @@ export function LandingStylesSkeleton({
     <SectionShell background={background} sectionId={sectionId}>
       <Container>
         <SectionHeading {...heading} />
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-8">
+        <div className="flex gap-4 overflow-hidden md:grid md:grid-cols-4 md:gap-8">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="flex flex-col gap-4">
+            <div
+              key={index}
+              className="flex w-[72%] shrink-0 flex-col gap-4 sm:w-[45%] md:w-auto"
+            >
               <div className="aspect-2/3 animate-pulse bg-slate-200" />
               <div className="mx-auto h-4 w-2/3 animate-pulse rounded bg-slate-200" />
             </div>
@@ -106,7 +109,7 @@ export function LandingStylesView({
         {styles.length === 0 ? (
           <LandingStylesEmpty onRetry={onRetry} />
         ) : (
-          <Carousel gap="gap-4 md:gap-8" perView={4} mobileSlides={2}>
+          <Carousel gap="gap-4 md:gap-8" perView={4}>
             {styles.map(({ style, art, altArt }) => (
               <LandingStyleCard
                 key={style.id}
