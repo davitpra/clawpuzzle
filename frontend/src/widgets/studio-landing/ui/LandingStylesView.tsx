@@ -13,6 +13,8 @@ export interface LandingStylesHeading {
 
 interface SectionProps extends LandingStylesHeading {
   background?: string;
+  /** Menos aire arriba: para cuando la sección abre la página (paso de `/create`). */
+  compact?: boolean;
   /** Ancla de la sección. La landing usa `#styles`, destino de sus CTA. */
   sectionId?: string;
 }
@@ -30,9 +32,12 @@ function SectionHeading({
       <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
         {title}
       </h2>
-      <p className="mx-auto mt-4 hidden max-w-lg text-base md:block leading-relaxed text-slate-dark/55">
-        {subtitle}
-      </p>
+      {/* `subtitle={null}` lo quita; sin la prop sale el texto por defecto. */}
+      {subtitle && (
+        <p className="mx-auto mt-4 hidden max-w-lg text-base md:block leading-relaxed text-slate-dark/55">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
@@ -40,16 +45,18 @@ function SectionHeading({
 function SectionShell({
   background = "bg-white",
   sectionId = "styles",
+  compact = false,
   children,
 }: {
   background?: string;
   sectionId?: string;
+  compact?: boolean;
   children: ReactNode;
 }) {
   return (
     <section
       id={sectionId}
-      className={`relative w-full scroll-mt-24 overflow-hidden pt-12 pb-20 md:py-20 ${background}`}
+      className={`relative w-full scroll-mt-24 overflow-hidden ${compact ? "pt-6 md:pt-8" : "pt-12 md:pt-20"} pb-20 md:pb-20 ${background}`}
     >
       {children}
     </section>
@@ -59,10 +66,11 @@ function SectionShell({
 export function LandingStylesSkeleton({
   background,
   sectionId,
+  compact,
   ...heading
 }: SectionProps) {
   return (
-    <SectionShell background={background} sectionId={sectionId}>
+    <SectionShell background={background} sectionId={sectionId} compact={compact}>
       <Container>
         <SectionHeading {...heading} />
         <div className="flex gap-4 overflow-hidden md:grid md:grid-cols-4 md:gap-8">
@@ -99,10 +107,11 @@ export function LandingStylesView({
   onRetry,
   background,
   sectionId,
+  compact,
   ...heading
 }: LandingStylesViewProps) {
   return (
-    <SectionShell background={background} sectionId={sectionId}>
+    <SectionShell background={background} sectionId={sectionId} compact={compact}>
       <Container>
         <SectionHeading {...heading} />
         {styles.length === 0 ? (

@@ -21,8 +21,7 @@ interface IAStyleStepProps {
 const HEADING: LandingStylesHeading = {
   eyebrow: "Paso 1",
   title: "Elige tu estilo",
-  subtitle:
-    "Elige el look que quieres para tu mascota. Después subirás la foto que convertiremos en arte.",
+  subtitle: null,
 };
 
 /**
@@ -41,12 +40,13 @@ export function IAStyleStep({
   return (
     <main className="grow animate-in fade-in duration-500">
       {isLoading || isThemeLoading ? (
-        <LandingStylesSkeleton sectionId="choose-style" {...HEADING} />
+        <LandingStylesSkeleton sectionId="choose-style" compact {...HEADING} />
       ) : (
         <LandingThemeProvider isDogTheme={isDogTheme}>
           <LandingStylesView
             styles={withArt}
             sectionId="choose-style"
+            compact
             onSelect={onSelect}
             onRetry={reload}
             {...HEADING}
