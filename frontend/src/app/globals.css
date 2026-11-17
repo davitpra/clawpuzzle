@@ -142,29 +142,48 @@
     }
   }
 
-  /* Proceso "cómo funciona" (widgets/ai-process): cada paso sube al entrar él
-     mismo en viewport. Las flechas entre pasos son estáticas. */
-  --animate-step-in: step-in 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  /* Proceso "cómo funciona" (widgets/ai-process): secuencia paso → flecha →
+     paso. Los keyframes solo definen `from`: el estado final es el propio del
+     elemento (p. ej. la opacidad degradada de cada punto de la flecha). */
+  --animate-step-pop: step-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-step-rise: step-rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  --animate-step-dot: step-dot 0.25s ease-out both;
 
-  @keyframes step-in {
+  @keyframes step-pop {
     from {
       opacity: 0;
-      transform: translateY(28px) scale(0.96);
+      transform: scale(0.6);
     }
-    to {
-      opacity: 1;
-      transform: none;
+  }
+
+  @keyframes step-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  @keyframes step-dot {
+    from {
+      opacity: 0;
+      transform: scale(0);
     }
   }
 }
 
-/* El stagger (`--step-delay`, lo fija el componente) solo tiene sentido en
-   desktop, donde la fila es horizontal y todos los pasos entran en viewport a
-   la vez; en móvil el escalonado ya lo marca el scroll y un delay solo haría
-   que el paso llegue tarde. */
+/* Cada pieza de la secuencia arranca en `--seq-base + --seq-offset`. El offset
+   (orden dentro del paso o de la flecha) aplica siempre; la base (`--step-delay`,
+   la fija el componente) solo en desktop, donde la fila es horizontal y todo
+   entra en viewport a la vez: en móvil el orden ya lo marca el scroll y una
+   base solo haría que el paso llegue tarde. Va fuera de @layer para ganarle al
+   shorthand `animation` de las utilidades. */
+.step-seq {
+  animation-delay: calc(var(--seq-base, 0s) + var(--seq-offset, 0s));
+}
+
 @media (width >= 64rem) {
-  .animate-step-in {
-    animation-delay: var(--step-delay, 0s);
+  .step-seq {
+    --seq-base: var(--step-delay, 0s);
   }
 }
 
@@ -259,7 +278,9 @@
   .animate-marquee,
   .animate-coin-float,
   .animate-coin-shadow,
-  .animate-step-in,
+  .animate-step-pop,
+  .animate-step-rise,
+  .animate-step-dot,
   .waves-layer,
   .light-ray {
     animation: none;
