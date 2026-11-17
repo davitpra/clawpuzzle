@@ -6,7 +6,7 @@ const PERKS: string[] = [
   "Caja Premium",
   "Envío Gratis",
   "Tarjeta $10 próxima compra",
-  "Gana 3 créditos por pedido",
+  "3 créditos adicionales",
   "Vistas previas",
 ];
 
