@@ -62,6 +62,7 @@ import {
 } from "./_components/StyleTestGenerationCard";
 import { StyleImageViewerModal } from "./_components/StyleImageViewerModal";
 import { SortableImageTile, UploadTile } from "./_components/StyleImageTiles";
+import { CategoryField } from "./_components/CategoryField";
 import { UnsavedChangesModal } from "./_components/UnsavedChangesModal";
 
 type StyleDifficulty = NonNullable<AdminStyle["difficulty"]>;
@@ -108,6 +109,8 @@ export default function AdminStyleDetailPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [category, setCategory] = useState("");
+  // Categorías que ya usan los demás estilos, para sugerirlas en el campo.
+  const [categories, setCategories] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<StyleDifficulty>("medium");
 
   // Pipeline form state
@@ -249,6 +252,17 @@ export default function AdminStyleDetailPage() {
     ])
       .then(([s, vc, igc, sk]) => {
         setStyle(s);
+        // No bloquea el editor: sin la lista solo se pierden las sugerencias.
+        adminApi.styles
+          .list()
+          .then((all) =>
+            setCategories(
+              [...new Set(all.map((x) => x.category.trim()))]
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b, "es")),
+            ),
+          )
+          .catch(() => {});
         setVisionConfigs(vc);
         setImageGenConfigs(igc);
         setStrategyKeys(sk);
@@ -494,7 +508,7 @@ export default function AdminStyleDetailPage() {
       const updated = await adminApi.styles.update(style.id, {
         name: trimmedName !== style.name ? trimmedName : undefined,
         displayName,
-        category,
+        category: category.trim(),
         difficulty,
         strategyKey,
         visionConfigId: visionConfigId || null,
@@ -1073,12 +1087,11 @@ export default function AdminStyleDetailPage() {
                     maxLength={100}
                     helpText="Solo minúsculas, números, '-' y '_'. Ej: watercolor-classic"
                   />
-                  {/* <TextField
-                    label="Categoría"
+                  <CategoryField
                     value={category}
                     onChange={setCategory}
-                    autoComplete="off"
-                  /> */}
+                    existing={categories}
+                  />
                   {/* anade un select de dificultad: easy, medium, challenging */}
                   {/* <Select
                     label="Dificultad"

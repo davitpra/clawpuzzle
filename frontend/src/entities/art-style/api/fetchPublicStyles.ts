@@ -13,6 +13,8 @@ export interface PublicStyleImage {
 export interface PublicStyle {
   id: string;
   displayName: string;
+  /** Texto libre del admin; vacío = sin categoría. */
+  category: string;
   difficulty: StyleDifficulty;
   images: PublicStyleImage[];
 }
@@ -66,6 +68,8 @@ export async function fetchPublicStyles(): Promise<PublicStyle[]> {
 
   return data.filter(isPublicStyle).map((style) => ({
     ...style,
+    // Opcional en la validación: una respuesta sin `category` no tumba la sección.
+    category: typeof style.category === "string" ? style.category.trim() : "",
     images: [...style.images].sort(
       (a, b) => a.orderIndex - b.orderIndex || a.id.localeCompare(b.id),
     ),

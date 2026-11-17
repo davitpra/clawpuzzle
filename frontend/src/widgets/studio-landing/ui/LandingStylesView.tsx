@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import { Container } from "@/shared/ui/Container";
-import { Carousel } from "@/shared/ui/Carousel";
 import LightRays from "@/shared/ui/LightRays";
 import type { PublicStyleWithArt } from "@/entities/art-style/api/fetchPublicStyles";
-import { LandingStyleCard } from "./LandingStyleCard";
+import { LandingStylesByCategory } from "./LandingStylesByCategory";
 import { LandingStylesEmpty } from "./LandingStylesEmpty";
 
 export interface LandingStylesHeading {
@@ -109,25 +108,7 @@ export function LandingStylesView({
         {styles.length === 0 ? (
           <LandingStylesEmpty onRetry={onRetry} />
         ) : (
-          <Carousel gap="gap-4 md:gap-8" perView={4}>
-            {styles.map(({ style, art, altArt }) => (
-              <LandingStyleCard
-                key={style.id}
-                id={style.id}
-                displayName={style.displayName}
-                artUrl={art.imageUrl}
-                artAlt={
-                  art.altImage ?? `Ejemplo de retrato de mascota en estilo ${style.displayName}`
-                }
-                dogArtUrl={altArt?.imageUrl}
-                dogArtAlt={
-                  altArt?.altImage ??
-                  `Ejemplo de retrato de perro en estilo ${style.displayName}`
-                }
-                onSelect={onSelect}
-              />
-            ))}
-          </Carousel>
+          <LandingStylesByCategory styles={styles} onSelect={onSelect} />
         )}
       </Container>
       <LightRays />

@@ -103,7 +103,7 @@ export function useStylesList() {
       const created = await adminApi.styles.create({
         name: candidate,
         displayName: "Nuevo estilo",
-        category: "general",
+        category: "",
         isActive: false,
       });
       return created.id;
