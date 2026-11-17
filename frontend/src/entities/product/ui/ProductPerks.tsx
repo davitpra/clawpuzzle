@@ -1,14 +1,13 @@
 // Oferta de valor del rompecabezas. Son promesas al cliente: cualquier cifra
 // aquí (envío, tiempos, devoluciones) debe coincidir con /shipping-returns.
 const PERKS: string[] = [
-  "Rompecabezas MDF 3mm",
-  "Base + Soporte ($14 Gratis)",
-  "Caja Premium + Faja",
-  "Envío Gratis a todo Ecuador",
+  "Rompecabezas",
+  "Base + Soporte",
+  "Caja Premium",
+  "Envío Gratis",
   "Tarjeta $10 próxima compra",
-  "Vista previa gratis",
   "Gana 3 créditos por pedido",
-  "Hecho bajo pedido",
+  "Vistas previas",
 ];
 
 const PERKS_NOTE =
@@ -34,6 +33,11 @@ export default function ProductPerks({ template }: ProductPerksProps) {
 
   return (
     <div className="rounded-xl bg-white px-6 py-5">
+      {!isDigital && (
+        <p className="mb-4 font-display text-lg font-bold text-text-main">
+          Tu rompecabezas incluye:
+        </p>
+      )}
       <ul className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
         {perks.map((perk) => (
           <li key={perk} className="flex items-center gap-2.5">
