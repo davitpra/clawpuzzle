@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Navbar } from "@/widgets/navbar";
 import { Footer } from "@/widgets/footer";
 import { Container } from "@/shared/ui/Container";
@@ -14,9 +15,8 @@ interface ErrorPageProps {
 }
 
 /**
- * Pantalla de error global, hermana de `not-found.tsx` y con el mismo shell.
- * No captura errores del layout raíz — para eso haría falta un
- * `global-error.tsx`, que hoy no existe.
+ * Pantalla de error de ruta, hermana de `not-found.tsx` y con el mismo shell.
+ * Los errores del layout raíz se manejan en `global-error.tsx`.
  *
  * El mensaje del error no se muestra: en producción Next lo reemplaza por un
  * texto genérico de todos modos, y el `digest` es lo único que sirve para
@@ -24,6 +24,7 @@ interface ErrorPageProps {
  */
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
+    posthog.captureException(error);
     console.error(error);
   }, [error]);
 

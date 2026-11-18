@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { shopifyFetch, GRAPHQL_QUERIES } from "@/lib/shopify";
 import { useCart, type CartItem } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -99,6 +100,15 @@ export function useShopifyCheckout() {
           // checkout. Con `source` explícito no se ha vendido el carrito
           // local, así que se deja intacto.
           if (!source) await clearCart();
+          posthog.capture("checkout_started", {
+            checkout_source: source ? "direct" : "cart",
+            is_guest: isGuest,
+            item_count: lines.length,
+            cart_value: cartItems.reduce(
+              (total, item) => total + item.price * item.quantity,
+              0,
+            ),
+          });
           // InitiateCheckout / begin_checkout. Espera ~300 ms (solo con el
           // píxel cargado) para que Meta lo reciba antes de salir del sitio.
           await trackBeforeLeaving(checkoutEvent(cartItems, isGuest));

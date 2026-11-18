@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import posthog from "posthog-js";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useGenerateImage, type GeneratePayload } from "@/hooks/useGenerateImage";
 import { useCredits } from "@/hooks/useCredits";
@@ -177,12 +178,18 @@ export function useCreateGeneration() {
 
         const generation = await generate(payload);
 
-        // La generación consumió 1 crédito: refrescamos el saldo del badge.
-        void refreshCredits();
-
         // Digital (descarga gratuita) no va al carrito: no se cobra
         // ni debe disparar el order_bonus de +3 créditos en checkout.
         const isDigital = normalizeTemplate(productInfo?.template) === "Digital";
+        posthog.capture("generation_created", {
+          format_id: formatId,
+          product_ref_id: productRefId,
+          has_custom_selections: Boolean(userSelections && Object.keys(userSelections).length > 0),
+          is_digital: isDigital,
+        });
+
+        // La generación consumió 1 crédito: refrescamos el saldo del badge.
+        void refreshCredits();
         if (productInfo && !isDigital) {
           try {
             addToCart({
