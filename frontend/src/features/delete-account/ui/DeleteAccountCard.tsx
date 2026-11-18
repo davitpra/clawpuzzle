@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 
@@ -62,6 +63,10 @@ export function DeleteAccountCard({
           confirmEmail: confirmEmail.trim(),
           ...(hasPassword ? { password } : {}),
         }),
+      });
+
+      posthog.capture("account_deleted", {
+        has_password: hasPassword,
       });
 
       // The backend already revoked every session and cleared the cookies;
