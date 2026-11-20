@@ -86,7 +86,7 @@ export default function ProductInfo({
           </span>
         )}
         {discount > 0 && (
-          <span className="bg-primary/10 text-primary font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
+          <span className="self-center bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-md">
             Ahorra {discount}%
           </span>
         )}
