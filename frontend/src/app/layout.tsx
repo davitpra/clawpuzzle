@@ -5,6 +5,7 @@ import "./globals.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { WhatsAppButton } from "@/features/whatsapp-contact";
 import { SITE_URL } from "@/shared/config/seo";
 import { AnalyticsIdentity } from "@/shared/lib/analytics/AnalyticsIdentity";
 import { AnalyticsScripts } from "@/shared/lib/analytics/AnalyticsScripts";
@@ -91,6 +92,7 @@ export default function RootLayout({
             <PageViewTracker />
             <AnalyticsIdentity />
             <CartProvider>{children}</CartProvider>
+            <WhatsAppButton />
           </AuthProvider>
         </GoogleOAuthProvider>
         <Toaster />

@@ -86,6 +86,16 @@ export default function StickyPersonalizeBar({
 
   const visible = passedAnchor && !footerVisible;
 
+  // Marca el <body> mientras la barra está a la vista: otros elementos fijos
+  // abajo (el botón de WhatsApp) se suben con la variante `in-data-sticky-bar:`.
+  useEffect(() => {
+    if (!visible) return;
+    document.body.dataset.stickyBar = "";
+    return () => {
+      delete document.body.dataset.stickyBar;
+    };
+  }, [visible]);
+
   const image = selectedVariant?.image ?? product.images.edges[0]?.node;
   const price = selectedVariant?.price;
 
