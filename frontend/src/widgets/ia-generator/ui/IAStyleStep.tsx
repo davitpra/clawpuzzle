@@ -19,7 +19,7 @@ interface IAStyleStepProps {
 }
 
 const HEADING: LandingStylesHeading = {
-  eyebrow: "Paso 1",
+  eyebrow: null,
   title: "Elige tu estilo",
   subtitle: null,
 };

@@ -23,12 +23,16 @@ function SectionHeading({
   eyebrow = "Estilos",
   title = "Elige tu estilo",
   subtitle = "Elige el look que mejor va con tu mascota. Así se verá impreso en tu rompecabezas.",
-}: LandingStylesHeading) {
+  compact = false,
+}: LandingStylesHeading & { compact?: boolean }) {
   return (
-    <div className="mb-6 text-center md:mb-14">
-      <span className="mb-3 inline-flex md:mb-5 items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-        {eyebrow}
-      </span>
+    <div className={`text-center md:mb-14 ${compact ? "mb-4" : "mb-6"}`}>
+      {/* `eyebrow={null}` lo quita; sin la prop sale "Estilos". */}
+      {eyebrow && (
+        <span className="mb-3 inline-flex md:mb-5 items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+          {eyebrow}
+        </span>
+      )}
       <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
         {title}
       </h2>
@@ -72,7 +76,7 @@ export function LandingStylesSkeleton({
   return (
     <SectionShell background={background} sectionId={sectionId} compact={compact}>
       <Container>
-        <SectionHeading {...heading} />
+        <SectionHeading compact={compact} {...heading} />
         <div className="flex gap-4 overflow-hidden md:grid md:grid-cols-4 md:gap-8">
           {Array.from({ length: 4 }).map((_, index) => (
             <div
@@ -113,11 +117,15 @@ export function LandingStylesView({
   return (
     <SectionShell background={background} sectionId={sectionId} compact={compact}>
       <Container>
-        <SectionHeading {...heading} />
+        <SectionHeading compact={compact} {...heading} />
         {styles.length === 0 ? (
           <LandingStylesEmpty onRetry={onRetry} />
         ) : (
-          <LandingStylesByCategory styles={styles} onSelect={onSelect} />
+          <LandingStylesByCategory
+            styles={styles}
+            onSelect={onSelect}
+            compact={compact}
+          />
         )}
       </Container>
       <LightRays />

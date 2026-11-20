@@ -19,6 +19,11 @@ interface LandingStyleCardProps {
    * un link a `/create?style_id=…` (landing).
    */
   onSelect?: (id: string) => void;
+  /**
+   * El nombre va sobre la imagen en vez de debajo: ahorra alto sin achicar la
+   * imagen (paso de `/create`, para que asome el segundo carrusel).
+   */
+  nameOverlay?: boolean;
 }
 
 const overlayClasses =
@@ -35,6 +40,7 @@ export function LandingStyleCard({
   dogArtUrl,
   dogArtAlt,
   onSelect,
+  nameOverlay = false,
 }: LandingStyleCardProps) {
   const { isDogTheme } = useLandingTheme();
   const useDogArt = isDogTheme && !!dogArtUrl;
@@ -63,9 +69,16 @@ export function LandingStyleCard({
             onError={() => setFailedSrc(src)}
           />
         )}
+        {nameOverlay && (
+          <p className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-dark/80 via-slate-dark/40 to-transparent px-3 pt-10 pb-3 text-center font-bold text-white">
+            {displayName}
+          </p>
+        )}
       </div>
 
-      <p className="text-center font-bold text-slate-dark">{displayName}</p>
+      {!nameOverlay && (
+        <p className="text-center font-bold text-slate-dark">{displayName}</p>
+      )}
       {onSelect ? (
         <button
           type="button"

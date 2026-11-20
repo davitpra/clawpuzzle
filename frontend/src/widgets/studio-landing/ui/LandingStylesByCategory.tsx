@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Carousel } from "@/shared/ui/Carousel";
 import type { PublicStyleWithArt } from "@/entities/art-style/api/fetchPublicStyles";
 import { LandingStyleCard } from "./LandingStyleCard";
@@ -33,22 +33,30 @@ function groupByCategory(styles: PublicStyleWithArt[]): StyleGroup[] {
 interface LandingStylesByCategoryProps {
   styles: PublicStyleWithArt[];
   onSelect?: (styleId: string) => void;
+  /** Menos aire entre carruseles en mobile (paso de `/create`). */
+  compact?: boolean;
 }
 
 /**
  * Con una sola categoría (o ninguna) es el carrusel de siempre. Con varias,
- * mobile muestra un carrusel por categoría y desktop un carrusel con chips para
+ * mobile muestra un carrusel por categoría (en `compact`, con chips arriba
+ * que bajan a cada uno) y desktop un carrusel con chips para
  * filtrar.
  */
 export function LandingStylesByCategory({
   styles,
   onSelect,
+  compact = false,
 }: LandingStylesByCategoryProps) {
   const groups = groupByCategory(styles);
   const [selected, setSelected] = useState<string | null>(null);
+  const idPrefix = useId();
+  const groupId = (index: number) => `${idPrefix}-category-${index}`;
 
   if (groups.length <= 1) {
-    return <StylesCarousel styles={styles} onSelect={onSelect} />;
+    return (
+      <StylesCarousel styles={styles} onSelect={onSelect} compact={compact} />
+    );
   }
 
   const filtered =
@@ -56,14 +64,44 @@ export function LandingStylesByCategory({
 
   return (
     <>
+      {/* Mobile, paso de `/create`: chips que bajan a cada categoría, para
+          que desde la primera carga se vea que hay más de un grupo de estilos. */}
+      {compact && (
+        <nav
+          aria-label="Ir a una categoría de estilos"
+          className="-mt-1 mb-5 flex flex-wrap justify-center gap-2 md:hidden"
+        >
+          {groups.map((group, index) => (
+            <button
+              key={group.label}
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById(groupId(index))
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="cursor-pointer rounded-full border border-slate-dark/15 bg-white px-4 py-1.5 text-sm font-bold text-slate-dark/70 transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {group.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       {/* Mobile: un carrusel por categoría */}
-      <div className="flex flex-col gap-10 md:hidden">
-        {groups.map((group) => (
-          <div key={group.label}>
+      <div
+        className={`flex flex-col md:hidden ${compact ? "gap-6" : "gap-10"}`}
+      >
+        {groups.map((group, index) => (
+          <div key={group.label} id={groupId(index)} className="scroll-mt-24">
             <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
               {group.label}
             </h3>
-            <StylesCarousel styles={group.styles} onSelect={onSelect} />
+            <StylesCarousel
+              styles={group.styles}
+              onSelect={onSelect}
+              compact={compact}
+            />
           </div>
         ))}
       </div>
@@ -94,6 +132,7 @@ export function LandingStylesByCategory({
           key={selected ?? "all"}
           styles={filtered}
           onSelect={onSelect}
+          compact={compact}
         />
       </div>
     </>
@@ -128,9 +167,11 @@ function CategoryChip({
 function StylesCarousel({
   styles,
   onSelect,
+  compact = false,
 }: {
   styles: PublicStyleWithArt[];
   onSelect?: (styleId: string) => void;
+  compact?: boolean;
 }) {
   return (
     <Carousel gap="gap-4 md:gap-8" perView={4}>
@@ -150,6 +191,7 @@ function StylesCarousel({
             `Ejemplo de retrato de perro en estilo ${style.displayName}`
           }
           onSelect={onSelect}
+          nameOverlay={compact}
         />
       ))}
     </Carousel>
