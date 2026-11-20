@@ -88,7 +88,7 @@ for (const { theme, guest } of CASES) {
     // El input está oculto bajo su <label>: se pulsa la etiqueta, como un humano.
     await page.locator("label", { has: themeRadio }).click();
     await expect(themeRadio).toBeChecked();
-    await page.getByRole("button", { name: /Crear mi rompecabezas/ }).click();
+    await page.getByRole("button", { name: /Pruébalo gratis/ }).click();
 
     await page.waitForURL(/\/create\?.*variant_id=/);
     const variantId = new URL(page.url()).searchParams.get("variant_id");

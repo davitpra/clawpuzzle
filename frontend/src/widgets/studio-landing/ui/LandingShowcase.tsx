@@ -31,7 +31,7 @@ export default function LandingShowcase({
         height: 1463,
         alt: "Rompecabezas de madera con el retrato IA de Otto, un perro con pañuelo de flores",
       }}
-      primaryCta={{ href: "/#product", label: "Crear mi rompecabezas" }}
+      primaryCta={{ href: "/#product", label: "Pruébalo gratis" }}
       secondaryCta={{ href: "/#styles", label: "Ver estilos" }}
     />
   );

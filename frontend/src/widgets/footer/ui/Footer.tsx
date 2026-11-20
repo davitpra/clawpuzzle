@@ -45,7 +45,7 @@ export default function Footer() {
                 <span className="material-symbols-outlined text-[20px]">
                   extension
                 </span>
-                {LAUNCH_MODE ? "Crear su rompecabezas" : "Ver rompecabezas"}
+                {LAUNCH_MODE ? "Pruébalo gratis" : "Ver rompecabezas"}
               </Link>
               {/* Enlace a /catalog: ruta bloqueada en modo lanzamiento. */}
               {!LAUNCH_MODE && (

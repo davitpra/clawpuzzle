@@ -261,8 +261,8 @@ export default function ProductDetails({
                         </span>
                       ) : (
                         <span className="font-body">
-                          Tu primera vista previa es{" "}
-                          <span className="font-bold text-primary">gratis</span>
+                          Sube una foto y ve el resultado ·{" "}
+                          <span className="font-bold text-primary">sin tarjeta</span>
                         </span>
                       )}
                     </>

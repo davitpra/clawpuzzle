@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
+import { useAuth } from "@/context/AuthContext";
 import StickyPersonalizeBar from "./StickyPersonalizeBar";
 
 interface PersonalizeButtonProps {
@@ -67,6 +68,13 @@ export default function PersonalizeButton({
     router.push(`/create${query ? `?${query}` : ""}`);
   };
 
+  // Sin sesión la primera vista previa es gratis (crédito de invitado): el CTA
+  // lo dice. Con sesión cada vista previa usa 1 crédito, así que no se promete.
+  // Mientras se resuelve la sesión gana "gratis": el tráfico llega sin sesión.
+  const { hasSession, isLoading: isAuthLoading } = useAuth();
+  const readyLabel =
+    !isAuthLoading && hasSession ? "Crear mi rompecabezas" : "Pruébalo gratis";
+
   const label = isCompatLoading
     ? "Cargando opciones…"
     : backendError
@@ -77,7 +85,7 @@ export default function PersonalizeButton({
           ? "Elige una opción"
           : !formatId
             ? "Esta opción aún no se puede personalizar"
-            : "Crear mi rompecabezas";
+            : readyLabel;
 
   return (
     <div className="flex flex-col gap-3 mt-2">

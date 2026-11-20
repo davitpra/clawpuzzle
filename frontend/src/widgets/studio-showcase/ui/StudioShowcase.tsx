@@ -138,11 +138,11 @@ export default function StudioShowcase({
             </ul>
 
             {(primaryCta || secondaryCta) && (
-              <div className="mt-10 flex flex-wrap items-center gap-4">
+              <div className="mt-10 flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
                 {primaryCta && (
                   <Link
                     href={primaryCta.href}
-                    className="flex items-center justify-center rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 hover:bg-primary-dark"
+                    className="flex w-full items-center justify-center rounded-xl bg-primary px-8 py-4 text-center sm:w-auto text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 hover:bg-primary-dark"
                   >
                     {primaryCta.label}
                   </Link>
@@ -150,7 +150,7 @@ export default function StudioShowcase({
                 {secondaryCta && (
                   <Link
                     href={secondaryCta.href}
-                    className="group flex items-center justify-center gap-2 rounded-xl border-2 border-primary/20 bg-white px-8 py-[14px] text-base font-bold text-primary transition-all hover:scale-105 hover:border-primary hover:bg-primary/5"
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 text-center sm:w-auto border-primary/20 bg-white px-8 py-[14px] text-base font-bold text-primary transition-all hover:scale-105 hover:border-primary hover:bg-primary/5"
                   >
                     {secondaryCta.label}
                     <span
