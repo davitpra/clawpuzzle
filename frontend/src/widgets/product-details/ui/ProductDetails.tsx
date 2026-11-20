@@ -189,87 +189,88 @@ export default function ProductDetails({
             product={product}
             selectedVariant={selectedVariant}
             template={template}
-          />
-
-          <div className="h-px w-full bg-text-main/10"></div>
-
-          {sizeOptionName && (
-            <ProductSizeSelector
-              label={sizeOptionName}
-              options={sizeOptions}
-              value={selectedSize}
-              onChange={handleSizeChange}
-            />
-          )}
-
-          {typeOptionName && (
-            <ProductTypeSelector
-              label={typeOptionName}
-              options={typeOptions}
-              value={selectedType}
-              onChange={handleTypeChange}
-            />
-          )}
-
-          <ProductVariantSelector
-            product={product}
-            selectedVariantId={selectedVariantId}
-            onVariantChange={setSelectedVariantId}
-          />
-
-          {hasOptions && (
-            <>
-              <div className="h-px w-full bg-linear-to-r from-text-main/15 via-text-main/5 to-transparent" />
-              <StyleOptionsForm
-                options={detailedStyle!.templateVarOptions!}
-                value={userSelections}
-                onChange={(key, val) =>
-                  setSelectionsState((prev) => ({
-                    ...prev,
-                    values: { ...prev.values, [key]: val },
-                  }))
-                }
-              />
-            </>
-          )}
-
-          <PersonalizeButton
-            product={product}
-            selectedVariant={selectedVariant}
-            productRefId={productRefId ?? undefined}
-            styleId={effectiveStyleId ?? undefined}
-            styleOptional={styleSelectable}
-            formatId={selectedFormatOption?.formatId}
-            isCompatLoading={isLoadingFormats}
-            hasBackendMapping={hasBackendMapping}
-            backendError={formatsError}
-            userSelections={hasOptions ? userSelections : undefined}
-            stickyBar={stickyCta}
-          />
-
-          {/* Costo de la vista previa como nota del CTA (-mt-3: queda pegada al
-              botón aunque el contenedor separe con gap-6). Mientras se resuelve
-              la sesión se reserva la altura vacía para no cambiar de texto. */}
-          <p className="-mt-3 flex min-h-5 items-center justify-center gap-1.5 text-sm text-text-muted">
-            {!isAuthLoading && (
-              <>
-                <span className="material-symbols-outlined text-[18px] text-primary">
-                  auto_awesome
-                </span>
-                {hasSession ? (
-                  <span className="font-body">
-                    Cada vista previa usa{" "}
-                    <span className="font-bold text-primary">1 crédito</span>
-                  </span>
-                ) : (
-                  <span className="font-body">
-                    Tu primera vista previa es{" "}
-                    <span className="font-bold text-primary">gratis</span>
-                  </span>
+            actions={
+              <div className="flex flex-col gap-6">
+                {sizeOptionName && (
+                  <ProductSizeSelector
+                    label={sizeOptionName}
+                    options={sizeOptions}
+                    value={selectedSize}
+                    onChange={handleSizeChange}
+                  />
                 )}
-              </>
-            )}
-          </p>
+
+                {typeOptionName && (
+                  <ProductTypeSelector
+                    label={typeOptionName}
+                    options={typeOptions}
+                    value={selectedType}
+                    onChange={handleTypeChange}
+                  />
+                )}
+
+                <ProductVariantSelector
+                  product={product}
+                  selectedVariantId={selectedVariantId}
+                  onVariantChange={setSelectedVariantId}
+                />
+
+                {hasOptions && (
+                  <>
+                    <div className="h-px w-full bg-linear-to-r from-text-main/15 via-text-main/5 to-transparent" />
+                    <StyleOptionsForm
+                      options={detailedStyle!.templateVarOptions!}
+                      value={userSelections}
+                      onChange={(key, val) =>
+                        setSelectionsState((prev) => ({
+                          ...prev,
+                          values: { ...prev.values, [key]: val },
+                        }))
+                      }
+                    />
+                  </>
+                )}
+
+                <PersonalizeButton
+                  product={product}
+                  selectedVariant={selectedVariant}
+                  productRefId={productRefId ?? undefined}
+                  styleId={effectiveStyleId ?? undefined}
+                  styleOptional={styleSelectable}
+                  formatId={selectedFormatOption?.formatId}
+                  isCompatLoading={isLoadingFormats}
+                  hasBackendMapping={hasBackendMapping}
+                  backendError={formatsError}
+                  userSelections={hasOptions ? userSelections : undefined}
+                  stickyBar={stickyCta}
+                />
+
+                {/* Costo de la vista previa como nota del CTA (-mt-3: queda pegada al
+                    botón aunque el contenedor separe con gap-6). Mientras se resuelve
+                    la sesión se reserva la altura vacía para no cambiar de texto. */}
+                <p className="-mt-3 flex min-h-5 items-center justify-center gap-1.5 text-sm text-text-muted">
+                  {!isAuthLoading && (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] text-primary">
+                        auto_awesome
+                      </span>
+                      {hasSession ? (
+                        <span className="font-body">
+                          Cada vista previa usa{" "}
+                          <span className="font-bold text-primary">1 crédito</span>
+                        </span>
+                      ) : (
+                        <span className="font-body">
+                          Tu primera vista previa es{" "}
+                          <span className="font-bold text-primary">gratis</span>
+                        </span>
+                      )}
+                    </>
+                  )}
+                </p>
+              </div>
+            }
+          />
 
           <ProductPerks template={template} />
         </div>

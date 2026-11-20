@@ -102,6 +102,7 @@ export default function ProductVariantSelector({
           }))}
           onChange={(value) => handleOptionChange(optionName, value)}
           fill
+          hideHeaderOnMobile
         />
       ))}
     </div>

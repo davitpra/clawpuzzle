@@ -18,6 +18,12 @@ interface OptionChipsProps {
    * ancho, en vez de dejarlos crecer según su texto.
    */
   fill?: boolean;
+  /**
+   * Oculta la fila de título por debajo de `lg` (los chips se explican solos y
+   * en móvil el espacio vertical vale). Los radios conservan el label en su
+   * `aria-label`.
+   */
+  hideHeaderOnMobile?: boolean;
 }
 
 /** Máximo de chips por fila en modo `fill`; el resto baja a la fila siguiente. */
@@ -43,6 +49,7 @@ export default function OptionChips({
   options,
   onChange,
   fill = false,
+  hideHeaderOnMobile = false,
 }: OptionChipsProps) {
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
@@ -58,7 +65,9 @@ export default function OptionChips({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-4">
+      <div
+        className={`${hideHeaderOnMobile ? "hidden lg:flex" : "flex"} items-baseline justify-between gap-4`}
+      >
         <span className="text-sm font-black uppercase tracking-widest text-text-muted">
           {label}
         </span>

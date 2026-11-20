@@ -16,7 +16,7 @@ function SectionShell({
   return (
     <section
       id="product"
-      className={`relative w-full scroll-mt-24 flex justify-center py-6 md:py-10 px-4 md:px-10 lg:px-40 ${background}`}
+      className={`relative w-full scroll-mt-24 flex justify-center pt-2 pb-6 md:py-10 px-4 md:px-10 lg:px-40 ${background}`}
     >
       <div className="max-w-300 w-full">{children}</div>
     </section>

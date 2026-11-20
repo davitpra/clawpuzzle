@@ -63,43 +63,63 @@ export default function ProductGallery({
             autoplayMs={5000}
             loop
             renderThumbs={({ selectedIndex, scrollTo }) => (
-              <div className="flex gap-4 px-6 md:px-10">
-                {uniqueImages.map((src, i) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => scrollTo(i)}
-                    aria-label={`Ver imagen ${i + 1}`}
-                    aria-current={i === selectedIndex}
-                    className={`w-20 md:w-24 shrink-0 aspect-square overflow-hidden rounded-xl bg-white transition-all ${
-                      i === selectedIndex
-                        ? "ring-2 ring-primary"
-                        : "opacity-60 hover:opacity-100 hover:shadow-md"
-                    }`}
-                  >
-                    <Image
-                      src={src}
-                      alt={`${product.title}, miniatura ${i + 1}`}
-                      width={120}
-                      height={120}
-                      className="h-full w-full object-cover"
+              <>
+                {/* Móvil: puntitos en el margen bajo la imagen en vez de
+                  miniaturas, para que el CTA entre en la primera pantalla. */}
+                <div className="absolute inset-x-0 bottom-3 flex justify-center gap-2 md:hidden">
+                  {uniqueImages.map((src, i) => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => scrollTo(i)}
+                      aria-label={`Ver imagen ${i + 1}`}
+                      aria-current={i === selectedIndex}
+                      className={`h-2 rounded-full transition-all ${
+                        i === selectedIndex
+                          ? "w-6 bg-primary"
+                          : "w-2 bg-slate-dark/30"
+                      }`}
                     />
-                  </button>
-                ))}
-              </div>
+                  ))}
+                </div>
+                <div className="hidden md:flex gap-4 px-10">
+                  {uniqueImages.map((src, i) => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => scrollTo(i)}
+                      aria-label={`Ver imagen ${i + 1}`}
+                      aria-current={i === selectedIndex}
+                      className={`w-20 md:w-24 shrink-0 aspect-square overflow-hidden rounded-xl bg-white transition-all ${
+                        i === selectedIndex
+                          ? "ring-2 ring-primary"
+                          : "opacity-60 hover:opacity-100 hover:shadow-md"
+                      }`}
+                    >
+                      <Image
+                        src={src}
+                        alt={`${product.title}, miniatura ${i + 1}`}
+                        width={120}
+                        height={120}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           >
             {uniqueImages.map((src, i) => (
               <div
                 key={src}
-                className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-6 md:px-10 pt-6 pb-12"
+                className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-0 md:px-10 pt-0 pb-8 md:pt-6 md:pb-12"
               >
                 {renderImage(src, i === 0)}
               </div>
             ))}
           </Carousel>
         ) : (
-          <div className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-6 md:px-10 pt-6 pb-12">
+          <div className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-0 md:px-10 pt-0 pb-8 md:pt-6 md:pb-12">
             {renderImage(primaryImage, true)}
           </div>
         )}
