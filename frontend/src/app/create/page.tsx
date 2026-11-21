@@ -36,6 +36,7 @@ import {
   type GeneratePayload,
 } from "@/hooks/useGenerateImage";
 import { useCredits } from "@/hooks/useCredits";
+import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useCart } from "@/context/CartContext";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import { clearDraft, loadDraft, saveDraft } from "@/shared/lib/create-draft";
@@ -200,6 +201,7 @@ function IAGeneratorContent() {
 
   const { generate } = useGenerateImage();
   const { refresh: refreshCredits } = useCredits();
+  const { get: authGet } = useAuthFetch();
   const { addToCart, removeItem } = useCart();
   const {
     submit,
@@ -557,6 +559,31 @@ function IAGeneratorContent() {
     router.push(`/create?${params.toString()}`);
   };
 
+  // "Probar otro estilo" desde el resultado: vuelve al paso de estilo con la
+  // misma mascota. Sus fotos ya están en el backend, así que se sueltan los
+  // `File` locales (reenviarlos las duplicaría) y se recarga la mascota: la
+  // fila que dejó el envío viene de `POST /pets`, antes de subir las fotos.
+  // Solo se llama con sesión de cuenta (el invitado inicia sesión antes).
+  const handleTryAnotherStyle = async () => {
+    if (activePet) {
+      try {
+        const raw = await authGet<{ data: Pet } | Pet>(`/pets/${activePet.id}`);
+        setActivePet("data" in raw ? raw.data : raw);
+      } catch {
+        // Sin la mascota fresca el paso de foto la muestra sin fotos guardadas
+        // y el usuario puede volver a subirlas.
+      }
+    }
+    void clearDraft();
+    setPhotos([]);
+    setGenerationId(null);
+    setLastPayload(null);
+    setRetryError(null);
+    resetSubmitError();
+    setStep(STEP_PHOTO);
+    router.push(styleStepHref);
+  };
+
   return (
     <div className="bg-white text-slate-dark font-body min-h-screen flex flex-col transition-all duration-500">
       <IAHeader
@@ -618,6 +645,7 @@ function IAGeneratorContent() {
             <IAGeneratingStep
               generationId={generationId}
               styleName={style?.name ?? null}
+              petName={petName}
               offer={puzzleOffer}
               styleImage={styleImg}
               formatWidth={productInfo?.formatWidth ?? null}
@@ -625,6 +653,7 @@ function IAGeneratorContent() {
               onRetry={lastPayload ? handleRetry : undefined}
               retrying={retrying}
               retryError={retryError}
+              onTryAnotherStyle={() => void handleTryAnotherStyle()}
             />
           )}
         </>
