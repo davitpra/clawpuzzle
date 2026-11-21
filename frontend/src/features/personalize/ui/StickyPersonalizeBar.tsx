@@ -8,6 +8,7 @@ import {
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import type { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
+import { formatPrice } from "@/entities/product/lib/variantPresentation";
 
 interface StickyPersonalizeBarProps {
   /** El botón real de la ficha: la barra aparece cuando queda atrás. */
@@ -128,7 +129,7 @@ export default function StickyPersonalizeBar({
           {price && (
             <span className="font-display text-base font-black text-primary md:text-xl">
               {/* Mismo formato que el precio de la ficha (`ProductInfo`). */}
-              ${parseFloat(price.amount).toFixed(2)}
+              {formatPrice(parseFloat(price.amount), price.currencyCode)}
             </span>
           )}
         </div>

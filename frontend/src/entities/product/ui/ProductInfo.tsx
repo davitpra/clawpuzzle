@@ -4,17 +4,8 @@ import { useState, type ReactNode } from "react";
 import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { templateLabel } from "@/entities/product/lib/template";
 import ProductSpecs from "@/entities/product/ui/ProductSpecs";
-
-/**
- * Esquema de pago: anticipo del 70% al pedir (pago manual registrado en
- * Shopify) y el 30% en efectivo al recibir. Debe coincidir con la sección
- * "Pagos" de /shipping-returns.
- */
-const DEPOSIT_RATE = 0.7;
-
-/** "56.00" → "56"; "55.30" → "55.30". */
-const formatAmount = (n: number) =>
-  Number.isInteger(n) ? String(n) : n.toFixed(2);
+import { DepositSplit } from "@/entities/product/ui/DepositSplit";
+import { formatPrice } from "@/entities/product/lib/variantPresentation";
 
 interface ProductInfoProps {
   product: ShopifyProduct;
@@ -45,19 +36,14 @@ export default function ProductInfo({
   const price = selectedVariant?.price;
   const compareAtPrice = selectedVariant?.compareAtPrice;
 
-  const currencySymbol =
-    price?.currencyCode === "USD" || "CAD" ? "$" : price?.currencyCode;
+  // Mismo formato que el resto del storefront (es-EC: "$69,99").
+  const money = (n: number) => formatPrice(n, price?.currencyCode ?? "USD");
 
-  const priceAmount = price ? parseFloat(price.amount).toFixed(2) : "";
-  const originalAmount = compareAtPrice
-    ? parseFloat(compareAtPrice.amount).toFixed(2)
-    : "";
-
-  // Se redondea el anticipo a centavos y el saldo es la diferencia, para que
-  // ambos sumen exactamente el precio.
   const priceValue = price ? parseFloat(price.amount) : 0;
-  const depositValue = Math.round(priceValue * DEPOSIT_RATE * 100) / 100;
-  const balanceValue = Math.round((priceValue - depositValue) * 100) / 100;
+  const priceAmount = price ? money(priceValue) : "";
+  const originalAmount = compareAtPrice
+    ? money(parseFloat(compareAtPrice.amount))
+    : "";
 
   const discount =
     price && compareAtPrice && parseFloat(compareAtPrice.amount) > 0
@@ -108,12 +94,10 @@ export default function ProductInfo({
       {/* Price */}
       <div className="flex items-baseline gap-4">
         <span className="font-display text-4xl font-black text-primary">
-          {currencySymbol}
           {priceAmount}
         </span>
         {discount > 0 && (
           <span className="text-lg text-text-muted/60 line-through font-medium">
-            {currencySymbol}
             {originalAmount}
           </span>
         )}
@@ -125,27 +109,11 @@ export default function ProductInfo({
       </div>
       {/* Los packs de créditos se pagan completos: no llevan anticipo. */}
       {priceValue > 0 && template !== "Credits" && (
-        <div className="-mt-2 flex items-center gap-3 rounded-xl bg-text-main/5 px-4 py-3">
-          <span
-            aria-hidden="true"
-            className="material-symbols-outlined text-[20px] text-text-main"
-          >
-            account_balance_wallet
-          </span>
-          <p className="font-body text-sm text-text-muted">
-            Paga{" "}
-            <span className="font-bold text-text-main">
-              {currencySymbol}
-              {formatAmount(depositValue)}
-            </span>{" "}
-            (70%) para empezar y{" "}
-            <span className="font-bold text-text-main">
-              {currencySymbol}
-              {formatAmount(balanceValue)}
-            </span>{" "}
-            (30%) en efectivo contra entrega
-          </p>
-        </div>
+        <DepositSplit
+          className="-mt-2"
+          price={priceValue}
+          formatMoney={money}
+        />
       )}
 
       <ProductSpecs product={product} />
