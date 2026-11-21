@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -84,19 +84,30 @@ interface IAGeneratingStepProps {
  */
 function ResultArtwork({
   image,
-  aspectRatio,
+  formatWidth,
+  formatHeight,
   isGenerating,
   styleName,
 }: {
   image: string | null;
-  aspectRatio: string;
+  formatWidth?: number | null;
+  formatHeight?: number | null;
   isGenerating: boolean;
   styleName: string | null;
 }) {
+  // Sin medidas válidas del formato, 2:3 (el rompecabezas de lanzamiento).
+  const hasDims =
+    !!formatWidth && !!formatHeight && formatWidth > 0 && formatHeight > 0;
+  const aspectRatio = hasDims ? `${formatWidth} / ${formatHeight}` : "2 / 3";
+  const ratio = hasDims ? (formatWidth as number) / (formatHeight as number) : 2 / 3;
+
   return (
+    // Escritorio: 90 % del alto bajo la cabecera de 73 px (`IAHeader`). Se fija
+    // el ancho (no el alto) y la proporción da el alto; si la columna es más
+    // estrecha que eso (tablet vertical), manda la columna sin deformar.
     <div
-      className="relative w-full overflow-hidden rounded-2xl bg-[#EFEAE1] shadow-lg"
-      style={{ aspectRatio }}
+      className="relative w-full overflow-hidden rounded-2xl bg-[#EFEAE1] shadow-lg md:w-[min(100%,calc((100dvh-73px)*0.9*var(--art-ratio)))]"
+      style={{ aspectRatio, "--art-ratio": ratio } as CSSProperties}
     >
       {image && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -181,10 +192,6 @@ export function IAGeneratingStep({
     active: isGenerating,
   });
 
-  const hasDims =
-    !!formatWidth && !!formatHeight && formatWidth > 0 && formatHeight > 0;
-  const aspectRatio = hasDims ? `${formatWidth} / ${formatHeight}` : "2 / 3";
-
   const name = petName?.trim();
   const eyebrow = isRevealing ? "Tu retrato está listo" : "Vista previa gratis";
   const title = isRevealing
@@ -258,12 +265,15 @@ export function IAGeneratingStep({
 
   return (
     <main className="grow flex flex-col bg-white">
-      <section className="py-6 md:py-12">
+      <section className="py-6 md:py-0 md:flex-1 md:flex md:items-center">
         <Container>
-          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 animate-in fade-in duration-700 md:grid-cols-2 md:gap-x-14 md:gap-y-6">
+          {/* Escritorio: el arte ocupa las cuatro filas; título y contenido van
+              en las dos del medio y las filas 1fr de los extremos los centran
+              en vertical respecto al arte. */}
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 animate-in fade-in duration-700 md:grid-cols-2 md:grid-rows-[1fr_auto_auto_1fr] md:gap-x-14 md:gap-y-6">
             {/* Título: primero en móvil; en escritorio, arriba de la columna
                 derecha. */}
-            <header className="flex flex-col gap-1 md:col-start-2 md:row-start-1 md:self-end">
+            <header className="flex flex-col gap-1 md:col-start-2 md:row-start-2 md:w-full md:max-w-md md:justify-self-center">
               <span
                 className={`text-sm font-bold uppercase tracking-wider ${
                   isRevealing ? "text-green-700" : "text-text-muted"
@@ -276,16 +286,17 @@ export function IAGeneratingStep({
               </h1>
             </header>
 
-            <div className="md:col-start-1 md:row-start-1 md:row-span-2 md:self-center md:justify-self-end md:w-full md:max-w-sm">
+            <div className="md:col-start-1 md:row-start-1 md:row-span-4 md:flex md:items-center md:justify-center">
               <ResultArtwork
                 image={displayImage}
-                aspectRatio={aspectRatio}
+                formatWidth={formatWidth}
+                formatHeight={formatHeight}
                 isGenerating={isGenerating}
                 styleName={styleName}
               />
             </div>
 
-            <div className="flex flex-col gap-5 md:col-start-2 md:row-start-2 md:self-start md:max-w-md">
+            <div className="flex flex-col gap-5 md:col-start-2 md:row-start-3 md:w-full md:max-w-md md:justify-self-center">
               {isGenerating && (
                 <p className="text-base leading-relaxed text-text-muted min-h-12">
                   <span
