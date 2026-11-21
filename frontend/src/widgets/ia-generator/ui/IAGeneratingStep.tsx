@@ -339,7 +339,7 @@ export function IAGeneratingStep({
                             </div>
                             <div className="flex flex-col gap-0.5 px-4 py-3">
                               <span className="text-sm text-text-muted">
-                                Al recibirlo, en efectivo
+                                Al recibirlo
                               </span>
                               <span className="font-display text-xl font-black text-slate-dark">
                                 {money(dueOnDelivery)}
