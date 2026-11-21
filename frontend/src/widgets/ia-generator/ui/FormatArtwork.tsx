@@ -50,7 +50,9 @@ export function FormatArtwork({
 
   return (
     <div className="w-full md:w-1/2 bg-white flex items-center justify-center min-h-72 md:min-h-0">
-      <div className="relative flex items-center justify-center overflow-hidden bg-white w-full max-w-2xl aspect-3/4 max-h-screen">
+      {/* En móvil el cuadro se ajusta a la imagen (con aire para la sombra):
+          con la proporción 3:4 fija quedaba un hueco grande hasta el texto. */}
+      <div className="relative flex items-center justify-center overflow-hidden bg-white w-full max-w-2xl py-6 md:py-0 md:aspect-3/4 max-h-screen">
         {image ? (
           // Imagen del producto centrada y escalada a la proporción y al
           // tamaño del formato elegido. Conserva sombra + lienzo + luz.
