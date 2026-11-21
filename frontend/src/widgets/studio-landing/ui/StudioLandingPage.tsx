@@ -66,9 +66,9 @@ const LANDING_STEPS: ProcessStep[] = [
   },
   {
     img: "/process/1. Upload Picture.png",
-    alt: "Subiendo la foto de una mascota desde el celular",
-    title: "2. Sube su foto",
-    text: "Una foto clara de tu peludito, solito en la foto. Sirve la del celular o esa favorita de hace años.",
+    alt: "Subiendo fotos de una mascota desde el celular",
+    title: "2. Sube sus fotos",
+    text: "4 fotos claras de tu mascota, sola en cada foto. Sirven las del celular o esas favoritas de hace años.",
   },
   {
     // TODO(assets): falta una imagen del rompecabezas impreso para un paso de

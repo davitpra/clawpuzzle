@@ -4,7 +4,7 @@ import { usePhotoManager } from "./upload-step/usePhotoManager";
 import { usePetUploadForm } from "./upload-step/usePetUploadForm";
 import { PhotoUploadPanel } from "./upload-step/PhotoUploadPanel";
 import { PetDetailsForm } from "./upload-step/PetDetailsForm";
-import type { IAUploadStepProps } from "./upload-step/types";
+import { MAX_PHOTOS, type IAUploadStepProps, type Pet } from "./upload-step/types";
 import { useAuth } from "@/context/AuthContext";
 
 const PET_FORM_ID = "pet-form";
@@ -31,17 +31,6 @@ export function IAUploadStep({
   styleName,
   userSelections,
 }: IAUploadStepProps) {
-  const {
-    previews,
-    isDragging,
-    handleDrop,
-    handleDragOver,
-    handleDragLeave,
-    handleFileInput,
-    removePhoto,
-    makePrimary,
-  } = usePhotoManager(photos, onPhotosChange);
-
   const { isAdmin } = useAuth();
 
   const {
@@ -71,9 +60,30 @@ export function IAUploadStep({
     userSelections,
   });
 
-  const displayPhoto = previews[0] ?? existingPhotos[0]?.photoUrl ?? null;
-  const hasPhoto = photos.length > 0 || existingPhotos.length > 0;
+  // Las fotos guardadas cuentan para las 4: solo caben las que faltan.
+  const maxNewPhotos = Math.max(0, MAX_PHOTOS - existingPhotos.length);
+
+  const {
+    previews,
+    isDragging,
+    handleDrop,
+    handleDragOver,
+    handleDragLeave,
+    handleFileInput,
+    removePhoto,
+    makePrimary,
+  } = usePhotoManager(photos, onPhotosChange, maxNewPhotos);
+
+  const photoCount = existingPhotos.length + photos.length;
+  const hasPhoto = photoCount > 0;
   const hasParams = !!(styleId && productRefId && formatId);
+
+  // Si ya había fotos nuevas, se recortan a las que caben junto a las guardadas.
+  const handleSelectPet = (pet: Pet) => {
+    selectPet(pet);
+    const room = Math.max(0, MAX_PHOTOS - (pet.photos?.length ?? 0));
+    if (photos.length > room) onPhotosChange(photos.slice(0, room));
+  };
 
   return (
     <main className="grow flex flex-col px-6 py-8 md:py-10 animate-in fade-in duration-500">
@@ -90,10 +100,8 @@ export function IAUploadStep({
         )}
         <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] gap-8 md:gap-12 items-stretch flex-1 min-h-0">
           <PhotoUploadPanel
-            photos={photos}
             previews={previews}
             isDragging={isDragging}
-            displayPhoto={displayPhoto}
             existingPhotos={existingPhotos.map((p) => p.photoUrl)}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -118,7 +126,7 @@ export function IAUploadStep({
             submitting={submitting}
             onSubmit={handleSubmit}
             onFieldChange={handleFieldChange}
-            onSelectPet={selectPet}
+            onSelectPet={handleSelectPet}
             onResetPet={resetPet}
           />
         </div>

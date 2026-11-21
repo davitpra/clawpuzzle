@@ -69,16 +69,22 @@ export function useCreateGeneration() {
     setOutOfCredits(false);
   }, []);
 
-  // Sube todas las fotos en orden: la primera como principal (isPrimary=true) y
-  // el resto como secundarias. Devuelve la foto principal para usar su id.
+  // Sube todas las fotos en orden. Con `firstIsPrimary` la primera queda como
+  // principal (isPrimary=true) y el resto como secundarias; sin él, todas son
+  // secundarias (la mascota ya tiene una principal guardada). Devuelve la
+  // primera foto subida.
   const uploadPhotos = useCallback(
-    async (petId: string, photos: File[]): Promise<PetPhoto | null> => {
+    async (
+      petId: string,
+      photos: File[],
+      firstIsPrimary = true,
+    ): Promise<PetPhoto | null> => {
       let primaryPhoto: PetPhoto | null = null;
       for (let i = 0; i < photos.length; i++) {
         const formData = new FormData();
         formData.append("photo", photos[i]);
         const raw = await authFetchJSON<{ data: PetPhoto } | PetPhoto>(
-          `/pets/${petId}/photos?isPrimary=${i === 0}`,
+          `/pets/${petId}/photos?isPrimary=${firstIsPrimary && i === 0}`,
           { method: "POST", body: formData },
         );
         const photo = unwrap(raw);
@@ -109,15 +115,17 @@ export function useCreateGeneration() {
             body: JSON.stringify(payload),
           }),
         );
-        // Reutilizar mascota sin foto nueva: vale la principal ya guardada. El
-        // backend topa en MAX_PET_PHOTOS = 4, así que no se sube por subir.
-        const newPhoto = photos.length > 0
-          ? await uploadPhotos(activePet.id, photos)
-          : null;
+        // Las fotos guardadas van primero en la cuadrícula y la principal es
+        // una de ellas: las nuevas se suben como secundarias. Si ya no queda
+        // ninguna guardada, la primera nueva pasa a ser la principal. El
+        // backend topa en MAX_PET_PHOTOS = 4 (contando las guardadas).
         const existingPrimary = primaryPhotoOf(activePet);
+        const newPhoto = photos.length > 0
+          ? await uploadPhotos(activePet.id, photos, !existingPrimary)
+          : null;
         return {
           pet: updated,
-          petPhotoId: newPhoto?.id ?? existingPrimary?.id ?? null,
+          petPhotoId: existingPrimary?.id ?? newPhoto?.id ?? null,
         };
       }
 

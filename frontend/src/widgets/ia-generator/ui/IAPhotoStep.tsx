@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Link from "next/link";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useAuth } from "@/context/AuthContext";
@@ -9,7 +10,7 @@ import { PhotoUploadPanel } from "./upload-step/PhotoUploadPanel";
 import { IAStyleBanner } from "./IAStyleBanner";
 import { usePetsList } from "../model/usePetsList";
 import { useExistingPetPhotos } from "../model/useExistingPetPhotos";
-import type { Pet } from "./upload-step/types";
+import { MAX_PHOTOS, type Pet, type PetPhoto } from "./upload-step/types";
 
 interface IAPhotoStepProps {
   styleName: string | null;
@@ -61,7 +62,25 @@ export function IAPhotoStep({
   // El invitado que ya usó su imagen gratis no compra créditos: se registra.
   const { signIn, pending: signingIn } = useGoogleSignIn();
   const { balance: creditBalance } = useCredits();
-  const { pets } = usePetsList();
+  const { pets, setPets } = usePetsList();
+
+  // Mantiene la mascota activa (y la lista) al día cuando se borran o reordenan
+  // sus fotos guardadas: el envío y el `photo_count` leen `activePet.photos`.
+  const syncPetPhotos = useCallback(
+    (petId: string, petPhotos: PetPhoto[]) => {
+      if (activePet?.id === petId) onSelectPet({ ...activePet, photos: petPhotos });
+      setPets((prev) =>
+        prev.map((p) => (p.id === petId ? { ...p, photos: petPhotos } : p)),
+      );
+    },
+    [activePet, onSelectPet, setPets],
+  );
+
+  const { existingPhotos, removeExistingPhoto, makeExistingPrimary } =
+    useExistingPetPhotos(activePet, syncPetPhotos);
+
+  // Las fotos guardadas cuentan para las 4: solo caben las que faltan.
+  const maxNewPhotos = Math.max(0, MAX_PHOTOS - existingPhotos.length);
 
   const {
     previews,
@@ -72,18 +91,15 @@ export function IAPhotoStep({
     handleFileInput,
     removePhoto,
     makePrimary,
-  } = usePhotoManager(photos, onPhotosChange);
+  } = usePhotoManager(photos, onPhotosChange, maxNewPhotos);
 
-  const { existingPhotos, removeExistingPhoto, makeExistingPrimary } =
-    useExistingPetPhotos(activePet);
-
-  const displayPhoto = previews[0] ?? existingPhotos[0]?.photoUrl ?? null;
-  const hasPhoto = photos.length > 0 || existingPhotos.length > 0;
+  const photoCount = existingPhotos.length + photos.length;
+  const hasPhoto = photoCount > 0;
   const hasName = petName.trim().length > 0;
   const canContinue = hasPhoto && hasName && !submitting;
 
   const hint = !hasPhoto
-    ? "Sube una foto de tu mascota para continuar"
+    ? "Sube al menos una foto de tu mascota para continuar"
     : !hasName
       ? "Cuéntanos cómo se llama tu mascota para continuar"
       : null;
@@ -91,6 +107,9 @@ export function IAPhotoStep({
   const selectPet = (pet: Pet) => {
     onSelectPet(pet);
     onPetNameChange(pet.name);
+    // Si ya había fotos nuevas, se recortan a las que caben junto a las guardadas.
+    const room = Math.max(0, MAX_PHOTOS - (pet.photos?.length ?? 0));
+    if (photos.length > room) onPhotosChange(photos.slice(0, room));
   };
 
   const clearPet = () => {
@@ -121,10 +140,8 @@ export function IAPhotoStep({
 
         <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] gap-8 md:gap-12 items-stretch flex-1 min-h-0">
           <PhotoUploadPanel
-            photos={photos}
             previews={previews}
             isDragging={isDragging}
-            displayPhoto={displayPhoto}
             existingPhotos={existingPhotos.map((p) => p.photoUrl)}
             onDrop={handleDrop}
             onDragOver={handleDragOver}

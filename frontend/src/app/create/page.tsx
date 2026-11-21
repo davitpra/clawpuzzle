@@ -449,7 +449,13 @@ function IAGeneratorContent() {
     // Con el estado de sesión aún sin resolver no se puede decidir si toca el
     // paso de cuenta; el botón vuelve a quedar disponible enseguida.
     if (isAuthLoading || startingGuest) return;
-    trackEvent(uploadPhotoEvent(style?.name ?? null, !isAuthenticated));
+    trackEvent(
+      uploadPhotoEvent(
+        style?.name ?? null,
+        !isAuthenticated,
+        photos.length + (activePet?.photos?.length ?? 0),
+      ),
+    );
     if (hasSession) {
       void runSubmit();
       return;
@@ -469,6 +475,8 @@ function IAGeneratorContent() {
     runSubmit,
     resetSubmitError,
     style,
+    photos.length,
+    activePet,
   ]);
 
   // Reintenta la generación fallida con el mismo payload, sin salir de la

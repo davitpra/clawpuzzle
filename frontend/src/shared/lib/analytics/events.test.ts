@@ -91,12 +91,12 @@ describe("generateArtEvent", () => {
 });
 
 describe("uploadPhotoEvent", () => {
-  it("UploadPhoto custom y upload_photo con estilo e is_guest", () => {
-    const e = uploadPhotoEvent("Acuarela", true);
+  it("UploadPhoto custom y upload_photo con estilo, is_guest y photo_count", () => {
+    const e = uploadPhotoEvent("Acuarela", true, 3);
     expect(e.meta).toMatchObject({ name: "UploadPhoto", custom: true });
     expect(e.ga).toEqual({
       name: "upload_photo",
-      params: { style: "Acuarela", is_guest: true },
+      params: { style: "Acuarela", is_guest: true, photo_count: 3 },
     });
   });
 });

@@ -2,11 +2,21 @@
 
 import { MAX_PHOTOS } from "./types";
 
+// Formatos que el backend acepta. Listarlos (en vez de `image/*`) hace que iOS
+// convierta las fotos HEIC a JPEG al elegirlas desde la galería.
+const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp";
+
+
+// Calidad esperada según la cantidad de fotos (no analiza las fotos en sí).
+function qualityOf(count: number) {
+  if (count >= MAX_PHOTOS) return { label: "Excelente", className: "bg-emerald-50 text-emerald-700" };
+  if (count >= 2) return { label: "Buena", className: "bg-primary/10 text-primary" };
+  return { label: "Aceptable", className: "bg-amber-50 text-amber-700" };
+}
+
 interface PhotoUploadPanelProps {
-  photos: File[];
   previews: string[];
   isDragging: boolean;
-  displayPhoto: string | null;
   existingPhotos: string[];
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -19,18 +29,21 @@ interface PhotoUploadPanelProps {
 }
 
 type Thumb =
-  | { kind: "upload"; src: string; index: number }
-  | { kind: "existing"; src: string; index: number };
+  | { kind: "existing"; src: string; index: number }
+  | { kind: "upload"; src: string; index: number };
 
 /**
- * Columna izquierda del paso de subida: zona de drop con previsualización
- * principal y tira de miniaturas para reordenar/quitar fotos.
+ * Columna izquierda del paso de subida: pide 4 fotos con una cuadrícula 2x2
+ * (cada espacio vacío pide ser llenado) y muestra el progreso. Cualquier foto
+ * de la mascota vale; las fotos se colocan en orden y al quitar una las demás
+ * se corren a la izquierda.
+ *
+ * Las fotos guardadas de la mascota cuentan para las 4 y van primero; la
+ * primera de la cuadrícula es la principal.
  */
 export function PhotoUploadPanel({
-  photos,
   previews,
   isDragging,
-  displayPhoto,
   existingPhotos,
   onDrop,
   onDragOver,
@@ -41,254 +54,185 @@ export function PhotoUploadPanel({
   onRemoveExistingPhoto,
   onMakeExistingPrimary,
 }: PhotoUploadPanelProps) {
-  const atMax = photos.length >= MAX_PHOTOS;
+  const thumbs: Thumb[] = [
+    ...existingPhotos.map((src, index) => ({ kind: "existing" as const, src, index })),
+    ...previews.map((src, index) => ({ kind: "upload" as const, src, index })),
+  ].slice(0, MAX_PHOTOS);
 
-  // Galería unificada: las fotos subidas mandan; si no hay ninguna pero la
-  // mascota ya tiene fotos guardadas, se muestran todas esas como miniaturas.
-  const thumbs: Thumb[] =
-    previews.length > 0
-      ? previews.map((src, index) => ({ kind: "upload", src, index }))
-      : existingPhotos.map((src, index) => ({ kind: "existing", src, index }));
+  const count = thumbs.length;
+  const atMax = count >= MAX_PHOTOS;
+  const hasExisting = existingPhotos.length > 0;
+  const quality = count > 0 ? qualityOf(count) : null;
+
+  const removeThumb = (thumb: Thumb) => {
+    if (thumb.kind === "upload") {
+      onRemovePhoto(thumb.index);
+      return;
+    }
+    // Borra la foto guardada de verdad: se pide confirmación.
+    if (window.confirm("¿Borrar esta foto? Se eliminará de tu mascota.")) {
+      onRemoveExistingPhoto(thumb.index);
+    }
+  };
+
+  // Con fotos guardadas, la principal es una de ellas: las nuevas no compiten.
+  const canMakePrimary = (thumb: Thumb) =>
+    thumb.kind === "existing" || !hasExisting;
+
+  const makePrimary = (thumb: Thumb) =>
+    thumb.kind === "existing"
+      ? onMakeExistingPrimary(thumb.index)
+      : onMakePrimary(thumb.index);
 
   return (
-    <div className="flex flex-col h-full">
-      <h2 className="font-display text-xl font-black text-slate-dark mb-2">
-        Sube fotos de tu mascota
+    <div className="flex flex-col">
+      <h2 className="font-display text-xl font-black text-slate-dark">
+        Sube {MAX_PHOTOS} fotos de tu mascota
       </h2>
+      <p className="mt-1 text-sm text-slate-600">
+        Con {MAX_PHOTOS} fotos el retrato se parece mucho más a tu mascota.
+      </p>
 
-      {/* Aviso: el retrato es de una sola mascota (varias fotos = la misma). */}
-      <div
-        role="note"
-        className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600"
-      >
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className="material-symbols-outlined text-[20px] text-slate-dark"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            pets
+      {/* Progreso: cuántas fotos van y la calidad esperada */}
+      <div className="mt-4 mb-3" aria-live="polite">
+        <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+          <span className="font-semibold text-slate-dark">
+            {count} de {MAX_PHOTOS} fotos
           </span>
-          <strong className="font-semibold text-slate-dark">
-            Un retrato, un peludito
-          </strong>
-        </span>
-        <span aria-hidden="true" className="h-4 w-px bg-slate-300" />
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className="material-symbols-outlined text-[20px] text-amber-400"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            star
-          </span>
-          Sube fotos de una sola mascota.
-        </span>
+          {quality && (
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${quality.className}`}
+            >
+              Calidad: {quality.label}
+            </span>
+          )}
+        </div>
+        <div
+          className="h-2 overflow-hidden rounded-full bg-slate-200"
+          role="progressbar"
+          aria-label="Fotos subidas"
+          aria-valuemin={0}
+          aria-valuemax={MAX_PHOTOS}
+          aria-valuenow={count}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-500"
+            style={{ width: `${(count / MAX_PHOTOS) * 100}%` }}
+          />
+        </div>
       </div>
 
-      {/* Main preview / drop zone */}
+      {/* Input compartido: lo abren todos los espacios vacíos */}
+      <input
+        id="pet-photos-input"
+        type="file"
+        accept={ACCEPTED_TYPES}
+        multiple
+        disabled={atMax}
+        aria-label="Subir fotos de tu mascota"
+        className="peer sr-only"
+        onChange={onFileInput}
+      />
+
+      {/* Cuadrícula 2x2: un espacio por foto. Con teclado, el foco
+          va al input oculto y se marca la cuadrícula entera. */}
       <div
-        className={`group relative rounded-xl overflow-hidden transition-all duration-300 flex-1 min-h-[50vh] md:min-h-50 ${
-          atMax ? "cursor-default" : "cursor-pointer"
-        } ${
-          displayPhoto
-            ? "bg-slate-100"
-            : `border-2 border-dashed flex flex-col items-center justify-center gap-3 ${
-                isDragging
-                  ? "border-primary bg-primary/5 scale-[1.01]"
-                  : "border-slate-300 bg-slate-50 hover:border-primary hover:bg-primary/5"
-              }`
+        className={`grid grid-cols-2 gap-3 rounded-xl transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-4 ${
+          isDragging ? "ring-2 ring-primary ring-offset-4" : ""
         }`}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          aria-label="Subir fotos de tu mascota"
-          disabled={atMax}
-          className={`absolute inset-0 w-full h-full opacity-0 z-10 ${
-            atMax ? "pointer-events-none" : "cursor-pointer"
-          }`}
-          onChange={onFileInput}
-        />
+        {Array.from({ length: MAX_PHOTOS }, (_, i) => {
+          const thumb = thumbs[i];
 
-        {displayPhoto ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={displayPhoto}
-              alt="Foto de tu mascota"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 flex flex-col items-center justify-end pb-5 gap-1 pointer-events-none">
-              <span className="material-symbols-outlined text-white text-3xl">
-                photo_camera
-              </span>
-              <p className="text-white text-sm font-semibold tracking-wide">
-                {atMax
-                  ? "Quita una foto para agregar otra"
-                  : "Toca para agregar más fotos"}
-              </p>
-            </div>
-
-            {/* Primary badge */}
-            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-2.5 py-1.5 rounded-full pointer-events-none">
-              Principal
-            </div>
-
-            {/* Remove button */}
-            <button
-              type="button"
-              title="Quitar foto"
-              aria-label="Quitar foto principal"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (photos.length > 0) onRemovePhoto(0);
-                else onRemoveExistingPhoto(0);
-              }}
-              className="absolute top-3 right-3 z-20 size-7 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                close
-              </span>
-            </button>
-          </>
-        ) : (
-          <>
-            <div
-              className={`size-14 rounded-full flex items-center justify-center mb-1 transition-all duration-300 ${
-                isDragging
-                  ? "bg-primary text-white scale-110"
-                  : "bg-slate-200 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
-              }`}
-            >
-              <span className="material-symbols-outlined text-3xl">
-                {isDragging ? "download" : "add_a_photo"}
-              </span>
-            </div>
-            <p className="text-sm font-semibold text-slate-600 group-hover:text-primary transition-colors">
-              {isDragging ? "¡Suéltala aquí!" : "Toca o arrastra tu foto"}
-            </p>
-            <p className="text-xs text-slate-400">
-              JPG, PNG, WEBP · Máx. 10 MB · hasta {MAX_PHOTOS} fotos
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* Thumbnail strip: siempre MAX_PHOTOS celdas (llenas, tile de añadir y placeholders) */}
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        {Array.from({ length: MAX_PHOTOS }).map((_, slot) => {
-          const thumb = thumbs[slot];
-
-          // Primer hueco libre: tile para añadir más fotos (el drop zone grande
-          // ya cubre la subida cuando aún no hay ninguna foto).
           if (!thumb) {
-            if (thumbs.length > 0 && slot === thumbs.length && !atMax) {
-              return (
-                <label
-                  key="add"
-                  className="relative aspect-square rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer text-slate-400 hover:border-primary hover:text-primary transition-colors"
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    aria-label="Añadir más fotos"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={onFileInput}
-                  />
-                  <span className="material-symbols-outlined text-2xl">
-                    add_a_photo
-                  </span>
-                </label>
-              );
-            }
-
-            // Resto de huecos: placeholder pasivo.
+            const isNext = i === count;
             return (
-              <div
-                key={`placeholder-${slot}`}
-                className="aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300"
+              <label
+                key={`slot-${i}`}
+                htmlFor="pet-photos-input"
+                className={`relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-2 text-center transition-all ${
+                  isNext
+                    ? "border-primary bg-primary/5 text-primary shadow-sm hover:shadow-md"
+                    : "border-slate-300 bg-slate-50 text-slate-400 hover:border-primary hover:text-primary"
+                }`}
               >
-                <span className="material-symbols-outlined text-2xl">
-                  image
+                <span
+                  aria-hidden="true"
+                  className={`material-symbols-outlined text-[32px] ${isNext ? "animate-pulse" : ""}`}
+                >
+                  add_a_photo
                 </span>
-              </div>
+                <span className="text-sm font-bold leading-tight">Foto {i + 1}</span>
+                {isNext && (
+                  <span className="text-xs font-semibold text-primary/80">
+                    {count === 0 ? "Toca para subir" : "Siguiente"}
+                  </span>
+                )}
+              </label>
             );
           }
 
-          const isPrimary = thumb.index === 0;
+          const isPrimary = i === 0;
+          // Tocar la foto la vuelve principal (si puede serlo).
+          const selectable = !isPrimary && canMakePrimary(thumb);
           return (
             <div
               key={`${thumb.kind}-${thumb.src}`}
-              className={`group/thumb relative aspect-square rounded-lg overflow-hidden border-2 ${
-                isPrimary ? "border-primary" : "border-slate-200"
+              className={`group/thumb relative aspect-square overflow-hidden rounded-xl border-2 bg-slate-100 ${
+                isPrimary ? "border-primary" : "border-transparent"
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={thumb.src}
-                alt={
-                  thumb.kind === "existing"
-                    ? "Foto guardada de tu mascota"
-                    : `Foto ${thumb.index + 1} de tu mascota`
-                }
-                className="absolute inset-0 w-full h-full object-cover"
+                alt={`Foto ${i + 1} de tu mascota`}
+                className={`absolute inset-0 h-full w-full object-cover transition-all duration-300 ${
+                  selectable ? "group-hover/thumb:scale-105" : ""
+                }`}
               />
 
-              {isPrimary ? (
-                <span className="absolute bottom-0 inset-x-0 bg-primary text-white text-[10px] font-semibold text-center py-0.5 pointer-events-none">
-                  Principal
-                </span>
-              ) : (
+              {selectable && (
                 <button
                   type="button"
-                  onClick={() =>
-                    thumb.kind === "upload"
-                      ? onMakePrimary(thumb.index)
-                      : onMakeExistingPrimary(thumb.index)
-                  }
+                  onClick={() => makePrimary(thumb)}
                   title="Hacer principal"
-                  aria-label="Hacer foto principal"
-                  className="absolute bottom-1 left-1 z-10 size-4 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover/thumb:opacity-100 hover:bg-primary transition-all"
-                >
-                  <span className="material-symbols-outlined text-[10px]">
-                    star
-                  </span>
-                </button>
+                  aria-label={`Hacer la foto ${i + 1} principal`}
+                  className="absolute inset-0 cursor-pointer bg-transparent transition-all hover:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                />
+              )}
+
+              {isPrimary && (
+                <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white pointer-events-none">
+                  Principal
+                </span>
               )}
 
               <button
                 type="button"
-                onClick={() =>
-                  thumb.kind === "existing"
-                    ? onRemoveExistingPhoto(thumb.index)
-                    : onRemovePhoto(thumb.index)
-                }
+                onClick={() => removeThumb(thumb)}
                 title="Quitar foto"
                 aria-label="Quitar foto"
-                className="absolute top-1 right-1 z-10 size-6 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover/thumb:opacity-100 hover:bg-red-500 transition-all"
+                className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-all hover:bg-red-500"
               >
-                <span className="material-symbols-outlined text-[14px]">
-                  close
-                </span>
+                <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
+
             </div>
           );
         })}
       </div>
 
-      <p className="mt-3 text-xs text-slate-400 text-center flex items-center justify-center gap-1">
-        <span className="material-symbols-outlined text-[14px] text-amber-400">
+      <p className="mt-3 flex items-center justify-center gap-1 text-center text-xs text-slate-500">
+        <span
+          aria-hidden="true"
+          className="material-symbols-outlined text-[14px] text-amber-400"
+        >
           lightbulb
         </span>
-        Sube de 1 a {MAX_PHOTOS} fotos · la primera será la principal
+        Todas las fotos deben ser de la misma mascota.
       </p>
     </div>
   );

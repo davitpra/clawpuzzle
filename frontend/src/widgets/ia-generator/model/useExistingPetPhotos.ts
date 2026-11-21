@@ -35,16 +35,53 @@ export function useExistingPetPhotos(
     [petId, edits, activePet],
   );
 
-  // Quita una foto guardada solo de la vista (no la borra del backend).
+  // Borra una foto guardada del backend (y de S3). El modelo usa todas las fotos
+  // de la mascota y el backend topa en MAX_PET_PHOTOS, así que ocultarla solo en
+  // la vista dejaría al contador mintiendo. Los retratos que la usaban no se
+  // rompen: `generation.petPhotoId` es `onDelete: SetNull`.
   const removeExistingPhoto = useCallback(
-    (index: number) => {
+    async (index: number) => {
       if (!petId) return;
-      setEdits({
-        petId,
-        photos: existingPhotos.filter((_, i) => i !== index),
-      });
+      const target = existingPhotos[index];
+      if (!target) return;
+
+      const previous = existingPhotos;
+      let remaining = existingPhotos.filter((_, i) => i !== index);
+      // El backend no reasigna la principal al borrarla: se promueve la siguiente.
+      const promoted =
+        target.isPrimary && remaining.length > 0 ? remaining[0] : null;
+      if (promoted) {
+        remaining = remaining.map((p) => ({ ...p, isPrimary: p.id === promoted.id }));
+      }
+
+      setEdits({ petId, photos: remaining });
+      onPetPhotosChange?.(petId, remaining);
+
+      try {
+        await authFetchJSON(`/pets/${petId}/photos/${target.id}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Revierte si el backend falla: la foto sigue guardada.
+        setEdits({ petId, photos: previous });
+        onPetPhotosChange?.(petId, previous);
+        return;
+      }
+
+      if (promoted) {
+        try {
+          await authFetchJSON(`/pets/${petId}/photos/${promoted.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_primary: true }),
+          });
+        } catch {
+          // Sin principal marcada el backend sigue funcionando: `primaryPhotoOf`
+          // cae en la primera foto y la generación envía su id explícitamente.
+        }
+      }
     },
-    [petId, existingPhotos],
+    [petId, existingPhotos, authFetchJSON, onPetPhotosChange],
   );
 
   // Marca una foto guardada como principal: lo persiste y reordena localmente.

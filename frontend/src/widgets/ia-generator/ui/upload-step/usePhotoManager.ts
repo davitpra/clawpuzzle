@@ -6,10 +6,15 @@ import { MAX_PHOTOS } from "./types";
 /**
  * Encapsula el manejo de las fotos subidas por el usuario: previsualizaciones
  * (object URLs), drag & drop, selección por input, y reordenar/quitar fotos.
+ *
+ * `maxPhotos` es el tope de fotos **nuevas**: las fotos ya guardadas de la
+ * mascota cuentan para el máximo del backend (MAX_PET_PHOTOS = 4), así que el
+ * llamador pasa `MAX_PHOTOS - fotosGuardadas`.
  */
 export function usePhotoManager(
   photos: File[],
   onPhotosChange: (files: File[]) => void,
+  maxPhotos: number = MAX_PHOTOS,
 ) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -25,9 +30,9 @@ export function usePhotoManager(
   const addPhotos = useCallback(
     (incoming: File[]) => {
       const images = incoming.filter((f) => f.type.startsWith("image/"));
-      onPhotosChange([...photos, ...images].slice(0, MAX_PHOTOS));
+      onPhotosChange([...photos, ...images].slice(0, Math.max(0, maxPhotos)));
     },
-    [photos, onPhotosChange],
+    [photos, onPhotosChange, maxPhotos],
   );
 
   const handleDrop = useCallback(

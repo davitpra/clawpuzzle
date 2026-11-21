@@ -87,8 +87,15 @@ export function authEvent(isNewUser: boolean): TrackEventInput {
 export function uploadPhotoEvent(
   styleName: string | null,
   isGuest: boolean,
+  photoCount: number,
 ): TrackEventInput {
-  const params = { style: styleName ?? "", is_guest: isGuest };
+  // `photo_count` mide cuántas fotos (guardadas + nuevas) llegan al modelo:
+  // el paso pide 4 y este número dice si la gente las sube.
+  const params = {
+    style: styleName ?? "",
+    is_guest: isGuest,
+    photo_count: photoCount,
+  };
   return {
     meta: { name: "UploadPhoto", custom: true, params },
     ga: { name: "upload_photo", params },
