@@ -14,9 +14,16 @@ export function variantLabel(variant: ShopifyVariant): string {
  * de la tienda (Ecuador, USD), no el del navegador: verlo en otro formato al
  * pasar por checkout genera desconfianza.
  */
-export function formatPrice(amount: number, currency: string): string {
+export function formatPrice(
+  amount: number,
+  currency: string,
+  { trimZeroCents = false }: { trimZeroCents?: boolean } = {},
+): string {
+  // Con `trimZeroCents`, los montos redondos van sin ",00" ("$100", "$21").
+  const whole = trimZeroCents && Math.abs(amount - Math.round(amount)) < 0.005;
   return new Intl.NumberFormat("es-EC", {
     style: "currency",
     currency: currency || "USD",
+    ...(whole && { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
   }).format(amount);
 }

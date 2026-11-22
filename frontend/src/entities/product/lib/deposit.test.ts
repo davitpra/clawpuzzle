@@ -6,10 +6,10 @@ describe("splitDeposit", () => {
     expect(splitDeposit(100)).toEqual({ deposit: 70, balance: 30 });
   });
 
-  it("redondea el anticipo a centavos y el saldo completa el precio", () => {
+  it("redondea el saldo hacia abajo a dólares enteros y el anticipo completa el precio", () => {
     const { deposit, balance } = splitDeposit(69.99);
-    expect(deposit).toBe(48.99);
-    expect(balance).toBe(21);
+    expect(deposit).toBe(49.99);
+    expect(balance).toBe(20);
     expect(deposit + balance).toBeCloseTo(69.99, 10);
   });
 

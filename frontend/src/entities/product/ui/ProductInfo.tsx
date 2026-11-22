@@ -6,6 +6,7 @@ import { templateLabel } from "@/entities/product/lib/template";
 import ProductSpecs from "@/entities/product/ui/ProductSpecs";
 import { DepositSplit } from "@/entities/product/ui/DepositSplit";
 import { formatPrice } from "@/entities/product/lib/variantPresentation";
+import { splitDeposit } from "@/entities/product/lib/deposit";
 
 interface ProductInfoProps {
   product: ShopifyProduct;
@@ -36,23 +37,23 @@ export default function ProductInfo({
   const price = selectedVariant?.price;
   const compareAtPrice = selectedVariant?.compareAtPrice;
 
-  // Mismo formato que el resto del storefront (es-EC: "$69,99").
-  const money = (n: number) => formatPrice(n, price?.currencyCode ?? "USD");
+  // Mismo formato que el resto del storefront (es-EC: "$69,99"), sin ",00" en
+  // los montos redondos ("$100", "$21").
+  const money = (n: number) =>
+    formatPrice(n, price?.currencyCode ?? "USD", { trimZeroCents: true });
 
   const priceValue = price ? parseFloat(price.amount) : 0;
-  const priceAmount = price ? money(priceValue) : "";
-  const originalAmount = compareAtPrice
-    ? money(parseFloat(compareAtPrice.amount))
-    : "";
-
-  const discount =
-    price && compareAtPrice && parseFloat(compareAtPrice.amount) > 0
-      ? Math.round(
-          ((parseFloat(compareAtPrice.amount) - parseFloat(price.amount)) /
-            parseFloat(compareAtPrice.amount)) *
-            100,
-        )
+  const compareAtValue = compareAtPrice ? parseFloat(compareAtPrice.amount) : 0;
+  // El ahorro se redondea hacia abajo a dólares enteros ($30,01 → "$30"): nunca
+  // prometemos más de lo que se ahorra.
+  const savings =
+    priceValue > 0 && compareAtValue > priceValue
+      ? Math.floor(compareAtValue - priceValue)
       : 0;
+
+  // Los packs de créditos se pagan completos: no llevan anticipo.
+  const hasDeposit = priceValue > 0 && template !== "Credits";
+  const { balance } = splitDeposit(priceValue);
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,6 +65,35 @@ export default function ProductInfo({
         <h1 className="font-display text-3xl lg:text-5xl font-black text-text-main tracking-tight leading-[1.1]">
           {product.title}
         </h1>
+
+        {/* Precio — bajo el título, antes del CTA */}
+        {priceValue > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-display text-3xl lg:text-4xl font-black text-primary">
+                {money(priceValue)}
+              </span>
+              {savings > 0 && (
+                <span className="text-lg text-text-muted/60 line-through font-medium">
+                  {money(compareAtValue)}
+                </span>
+              )}
+              {savings > 0 && (
+                <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-800">
+                  Ahorras {money(savings)}
+                </span>
+              )}
+            </div>
+            {hasDeposit && (
+              <p className="flex items-center gap-1.5 text-sm text-text-muted">
+                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                  local_shipping
+                </span>
+                Envío gratis · pagas {money(balance)} al recibir
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {actions}
@@ -91,30 +121,7 @@ export default function ProductInfo({
 
       <div className="h-px w-full bg-text-main/10"></div>
 
-      {/* Price */}
-      <div className="flex items-baseline gap-4">
-        <span className="font-display text-4xl font-black text-primary">
-          {priceAmount}
-        </span>
-        {discount > 0 && (
-          <span className="text-lg text-text-muted/60 line-through font-medium">
-            {originalAmount}
-          </span>
-        )}
-        {discount > 0 && (
-          <span className="self-center bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-md">
-            Ahorra {discount}%
-          </span>
-        )}
-      </div>
-      {/* Los packs de créditos se pagan completos: no llevan anticipo. */}
-      {priceValue > 0 && template !== "Credits" && (
-        <DepositSplit
-          className="-mt-2"
-          price={priceValue}
-          formatMoney={money}
-        />
-      )}
+      {hasDeposit && <DepositSplit price={priceValue} formatMoney={money} />}
 
       <ProductSpecs product={product} />
     </div>

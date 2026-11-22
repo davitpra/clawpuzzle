@@ -9,9 +9,8 @@ interface DepositSplitProps {
 }
 
 /**
- * El esquema de pago 70/30 en dos tarjetas: lo que se paga hoy y lo que se paga
- * al recibir. Lo comparten la ficha (`ProductInfo`) y el resultado de la
- * generación (`IAGeneratingStep`), para que las cifras y el texto no se separen.
+ * Sección "Cómo pagas" de la ficha (`ProductInfo`): el anticipo y el saldo en dos
+ * tarjetas, lo que se paga hoy y lo que se paga al recibir.
  */
 export function DepositSplit({
   price,
@@ -21,27 +20,32 @@ export function DepositSplit({
   const { deposit, balance } = splitDeposit(price);
 
   return (
-    <div className={`flex w-full flex-col gap-2 text-left ${className}`}>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="flex flex-col gap-0.5 rounded-xl border border-text-main/10 px-4 py-3">
-          <span className="text-xs text-text-muted">Hoy, para empezar</span>
-          <span className="font-display text-xl font-black text-text-main">
-            {formatMoney(deposit)}
-          </span>
+    <section className={`flex w-full flex-col gap-3 text-left ${className}`}>
+      <h2 className="font-display text-xl font-black text-text-main">
+        Cómo pagas
+      </h2>
+      <div className="flex flex-col gap-4 rounded-2xl border border-text-main/10 p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1 rounded-xl bg-cream px-4 py-3">
+            <span className="text-xs text-text-muted">Hoy, para empezar</span>
+            <span className="font-display text-2xl lg:text-3xl font-black text-text-main">
+              {formatMoney(deposit)}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1 rounded-xl bg-cream px-4 py-3">
+            <span className="text-xs text-text-muted">Al recibir</span>
+            <span className="font-display text-2xl lg:text-3xl font-black text-text-main">
+              {formatMoney(balance)}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col gap-0.5 rounded-xl border border-text-main/10 px-4 py-3">
-          <span className="text-xs text-text-muted">Al recibir, en efectivo</span>
-          <span className="font-display text-xl font-black text-text-main">
-            {formatMoney(balance)}
+        <p className="flex items-start gap-2 text-sm font-medium text-green-700">
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+            verified_user
           </span>
-        </div>
+          Pagas el resto solo cuando tienes el rompecabezas en tus manos.
+        </p>
       </div>
-      <p className="flex items-center gap-1.5 text-sm font-medium text-green-700">
-        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-          verified_user
-        </span>
-        Pagas el resto solo cuando lo tienes en tus manos
-      </p>
-    </div>
+    </section>
   );
 }
