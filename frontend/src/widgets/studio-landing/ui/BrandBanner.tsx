@@ -42,9 +42,9 @@ export default function BrandBanner() {
   return (
     <div className="py-12 text-center">
       <Container>
-        <p className="font-display text-5xl font-black leading-none tracking-tight text-slate-dark md:text-6xl">
+        <h2 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-slate-dark md:text-5xl">
           Todo lo que incluye
-        </p>
+        </h2>
         <p className="mt-5 text-base font-bold uppercase tracking-wide text-slate-dark md:text-lg">
           Tu mejor amigo, pieza por pieza
         </p>
