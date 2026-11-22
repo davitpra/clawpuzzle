@@ -163,7 +163,7 @@ export default async function StudioLandingPage() {
                   <div id="how-it-works" className="scroll-mt-20">
                     <AIProcess
                       eyebrow="Cómo funciona"
-                      title="De foto a rompecabezas en 3 pasos"
+                      title="De su foto a tus manos"
                       subtitle={
                         <>
                           La vista previa es gratis.
