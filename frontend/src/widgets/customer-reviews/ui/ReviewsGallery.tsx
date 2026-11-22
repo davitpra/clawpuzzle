@@ -22,6 +22,9 @@ const SLIDE_GAP = "gap-4 md:gap-8";
  */
 const LAST_SLIDE_GAP = "mr-4 md:mr-8";
 
+/** Cada cuánto avanza solo el carrusel. */
+const AUTOPLAY_MS = 6000;
+
 /** Mismo reparto que el carrusel: 72% en móvil, 45% sm, 33% md, 1/4 en lg. */
 const PHOTO_SIZES = "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 45vw, 72vw";
 
@@ -117,8 +120,9 @@ function ReviewCard({
 
 /**
  * Carrusel de reseñas: 4 por vista en escritorio, una con la siguiente
- * asomando en el celular. Da la vuelta: después de la última vuelve a salir
- * la primera.
+ * asomando en el celular. Avanza solo cada 6 s y da la vuelta: después de
+ * la última vuelve a salir la primera. El avance automático se detiene en
+ * cuanto alguien arrastra el carrusel (comportamiento de `Carousel`).
  */
 export function ReviewsGallery({ reviews }: { reviews: Review[] }) {
   const slides: { review: Review; key: string; isCopy: boolean }[] = [];
@@ -130,7 +134,7 @@ export function ReviewsGallery({ reviews }: { reviews: Review[] }) {
   }
 
   return (
-    <Carousel gap={SLIDE_GAP} perView={4} loop>
+    <Carousel gap={SLIDE_GAP} perView={4} loop autoplayMs={AUTOPLAY_MS}>
       {slides.map(({ review, key, isCopy }, index) => (
         <ReviewCard
           key={key}

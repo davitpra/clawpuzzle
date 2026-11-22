@@ -126,7 +126,10 @@ export default async function StudioLandingPage() {
   try {
     reviews = await fetchReviews();
   } catch (error) {
-    console.error("StudioLandingPage: no se pudieron cargar las reseñas", error);
+    console.error(
+      "StudioLandingPage: no se pudieron cargar las reseñas",
+      error,
+    );
   }
 
   return (
@@ -149,12 +152,9 @@ export default async function StudioLandingPage() {
                 ),
               },
               {
-                id: "styles",
-                node: (
-                  <Suspense fallback={<LandingStylesSkeleton background="" />}>
-                    <LandingStyles background="" />
-                  </Suspense>
-                ),
+                id: "reviews",
+                when: reviews.length > 0,
+                node: <CustomerReviews reviews={reviews} />,
               },
               {
                 id: "process",
@@ -176,12 +176,15 @@ export default async function StudioLandingPage() {
                   </div>
                 ),
               },
-
               {
-                id: "reviews",
-                when: reviews.length > 0,
-                node: <CustomerReviews reviews={reviews} />,
+                id: "styles",
+                node: (
+                  <Suspense fallback={<LandingStylesSkeleton background="" />}>
+                    <LandingStyles background="" />
+                  </Suspense>
+                ),
               },
+
               {
                 id: "products",
                 pin: "white",
