@@ -1,30 +1,35 @@
 import { Container } from "@/shared/ui/Container";
 
+// Lo que incluye el rompecabezas. Debe coincidir con `ProductPerks` y con
+// /shipping-returns (envío, tiempos).
 const BENEFITS = [
   {
-    title: "Único de verdad",
-    text: (
-      <>
-        Cada diseño nace de la foto de <em>tu</em> mascota, no de una plantilla
-        genérica.
-      </>
-    ),
+    title: "Rompecabezas",
+    text: "Tu mascota impresa sobre MDF de 3 mm, firme para armarlo una y otra vez.",
   },
   {
-    title: "Lo ves antes de comprar",
-    text: "La vista previa es gratis. Solo pagas si te encanta el resultado.",
+    title: "Base + Soporte",
+    text: "Para exhibirlo armado en tu repisa o escritorio.",
   },
   {
-    title: "Hecho para durar",
-    text: "Impreso sobre MDF de 3 mm: firme para armarlo una y otra vez.",
+    title: "Caja Premium",
+    text: "Llega en una caja lista para regalar y para guardar las piezas.",
   },
   {
-    title: "Rápido hasta tu puerta",
+    title: "Envío gratis",
     text: "Lo producimos en 3 días y el envío toma de 3 a 7 días, según tu ciudad.",
   },
   {
-    title: "Un plan para compartir",
-    text: "Ármalo en familia y quédate con un recuerdo que se puede tocar.",
+    title: "Tarjeta de $10",
+    text: "Un descuento de $10 en tu próxima compra.",
+  },
+  {
+    title: "3 créditos adicionales",
+    text: "Para crear 3 vistas previas más y probar otros estilos.",
+  },
+  {
+    title: "Vistas previas",
+    text: "Te quedas con los diseños que generaste de tu mascota.",
   },
 ];
 
@@ -38,7 +43,7 @@ export default function BrandBanner() {
     <div className="py-12 text-center">
       <Container>
         <p className="font-display text-5xl font-black uppercase leading-none tracking-tight text-slate-dark md:text-6xl">
-          Claw Puzzle
+          Todo lo que incluye
         </p>
         <p className="mt-5 text-base font-bold uppercase tracking-wide text-slate-dark md:text-lg">
           Tu mejor amigo, pieza por pieza
@@ -56,7 +61,7 @@ export default function BrandBanner() {
                 <h3 className="font-display text-base font-black text-slate-dark text-start">
                   {benefit.title}
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-dark/70">
+                <p className="mt-1 text-start text-sm leading-relaxed text-slate-dark/70">
                   {benefit.text}
                 </p>
               </div>
