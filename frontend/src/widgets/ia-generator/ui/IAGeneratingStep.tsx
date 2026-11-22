@@ -143,7 +143,7 @@ function ResultArtwork({
  * checkout directo a Shopify (`startCheckout([item])`, igual que `/credits`),
  * porque `/cart` está bloqueado en lanzamiento.
  *
- * Móvil: título → arte → precio → pedir → "¿Aún no te decides?". Escritorio:
+ * Móvil: título → arte → "Prueba otros estilos" → precio → pedir. Escritorio:
  * el arte a la izquierda y todo lo demás a la derecha, con el mismo DOM (la
  * rejilla recoloca el título).
  *
@@ -310,6 +310,70 @@ export function IAGeneratingStep({
 
               {isRevealing && (
                 <>
+                  <div className={`flex flex-col gap-3 rounded-2xl p-4 ${SOFT_SURFACE}`}>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-display text-lg font-bold text-slate-dark">
+                        {isGuest ? "Prueba otros estilos gratis" : "Prueba otros estilos"}
+                      </span>
+                      <span className="text-sm leading-snug text-text-muted">
+                        {isGuest
+                          ? "Guarda este retrato en tu cuenta y crea 4 vistas previas más, sin costo."
+                          : previewsText}
+                      </span>
+                    </div>
+
+                    {isGuest ? (
+                      <button
+                        type="button"
+                        onClick={signIn}
+                        disabled={signingIn}
+                        aria-busy={signingIn}
+                        className={secondaryButton}
+                      >
+                        {signingIn ? (
+                          <span className="material-symbols-outlined animate-spin text-[20px]">
+                            progress_activity
+                          </span>
+                        ) : (
+                          <GoogleLogo />
+                        )}
+                        {signingIn ? "Abriendo Google…" : "Continuar con Google"}
+                      </button>
+                    ) : outOfPreviews ? (
+                      <Link href="/credits" className={secondaryButton}>
+                        <span className="material-symbols-outlined text-[20px]">
+                          add_circle
+                        </span>
+                        Conseguir vistas previas
+                      </Link>
+                    ) : onTryAnotherStyle ? (
+                      <button
+                        type="button"
+                        onClick={onTryAnotherStyle}
+                        className={secondaryButton}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">
+                          palette
+                        </span>
+                        Elegir otro estilo
+                      </button>
+                    ) : null}
+
+                    {!isGuest && (
+                      <p className="text-center text-sm text-text-muted">
+                        Tu retrato ya está guardado ·{" "}
+                        <Link
+                          href={savedArtHref}
+                          className="font-bold text-slate-dark underline underline-offset-4"
+                        >
+                          Ver en mi cuenta
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+
+                  <div aria-hidden="true" className="h-px bg-slate-dark/10" />
+
                   <span className="font-display text-xl font-bold text-slate-dark">
                     Rompecabezas de madera
                   </span>
@@ -401,74 +465,6 @@ export function IAGeneratingStep({
                         : "Tu arte quedó guardado en tu cuenta. Pronto podrás pedirlo impreso desde ahí."}
                     </p>
                   )}
-
-                  <div className="flex items-center gap-3 text-sm text-text-muted">
-                    <div className="h-px flex-1 bg-slate-dark/10" />
-                    ¿Aún no te decides?
-                    <div className="h-px flex-1 bg-slate-dark/10" />
-                  </div>
-
-                  <div className={`flex flex-col gap-3 rounded-2xl p-4 ${SOFT_SURFACE}`}>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display text-lg font-bold text-slate-dark">
-                        {isGuest ? "Prueba otros estilos gratis" : "Prueba otros estilos"}
-                      </span>
-                      <span className="text-sm leading-snug text-text-muted">
-                        {isGuest
-                          ? "Guarda este retrato en tu cuenta y crea 4 vistas previas más, sin costo."
-                          : previewsText}
-                      </span>
-                    </div>
-
-                    {isGuest ? (
-                      <button
-                        type="button"
-                        onClick={signIn}
-                        disabled={signingIn}
-                        aria-busy={signingIn}
-                        className={secondaryButton}
-                      >
-                        {signingIn ? (
-                          <span className="material-symbols-outlined animate-spin text-[20px]">
-                            progress_activity
-                          </span>
-                        ) : (
-                          <GoogleLogo />
-                        )}
-                        {signingIn ? "Abriendo Google…" : "Continuar con Google"}
-                      </button>
-                    ) : outOfPreviews ? (
-                      <Link href="/credits" className={secondaryButton}>
-                        <span className="material-symbols-outlined text-[20px]">
-                          add_circle
-                        </span>
-                        Conseguir vistas previas
-                      </Link>
-                    ) : onTryAnotherStyle ? (
-                      <button
-                        type="button"
-                        onClick={onTryAnotherStyle}
-                        className={secondaryButton}
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          palette
-                        </span>
-                        Elegir otro estilo
-                      </button>
-                    ) : null}
-
-                    {!isGuest && (
-                      <p className="text-center text-sm text-text-muted">
-                        Tu retrato ya está guardado ·{" "}
-                        <Link
-                          href={savedArtHref}
-                          className="font-bold text-slate-dark underline underline-offset-4"
-                        >
-                          Ver en mi cuenta
-                        </Link>
-                      </p>
-                    )}
-                  </div>
                 </>
               )}
 
