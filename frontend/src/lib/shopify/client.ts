@@ -1,9 +1,15 @@
 export async function shopifyFetch<T>({
   query,
   variables = {},
+  revalidate,
 }: {
   query: string;
   variables?: Record<string, unknown>;
+  /**
+   * Segundos de caché de Next para la respuesta (solo en el servidor). Sin
+   * él la petición no se cachea, como hasta ahora.
+   */
+  revalidate?: number;
 }): Promise<{ data: T } | never> {
   try {
     const isServer = typeof window === "undefined";
@@ -31,6 +37,7 @@ export async function shopifyFetch<T>({
       method: "POST",
       headers,
       body: JSON.stringify({ query, variables }),
+      ...(isServer && revalidate !== undefined ? { next: { revalidate } } : {}),
     });
 
     const json = await res.json();

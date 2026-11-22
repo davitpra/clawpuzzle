@@ -17,6 +17,9 @@ import SectionFlow from "@/shared/ui/SectionFlow";
 import { LAUNCH_MODE } from "@/shared/config/launch";
 import { SITE_URL } from "@/shared/config/seo";
 import { LandingThemeProvider } from "../model/LandingThemeContext";
+import { CustomerReviews } from "@/widgets/customer-reviews";
+import { fetchReviews } from "@/entities/review/api/fetchReviews";
+import type { Review } from "@/entities/review/model/types";
 
 /**
  * SEO de la landing del studio. La sirve `/studio-landing` con el flag apagado
@@ -115,7 +118,17 @@ const LANDING_FAQS = [
   },
 ];
 
-export default function StudioLandingPage() {
+export default async function StudioLandingPage() {
+  // Se carga aquí y no dentro de la sección: sin reseñas (sin metaobjects o
+  // con Shopify caído) la sección sale del flujo vía `when`, sin descuadrar la
+  // alternancia de fondos de `SectionFlow`.
+  let reviews: Review[] = [];
+  try {
+    reviews = await fetchReviews();
+  } catch (error) {
+    console.error("StudioLandingPage: no se pudieron cargar las reseñas", error);
+  }
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-clip bg-background-light">
       <Navbar />
@@ -164,6 +177,11 @@ export default function StudioLandingPage() {
                 ),
               },
 
+              {
+                id: "reviews",
+                when: reviews.length > 0,
+                node: <CustomerReviews reviews={reviews} />,
+              },
               {
                 id: "products",
                 pin: "white",
