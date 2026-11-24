@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ShopifyProduct } from "@/lib/shopify";
 import OptionChips from "@/shared/ui/OptionChips";
+import SegmentedSwitch from "@/shared/ui/SegmentedSwitch";
 
 interface ProductVariantSelectorProps {
   product: ShopifyProduct;
@@ -87,24 +88,27 @@ export default function ProductVariantSelector({
 
   return (
     <div className="flex flex-col gap-6">
-      {visibleOptionNames.map((optionName) => (
-        <OptionChips
-          key={optionName}
-          name={`variant-${optionName}`}
-          label={
+      {visibleOptionNames.map((optionName) => {
+        const props = {
+          name: `variant-${optionName}`,
+          label:
             product.options?.[optionNames.indexOf(optionName)]?.name ??
-            optionName
-          }
-          value={selectedOptions[optionName] || ""}
-          options={optionValues[optionName].map((value) => ({
+            optionName,
+          value: selectedOptions[optionName] || "",
+          options: optionValues[optionName].map((value) => ({
             value,
             label: value,
-          }))}
-          onChange={(value) => handleOptionChange(optionName, value)}
-          fill
-          hideHeaderOnMobile
-        />
-      ))}
+          })),
+          onChange: (value: string) => handleOptionChange(optionName, value),
+          hideHeaderOnMobile: true,
+        };
+        // Dos valores (el tema Perro | Gato) se leen mejor como switch.
+        return optionValues[optionName].length === 2 ? (
+          <SegmentedSwitch key={optionName} {...props} />
+        ) : (
+          <OptionChips key={optionName} {...props} fill />
+        );
+      })}
     </div>
   );
 }

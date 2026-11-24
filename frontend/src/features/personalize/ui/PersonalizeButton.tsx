@@ -88,7 +88,7 @@ export default function PersonalizeButton({
             : readyLabel;
 
   return (
-    <div className="flex flex-col gap-3 mt-2">
+    <div className="flex flex-col gap-3">
       <button
         ref={stickyBar ? setButtonEl : undefined}
         onClick={handlePersonalize}
