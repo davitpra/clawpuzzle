@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { useAuth } from "@/context/AuthContext";
 import StickyPersonalizeBar from "./StickyPersonalizeBar";
+import { bundlePrice } from "@/entities/product/lib/bundle";
 
 interface PersonalizeButtonProps {
   product: ShopifyProduct;
@@ -20,6 +21,8 @@ interface PersonalizeButtonProps {
   styleOptional?: boolean;
   /** Muestra la barra fija abajo con el CTA cuando el botón queda atrás. */
   stickyBar?: boolean;
+  /** Cantidad del bundle preseleccionada; viaja a `/create` como `qty`. */
+  bundleQuantity?: number;
 }
 
 export default function PersonalizeButton({
@@ -34,6 +37,7 @@ export default function PersonalizeButton({
   userSelections,
   styleOptional = false,
   stickyBar = false,
+  bundleQuantity = 1,
 }: PersonalizeButtonProps) {
   // Callback ref en estado: si el botón se re-monta, la barra observa el nodo nuevo.
   const [buttonEl, setButtonEl] = useState<HTMLButtonElement | null>(null);
@@ -64,6 +68,7 @@ export default function PersonalizeButton({
     if (userSelections && Object.keys(userSelections).length > 0) {
       params.set("selections", JSON.stringify(userSelections));
     }
+    if (bundleQuantity > 1) params.set("qty", String(bundleQuantity));
     const query = params.toString();
     router.push(`/create${query ? `?${query}` : ""}`);
   };
@@ -109,6 +114,15 @@ export default function PersonalizeButton({
           label={label}
           disabled={isDisabled}
           onClick={handlePersonalize}
+          bundleQuantity={bundleQuantity}
+          bundleTotal={
+            selectedVariant
+              ? bundlePrice(
+                  parseFloat(selectedVariant.price.amount),
+                  bundleQuantity,
+                ).total
+              : undefined
+          }
         />
       )}
     </div>

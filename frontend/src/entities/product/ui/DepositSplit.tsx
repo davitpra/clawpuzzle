@@ -1,8 +1,10 @@
 import { splitDeposit } from "@/entities/product/lib/deposit";
 
 interface DepositSplitProps {
-  /** Precio total del rompecabezas. */
+  /** Precio total del pedido (con el descuento del bundle, si aplica). */
   price: number;
+  /** Cuántos rompecabezas cubre `price`. */
+  quantity?: number;
   /** Formatea un monto con el estilo de precio de la pantalla que lo usa. */
   formatMoney: (amount: number) => string;
   className?: string;
@@ -14,6 +16,7 @@ interface DepositSplitProps {
  */
 export function DepositSplit({
   price,
+  quantity = 1,
   formatMoney,
   className = "",
 }: DepositSplitProps) {
@@ -27,13 +30,17 @@ export function DepositSplit({
       <div className="flex flex-col gap-4 rounded-2xl border border-text-main/10 p-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1 rounded-xl bg-cream px-4 py-3">
-            <span className="text-xs text-text-muted">Hoy, para empezar</span>
+            <span className="text-xs text-text-muted">
+              {quantity} rompecabezas: hoy
+            </span>
             <span className="font-display text-2xl lg:text-3xl font-black text-text-main">
               {formatMoney(deposit)}
             </span>
           </div>
           <div className="flex flex-col gap-1 rounded-xl bg-cream px-4 py-3">
-            <span className="text-xs text-text-muted">Al recibir</span>
+            <span className="text-xs text-text-muted">
+              Al recibir, en efectivo
+            </span>
             <span className="font-display text-2xl lg:text-3xl font-black text-text-main">
               {formatMoney(balance)}
             </span>

@@ -164,6 +164,8 @@ function IAGeneratorContent() {
   // Varias variantes comparten formato, así que `format_id` no basta.
   const variantId = searchParams.get("variant_id");
   const selectionsFromUrl = searchParams.get("selections");
+  // Cantidad del bundle elegida en la landing ("Más mascotas, mejor precio").
+  const bundleQuantityParam = searchParams.get("qty");
 
   // El generador es una ruta de continuación: sin el contexto completo del
   // producto no hay nada que generar y no se dispara ningún fetch.
@@ -551,6 +553,8 @@ function IAGeneratorContent() {
   if (productRefId) productParams.set("product_ref_id", productRefId);
   if (formatId) productParams.set("format_id", formatId);
   if (variantId) productParams.set("variant_id", variantId);
+  // Cantidad del bundle preseleccionada en la landing: la lee la vista previa.
+  if (bundleQuantityParam) productParams.set("qty", bundleQuantityParam);
   const styleStepHref = `/create?${productParams.toString()}`;
 
   const handleStyleSelect = (id: string) => {

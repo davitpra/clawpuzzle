@@ -25,6 +25,7 @@ import {
   getTypeOptionName,
 } from "@/entities/product/lib/typeOptions";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
+import type { BundleQuantity } from "@/entities/product/lib/bundle";
 
 interface ProductDetailsProps {
   product: ShopifyProduct;
@@ -158,6 +159,10 @@ export default function ProductDetails({
 
   const userSelections = selectionsState.values;
 
+  // Cantidad preseleccionada en "Más mascotas, mejor precio": el CTA la lleva a
+  // `/create` como `qty` y la vista previa la propone de nuevo.
+  const [bundleQuantity, setBundleQuantity] = useState<BundleQuantity>(1);
+
   const hasOptions =
     detailedStyle?.templateVarOptions &&
     Object.keys(detailedStyle.templateVarOptions).length > 0;
@@ -189,6 +194,8 @@ export default function ProductDetails({
             product={product}
             selectedVariant={selectedVariant}
             template={template}
+            bundleQuantity={bundleQuantity}
+            onBundleQuantityChange={setBundleQuantity}
             actions={
               <div className="flex flex-col gap-6">
                 {sizeOptionName && (
@@ -242,6 +249,7 @@ export default function ProductDetails({
                   hasBackendMapping={hasBackendMapping}
                   backendError={formatsError}
                   userSelections={hasOptions ? userSelections : undefined}
+                  bundleQuantity={bundleQuantity}
                   stickyBar={stickyCta}
                 />
 

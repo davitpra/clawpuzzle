@@ -18,6 +18,12 @@ interface StickyPersonalizeBarProps {
   label: string;
   disabled: boolean;
   onClick: () => void;
+  /**
+   * Cantidad elegida en "Más mascotas, mejor precio" y su total con descuento.
+   * Con más de 1 la barra la muestra en lugar del precio unitario.
+   */
+  bundleQuantity?: number;
+  bundleTotal?: number;
 }
 
 // La navbar sticky mide 64px: el botón "se pierde" al quedar debajo de ella.
@@ -37,6 +43,8 @@ export default function StickyPersonalizeBar({
   label,
   disabled,
   onClick,
+  bundleQuantity = 1,
+  bundleTotal,
 }: StickyPersonalizeBarProps) {
   const [passedAnchor, setPassedAnchor] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
@@ -99,6 +107,12 @@ export default function StickyPersonalizeBar({
 
   const image = selectedVariant?.image ?? product.images.edges[0]?.node;
   const price = selectedVariant?.price;
+  const isBundle = bundleQuantity > 1 && bundleTotal !== undefined;
+  const displayPrice = price
+    ? isBundle
+      ? bundleTotal
+      : parseFloat(price.amount)
+    : null;
 
   if (!mounted) return null;
 
@@ -123,21 +137,39 @@ export default function StickyPersonalizeBar({
           </div>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-display text-sm font-bold text-text-main md:text-lg">
-            {product.title}
-          </span>
-          {price && (
-            <span className="font-display text-base font-black text-primary md:text-xl">
+          {isBundle ? (
+            // Más chico que el título: "3 rompecabezas" entero cabe junto al
+            // botón en un celular de 390px.
+            <span className="whitespace-nowrap text-xs font-bold text-text-muted md:text-base">
+              {bundleQuantity} rompecabezas
+            </span>
+          ) : (
+            <span className="truncate font-display text-sm font-bold text-text-main md:text-lg">
+              {product.title}
+            </span>
+          )}
+          {price && displayPrice !== null && (
+            // `key`: al cambiar la cantidad el precio entra girando, como el
+            // valor del selector de tamaño.
+            <span
+              key={bundleQuantity}
+              className="font-display text-base font-black text-primary animate-size-spin-up md:text-xl"
+            >
               {/* Mismo formato que el precio de la ficha (`ProductInfo`). */}
-              {formatPrice(parseFloat(price.amount), price.currencyCode)}
+              {formatPrice(displayPrice, price.currencyCode, {
+                trimZeroCents: true,
+              })}
             </span>
           )}
         </div>
+        {/* `key`: el botón se re-monta y da un pulso al cambiar la cantidad,
+            para que se note que la elección de abajo se paga desde aquí. */}
         <button
+          key={bundleQuantity}
           type="button"
           onClick={onClick}
           disabled={disabled}
-          className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none md:h-12 md:px-6 md:text-base"
+          className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary animate-cta-nudge px-4 text-sm font-bold text-white transition-all hover:bg-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none md:h-12 md:px-6 md:text-base"
         >
           <span className="material-symbols-outlined hidden md:inline">
             auto_fix_high
