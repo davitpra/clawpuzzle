@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { ApiError } from '@fal-ai/client';
 import { Pet, PetPhoto, Format } from '@prisma/client';
@@ -8,6 +9,7 @@ import { StrategyRegistry } from '../pipeline/strategy.registry';
 import { QUEUE_NAMES, JOB_NAMES } from '../constants/queues.constants';
 import { StyleWithConfigs } from '../pipeline/pipeline.types';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DEFAULT_GENERATION_CONCURRENCY } from '../../config/ai.config';
 
 interface GenerateJobData {
   generationId: string;
@@ -35,15 +37,36 @@ interface GenerationWithRelations {
 }
 
 @Processor(QUEUE_NAMES.IMAGE_GENERATION)
-export class ImageGenerationProcessor extends WorkerHost {
+export class ImageGenerationProcessor
+  extends WorkerHost
+  implements OnApplicationBootstrap
+{
   private readonly logger = new Logger(ImageGenerationProcessor.name);
 
   constructor(
     private readonly generationsService: GenerationsService,
     private readonly strategyRegistry: StrategyRegistry,
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {
     super();
+  }
+
+  /**
+   * BullMQ procesa de a 1 trabajo si no se configura: un cliente esperaba a
+   * que terminara la generación de otro, y los retratos de un bundle salían en
+   * fila. Se fija aquí y no en `@Processor(…, { concurrency })` porque el
+   * decorador se evalúa al importar, antes de que `ConfigModule` cargue el
+   * `.env`. El worker ya existe en este punto y BullMQ 5 acepta el cambio en
+   * caliente. `process()` no guarda estado en la instancia, así que varios
+   * trabajos a la vez no se pisan.
+   */
+  onApplicationBootstrap() {
+    const concurrency =
+      this.configService.get<number>('ai.generationConcurrency') ??
+      DEFAULT_GENERATION_CONCURRENCY;
+    this.worker.concurrency = concurrency;
+    this.logger.log(`Image generation worker concurrency: ${concurrency}`);
   }
 
   async process(job: Job<GenerateJobData>): Promise<void> {

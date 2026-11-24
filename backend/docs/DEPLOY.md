@@ -155,6 +155,7 @@ CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
 FAL_KEY=...                    # OpenRouter se llama a través de fal, sin key propia
 MOCK_AI=false                  # ¡crítico! con true devuelve la foto sin generar
+IMAGE_GENERATION_CONCURRENCY=3 # generaciones a la vez (1–10); sin definir, 3
 
 WEBHOOK_SECRET=<openssl rand -base64 32>
 SHOPIFY_ADMIN_API_URL=https://puzzlesalvaje.myshopify.com/admin/api/2026-07

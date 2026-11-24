@@ -77,6 +77,14 @@ The user calls `POST /api/generations` with `petId`, `petPhotoId`, `formatId`,
 
 `ImageGenerationProcessor.process()` picks up the job from Redis and runs:
 
+**Concurrency**: the worker runs up to `IMAGE_GENERATION_CONCURRENCY` jobs at
+once (default 3, capped at 10; `ai.generationConcurrency`). It is set in
+`onApplicationBootstrap` because the `@Processor` options are read at import
+time, before `.env` loads. BullMQ's own default is 1, which queued every
+customer — and every puzzle of a multi-puzzle order — behind each other. The
+ceiling is fal.ai's concurrent-request limit (OpenRouter is called through fal)
+and the instance memory. `process()` keeps no per-job state on the instance.
+
 ```
 findForProcessing(generationId)
   → loads Generation with relations: style (+ visionConfig, imageGenConfig), pet (+ photos), petPhoto, format
