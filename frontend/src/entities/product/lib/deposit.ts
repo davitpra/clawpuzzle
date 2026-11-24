@@ -6,18 +6,24 @@
  */
 export const BALANCE_RATE = 0.3;
 
+/** El saldo se cobra en billetes: siempre un múltiplo de $10. */
+export const BALANCE_STEP = 10;
+
 /**
  * Parte el precio en anticipo y saldo. El saldo es el 30% redondeado hacia
- * abajo a dólares enteros (se cobra en efectivo: sin centavos) y el anticipo es
- * la diferencia, para que ambos sumen exactamente el precio.
- * $69,99 → $49,99 + $20.
+ * abajo a un múltiplo de $10 (se cobra en efectivo, en billetes) y el anticipo
+ * es la diferencia, para que ambos sumen exactamente el precio.
+ * $69,99 → $49,99 + $20; $119,98 → $89,98 + $30; $149,97 → $109,97 + $40.
  */
 export function splitDeposit(price: number): {
   deposit: number;
   balance: number;
 } {
   // El épsilon evita que 30.000…01 / 29.999…99 de coma flotante caiga mal.
-  const balance = Math.max(0, Math.floor(price * BALANCE_RATE + 1e-9));
+  const balance = Math.max(
+    0,
+    Math.floor((price * BALANCE_RATE) / BALANCE_STEP + 1e-9) * BALANCE_STEP,
+  );
   const deposit = Math.round((price - balance) * 100) / 100;
   return { deposit, balance };
 }

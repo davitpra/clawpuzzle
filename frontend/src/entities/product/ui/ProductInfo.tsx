@@ -132,7 +132,7 @@ export default function ProductInfo({
       <div className="h-px w-full bg-text-main/10"></div>
 
       {/* "Cómo pagas" sigue a la cantidad elegida abajo: con 2 muestra el
-          anticipo y el saldo de los $120. */}
+          anticipo y el saldo de los $119,98. */}
       {hasDeposit && (
         <DepositSplit
           price={bundlePrice(priceValue, bundleQuantity).total}

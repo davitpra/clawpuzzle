@@ -69,9 +69,9 @@ export default function TermsPage() {
           El pedido se procesa a través de Shopify, y los precios e impuestos
           se muestran antes de confirmarlo. Los rompecabezas se pagan en dos
           partes: un saldo en efectivo al momento de la entrega, equivalente
-          al 30% del precio redondeado hacia abajo a dólares enteros, y un
-          anticipo por transferencia con el resto del precio para iniciar la
-          producción.
+          al 30% del total del pedido redondeado hacia abajo a un múltiplo de
+          $10, y un anticipo por transferencia con el resto del total para
+          iniciar la producción.
           Consulta{" "}
           <Link
             className="text-primary underline hover:text-primary-dark transition-colors"
