@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import type { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { formatPrice } from "@/entities/product/lib/variantPresentation";
+import { GoogleLogo } from "@/shared/ui/GoogleLogo";
 
 interface StickyPersonalizeBarProps {
   /** El botón real de la ficha: la barra aparece cuando queda atrás. */
@@ -24,6 +25,8 @@ interface StickyPersonalizeBarProps {
    */
   bundleQuantity?: number;
   bundleTotal?: number;
+  /** El CTA abre Google (bundle sin cuenta): la "G" sustituye al icono. */
+  googleIcon?: boolean;
 }
 
 // La navbar sticky mide 64px: el botón "se pierde" al quedar debajo de ella.
@@ -45,6 +48,7 @@ export default function StickyPersonalizeBar({
   onClick,
   bundleQuantity = 1,
   bundleTotal,
+  googleIcon = false,
 }: StickyPersonalizeBarProps) {
   const [passedAnchor, setPassedAnchor] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
@@ -171,9 +175,15 @@ export default function StickyPersonalizeBar({
           disabled={disabled}
           className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary animate-cta-nudge px-4 text-sm font-bold text-white transition-all hover:bg-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none md:h-12 md:px-6 md:text-base"
         >
-          <span className="material-symbols-outlined hidden md:inline">
-            auto_fix_high
-          </span>
+          {googleIcon ? (
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white">
+              <GoogleLogo className="h-3.5 w-3.5" />
+            </span>
+          ) : (
+            <span className="material-symbols-outlined hidden md:inline">
+              auto_fix_high
+            </span>
+          )}
           {label}
         </button>
       </div>

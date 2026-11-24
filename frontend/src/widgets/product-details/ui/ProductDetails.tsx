@@ -61,7 +61,7 @@ export default function ProductDetails({
 }: ProductDetailsProps) {
   // Nota bajo el CTA: sin sesión la primera vista previa es gratis (crédito
   // de invitado); con cuenta o con un invitado que ya la usó, cuesta 1 crédito.
-  const { hasSession, isLoading: isAuthLoading } = useAuth();
+  const { hasSession, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const selectedVariant = product.variants.edges.find(
     (v) => v.node.id === selectedVariantId,
@@ -262,7 +262,13 @@ export default function ProductDetails({
                       <span className="material-symbols-outlined text-[18px] text-primary">
                         auto_awesome
                       </span>
-                      {hasSession ? (
+                      {bundleQuantity > 1 && !isAuthenticated ? (
+                        // Mismo criterio que el CTA: el bundle pide cuenta.
+                        <span className="font-body">
+                          Regístrate gratis con Google ·{" "}
+                          <span className="font-bold text-primary">sin tarjeta</span>
+                        </span>
+                      ) : hasSession ? (
                         <span className="font-body">
                           Cada vista previa usa{" "}
                           <span className="font-bold text-primary">1 crédito</span>

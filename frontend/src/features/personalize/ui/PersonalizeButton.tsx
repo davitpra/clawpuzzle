@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { useAuth } from "@/context/AuthContext";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
+import { GoogleLogo } from "@/shared/ui/GoogleLogo";
 import StickyPersonalizeBar from "./StickyPersonalizeBar";
 import { bundlePrice } from "@/entities/product/lib/bundle";
 
@@ -76,9 +78,32 @@ export default function PersonalizeButton({
   // Sin sesión la primera vista previa es gratis (crédito de invitado): el CTA
   // lo dice. Con sesión cada vista previa usa 1 crédito, así que no se promete.
   // Mientras se resuelve la sesión gana "gratis": el tráfico llega sin sesión.
-  const { hasSession, isLoading: isAuthLoading } = useAuth();
-  const readyLabel =
-    !isAuthLoading && hasSession ? "Crear mi rompecabezas" : "Pruébalo gratis";
+  const { hasSession, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  // Un pedido de 2 o 3 necesita una vista previa por rompecabezas y el invitado
+  // solo tiene una: se entra con Google antes de empezar. `isAuthenticated` es
+  // false para el invitado, así que uno que ya existe también se convierte en
+  // cuenta (con su arte). Tras entrar se sigue a `/create` con la cantidad.
+  const needsGoogle = bundleQuantity > 1 && !isAuthLoading && !isAuthenticated;
+  const { signIn, pending: signingIn } = useGoogleSignIn({
+    onDone: handlePersonalize,
+  });
+  const handleClick = () => {
+    if (isDisabled) return;
+    // El popup tiene que abrirse en el mismo click o el navegador lo bloquea.
+    if (needsGoogle) signIn();
+    else handlePersonalize();
+  };
+
+  const readyLabel = needsGoogle
+    ? signingIn
+      ? "Abriendo Google…"
+      : // "registrándote" no cabe en una línea (la columna mide ~360 px
+        // también en escritorio); lo dice la nota bajo el botón.
+        "Prueba gratis con Google"
+    : !isAuthLoading && hasSession
+      ? "Crear mi rompecabezas"
+      : "Pruébalo gratis";
 
   const label = isCompatLoading
     ? "Cargando opciones…"
@@ -96,11 +121,18 @@ export default function PersonalizeButton({
     <div className="flex flex-col gap-3">
       <button
         ref={stickyBar ? setButtonEl : undefined}
-        onClick={handlePersonalize}
-        disabled={isDisabled}
+        onClick={handleClick}
+        disabled={isDisabled || signingIn}
+        aria-busy={signingIn}
         className="w-full h-14 bg-primary text-white rounded-full font-bold text-lg hover:bg-primary-dark hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
       >
-        <span className="material-symbols-outlined">auto_fix_high</span>
+        {needsGoogle ? (
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white">
+            <GoogleLogo className="h-4 w-4" />
+          </span>
+        ) : (
+          <span className="material-symbols-outlined">auto_fix_high</span>
+        )}
         {label}
       </button>
       {backendError && (
@@ -111,9 +143,12 @@ export default function PersonalizeButton({
           anchor={buttonEl}
           product={product}
           selectedVariant={selectedVariant}
-          label={label}
-          disabled={isDisabled}
-          onClick={handlePersonalize}
+          // La barra tiene poco ancho junto a la miniatura y el precio.
+          // La "G" ya dice que es con Google.
+          label={needsGoogle && !signingIn ? "Pruébalo gratis" : label}
+          googleIcon={needsGoogle}
+          disabled={isDisabled || signingIn}
+          onClick={handleClick}
           bundleQuantity={bundleQuantity}
           bundleTotal={
             selectedVariant
