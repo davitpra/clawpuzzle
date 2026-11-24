@@ -194,6 +194,9 @@ What the flag changes:
   (`model/bundleOrder.ts`) and the step is derived from it, so a reload resumes.
   The landing asks for Google before entering with `qty` > 1; picking 2 or 3 on
   the single preview (`IAGeneratingStep`) turns that art into piece 1.
+  With an account, the style step (both flows) also shows "Tus retratos"
+  (`ReusePortraitsRow`, `model/useReusablePortraits.ts`): completed art of the
+  same format can be ordered as is, without a photo or a preview credit.
   **Auth flags**: `isAuthenticated` is **false for a guest** (so navbar,
   credits, pets list and `/user` treat it as a visitor); `hasSession` is true
   for both; `isGuest` tells them apart. `proxy.ts` sends a guest token on

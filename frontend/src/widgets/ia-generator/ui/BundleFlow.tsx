@@ -24,6 +24,10 @@ import {
   type BundleStep,
 } from "../model/bundleOrder";
 import { useCreateGeneration } from "../model/useCreateGeneration";
+import {
+  useReusablePortraits,
+  type ReusablePortrait,
+} from "../model/useReusablePortraits";
 import type { Pet } from "./upload-step/types";
 import { BundleProgressStrip } from "./BundleProgressStrip";
 import { BundleReviewStep } from "./BundleReviewStep";
@@ -31,6 +35,7 @@ import { IAHeader } from "./IAHeader";
 import type { PuzzleOffer } from "./IAGeneratingStep";
 import { IAPhotoStep } from "./IAPhotoStep";
 import { IAStyleStep } from "./IAStyleStep";
+import { ReusePortraitsRow } from "./ReusePortraitsRow";
 
 interface BundleFlowProps {
   /** Cantidad elegida en la landing (`qty`); con un pedido en curso, manda el pedido. */
@@ -210,6 +215,29 @@ export function BundleFlow({
 
   // ---- Estilo ------------------------------------------------------------
 
+  // Retratos ya creados con la cuenta: una pieza puede ser uno de ellos, sin
+  // foto ni vista previa.
+  const portraits = useReusablePortraits(formatId);
+  const usedIds = (order?.pieces ?? [])
+    .filter((_, i) => !step || step.kind === "review" || i !== step.index)
+    .map((p) => p.generationId)
+    .filter((id): id is string => !!id);
+
+  const handlePortraitPick = (portrait: ReusablePortrait) => {
+    if (!step || step.kind !== "style") return;
+    setEditing(null);
+    setErrors((e) => omit(e, step.index));
+    update(step.index, {
+      styleId: portrait.styleId,
+      styleName: portrait.styleName,
+      styleImg: null,
+      petName: portrait.petName,
+      generationId: portrait.generationId,
+      payload: portrait.payload,
+      imageUrl: portrait.imageUrl,
+    });
+  };
+
   const handleStyleSelect = (styleId: string) => {
     if (!step || step.kind !== "style") return;
     if (editing !== null) {
@@ -381,6 +409,15 @@ export function BundleFlow({
                 product={shopifyProduct}
                 selectedVariantId={piece.variantId}
                 onVariantChange={(variantId) => update(step.index, { variantId })}
+              />
+            ) : null
+          }
+          reuse={
+            portraits.length > 0 ? (
+              <ReusePortraitsRow
+                portraits={portraits}
+                usedIds={usedIds}
+                onPick={handlePortraitPick}
               />
             ) : null
           }

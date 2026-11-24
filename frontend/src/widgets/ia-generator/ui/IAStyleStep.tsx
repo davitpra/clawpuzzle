@@ -22,6 +22,8 @@ interface IAStyleStepProps {
   themeSwitch?: ReactNode;
   /** Sobre todo lo demás: "Atrás" y el aviso de vistas previas del pedido. */
   notice?: ReactNode;
+  /** Antes de las cards: "Tus retratos", para pedir uno ya creado. */
+  reuse?: ReactNode;
 }
 
 const HEADING: LandingStylesHeading = {
@@ -42,6 +44,7 @@ export function IAStyleStep({
   eyebrow = null,
   themeSwitch = null,
   notice = null,
+  reuse = null,
 }: IAStyleStepProps) {
   const { styles, isLoading, reload } = usePublicStyles();
   const withArt = useMemo(() => withPreviewArt(styles), [styles]);
@@ -52,6 +55,7 @@ export function IAStyleStep({
       {themeSwitch && (
         <div className="mx-auto w-full max-w-xs px-6 pt-6">{themeSwitch}</div>
       )}
+      {reuse && <div className="mx-auto w-full max-w-3xl px-6 pt-6">{reuse}</div>}
       {isLoading || isThemeLoading ? (
         <LandingStylesSkeleton sectionId="choose-style" compact {...HEADING} eyebrow={eyebrow} />
       ) : (

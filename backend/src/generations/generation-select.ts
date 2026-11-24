@@ -23,6 +23,10 @@ export const USER_GENERATION_SELECT = {
   createdAt: true,
   completedAt: true,
   petId: true,
+  // La foto con que se generó: reutilizar el retrato en un pedido y poder
+  // regenerarlo (otro estilo, reintento) sin volver a subirla. Es un id de una
+  // foto del propio usuario.
+  petPhotoId: true,
   styleId: true,
   formatId: true,
   productRefId: true,

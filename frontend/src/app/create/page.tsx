@@ -50,6 +50,11 @@ import {
   type BundleQuantity,
 } from "@/entities/product/lib/bundle";
 import { useBundleOrder } from "@/widgets/ia-generator/model/bundleOrder";
+import {
+  useReusablePortraits,
+  type ReusablePortrait,
+} from "@/widgets/ia-generator/model/useReusablePortraits";
+import { ReusePortraitsRow } from "@/widgets/ia-generator/ui/ReusePortraitsRow";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -201,6 +206,10 @@ function IAGeneratorContent() {
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
+  // Retrato de "Tus retratos" que se está mirando: no se generó ahora.
+  const [reusedGenerationId, setReusedGenerationId] = useState<string | null>(
+    null,
+  );
 
   // Estado propio del flujo de lanzamiento.
   const [petName, setPetName] = useState("");
@@ -576,7 +585,7 @@ function IAGeneratorContent() {
   // Desde la vista previa de uno se sube a 2 o 3: ese retrato es la pieza 1 y
   // el resto sigue en `BundleFlow` (la URL lleva `qty`, sin `style_id`).
   const handleStartBundle = (quantity: BundleQuantity, imageUrl: string) => {
-    if (!puzzleOffer || !generationId || !lastPayload) return;
+    if (!puzzleOffer || !generationId) return;
     startBundleWith(quantity, {
       styleId,
       styleName: style?.name ?? null,
@@ -584,12 +593,35 @@ function IAGeneratorContent() {
       variantId: puzzleOffer.variantId,
       petName: petName.trim() || null,
       generationId,
-      payload: lastPayload,
+      // Un retrato antiguo reutilizado puede no tener con qué regenerarse.
+      payload: lastPayload ?? null,
       imageUrl,
     });
     const params = new URLSearchParams(productParams);
     params.set("qty", String(quantity));
     router.replace(`/create?${params.toString()}`);
+  };
+
+  // "Tus retratos" (solo lanzamiento, con cuenta): pedir uno ya creado. Va
+  // directo a la vista previa, sin foto ni vista previa gastada.
+  const reusablePortraits = useReusablePortraits(
+    LAUNCH_MODE && needsStyle ? formatId : null,
+  );
+  const handlePortraitPick = (portrait: ReusablePortrait) => {
+    if (!portrait.styleId) return;
+    void clearDraft();
+    setPhotos([]);
+    setActivePet(null);
+    setPetName(portrait.petName ?? "");
+    setGenerationId(portrait.generationId);
+    setLastPayload(portrait.payload);
+    setReusedGenerationId(portrait.generationId);
+    setRetryError(null);
+    resetSubmitError();
+    setStep(STEP_GENERATING);
+    const params = new URLSearchParams(productParams);
+    params.set("style_id", portrait.styleId);
+    router.push(`/create?${params.toString()}`);
   };
 
   const handleStyleSelect = (id: string) => {
@@ -650,6 +682,14 @@ function IAGeneratorContent() {
           onSelect={handleStyleSelect}
           isDogTheme={isDogTheme}
           isThemeLoading={isThemeLoading}
+          reuse={
+            reusablePortraits.length > 0 ? (
+              <ReusePortraitsRow
+                portraits={reusablePortraits}
+                onPick={handlePortraitPick}
+              />
+            ) : null
+          }
         />
       ) : hasStyleOnly ? (
         <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
@@ -708,7 +748,8 @@ function IAGeneratorContent() {
               retrying={retrying}
               retryError={retryError}
               onTryAnotherStyle={() => void handleTryAnotherStyle()}
-              onStartBundle={puzzleOffer && lastPayload ? handleStartBundle : undefined}
+              onStartBundle={puzzleOffer ? handleStartBundle : undefined}
+              isReused={!!generationId && generationId === reusedGenerationId}
             />
           )}
         </>

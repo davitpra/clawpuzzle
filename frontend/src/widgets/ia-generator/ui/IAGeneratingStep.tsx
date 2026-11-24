@@ -61,6 +61,11 @@ interface IAGeneratingStepProps {
    * sigue el flujo por rompecabezas. Se llama ya con sesión de cuenta.
    */
   onStartBundle?: (quantity: BundleQuantity, imageUrl: string) => void;
+  /**
+   * Retrato ya creado que se eligió en "Tus retratos": no es arte nuevo, así
+   * que no cuenta como GenerateArt.
+   */
+  isReused?: boolean;
 }
 
 /**
@@ -150,6 +155,7 @@ export function IAGeneratingStep({
   retryError,
   onTryAnotherStyle,
   onStartBundle,
+  isReused = false,
 }: IAGeneratingStepProps) {
   const { status, imageUrl } = useGenerationStatus(generationId);
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
@@ -163,11 +169,11 @@ export function IAGeneratingStep({
   // generación (también tras un reintento, que trae otro `generationId`).
   const trackedGenerationId = useRef<string | null>(null);
   useEffect(() => {
-    if (!generationId || !imageUrl) return;
+    if (!generationId || !imageUrl || isReused) return;
     if (trackedGenerationId.current === generationId) return;
     trackedGenerationId.current = generationId;
     trackEvent(generateArtEvent(generationId, styleName, isGuest));
-  }, [generationId, imageUrl, styleName, isGuest]);
+  }, [generationId, imageUrl, styleName, isGuest, isReused]);
 
   const isFailed = status === "failed";
   const isGenerating = !!generationId && !imageUrl && !isFailed;
