@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { bundlePrice, bundleUnitDiscount, parseBundleQuantity } from "./bundle";
+import {
+  bundlePrice,
+  bundleUnitDiscount,
+  nextBundleCost,
+  parseBundleQuantity,
+} from "./bundle";
 
 describe("bundlePrice", () => {
   it("1 rompecabezas no lleva descuento", () => {
@@ -49,5 +54,16 @@ describe("parseBundleQuantity", () => {
     expect(parseBundleQuantity("4")).toBe(1);
     expect(parseBundleQuantity("2.5")).toBe(1);
     expect(parseBundleQuantity("abc")).toBe(1);
+  });
+});
+
+describe("nextBundleCost", () => {
+  it("es la diferencia exacta de totales", () => {
+    expect(nextBundleCost(69.99, 1)).toBe(49.99);
+    expect(nextBundleCost(69.99, 2)).toBe(29.99);
+  });
+
+  it("en el tope no hay siguiente", () => {
+    expect(nextBundleCost(69.99, 3)).toBe(0);
   });
 });

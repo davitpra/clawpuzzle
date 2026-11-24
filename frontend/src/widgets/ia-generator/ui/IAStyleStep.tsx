@@ -20,6 +20,8 @@ interface IAStyleStepProps {
   eyebrow?: ReactNode;
   /** Switch Perro | Gato, para cuando el siguiente retrato es de otra mascota. */
   themeSwitch?: ReactNode;
+  /** Sobre todo lo demás: "Atrás" y el aviso de vistas previas del pedido. */
+  notice?: ReactNode;
 }
 
 const HEADING: LandingStylesHeading = {
@@ -39,12 +41,14 @@ export function IAStyleStep({
   isThemeLoading = false,
   eyebrow = null,
   themeSwitch = null,
+  notice = null,
 }: IAStyleStepProps) {
   const { styles, isLoading, reload } = usePublicStyles();
   const withArt = useMemo(() => withPreviewArt(styles), [styles]);
 
   return (
     <main className="grow animate-in fade-in duration-500">
+      {notice && <div className="mx-auto w-full max-w-3xl px-6 pt-6">{notice}</div>}
       {themeSwitch && (
         <div className="mx-auto w-full max-w-xs px-6 pt-6">{themeSwitch}</div>
       )}

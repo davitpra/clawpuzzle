@@ -30,6 +30,36 @@ interface StyleState {
   error: string | null;
 }
 
+/** `GET /styles/:id` (público) mapeado al `Style` del frontend. */
+export async function fetchStyleById(styleId: string): Promise<Style> {
+  const res = await fetch(`${API_URL}/styles/${encodeURIComponent(styleId)}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`styles error: ${res.status}`);
+  const json = (await res.json()) as { data: BackendStyle } | BackendStyle;
+  const data = "data" in json ? json.data : json;
+  return {
+    id: data.id,
+    name: data.displayName,
+    img: data.previewUrl ?? "https://placehold.co/400x500?text=Style",
+    // El backend ya las devuelve por `orderIndex`, como en la landing.
+    dogImg: data.images?.[1]?.imageUrl ?? null,
+    thanksUrl: null,
+    templateVarOptions: data.templateVarOptions ?? null,
+  };
+}
+
+/** Valores por defecto de las opciones del estilo (`templateVarOptions`). */
+export function defaultSelections(
+  style: Style | null,
+): Record<string, string | number> {
+  const defaults: Record<string, string | number> = {};
+  for (const [key, opt] of Object.entries(style?.templateVarOptions ?? {})) {
+    if (opt.default !== undefined) defaults[key] = opt.default;
+  }
+  return defaults;
+}
+
 export function useStyle(styleId: string | null): UseStyleResult {
   const [state, setState] = useState<StyleState>({
     id: null,
@@ -42,31 +72,10 @@ export function useStyle(styleId: string | null): UseStyleResult {
 
     let cancelled = false;
 
-    fetch(`${API_URL}/styles/${styleId}`, { credentials: "include" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`styles error: ${res.status}`);
-        const json = (await res.json()) as
-          | { data: BackendStyle }
-          | BackendStyle;
-        return "data" in json ? json.data : json;
-      })
-      .then((data) => {
+    fetchStyleById(styleId)
+      .then((style) => {
         if (cancelled) return;
-        setState({
-          id: styleId,
-          style: {
-            id: data.id,
-            name: data.displayName,
-            img:
-              data.previewUrl ??
-              "https://placehold.co/400x500?text=Style",
-            // El backend ya las devuelve por `orderIndex`, como en la landing.
-            dogImg: data.images?.[1]?.imageUrl ?? null,
-            thanksUrl: null,
-            templateVarOptions: data.templateVarOptions ?? null,
-          },
-          error: null,
-        });
+        setState({ id: styleId, style, error: null });
       })
       .catch((err) => {
         if (cancelled) return;

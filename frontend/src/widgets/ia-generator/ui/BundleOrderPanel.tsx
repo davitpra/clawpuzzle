@@ -3,9 +3,9 @@
 import {
   BUNDLE_QUANTITIES,
   bundlePrice,
+  nextBundleCost,
   type BundleQuantity,
 } from "@/entities/product/lib/bundle";
-import type { BundleSlot } from "../model/bundleOrder";
 
 /** Etiqueta de cada tramo, como en la sección de la landing. */
 const BADGES: Partial<Record<BundleQuantity, string>> = {
@@ -16,41 +16,26 @@ const BADGES: Partial<Record<BundleQuantity, string>> = {
 interface BundleOrderPanelProps {
   quantity: BundleQuantity;
   onQuantityChange: (quantity: BundleQuantity) => void;
-  /** Retratos ya apartados más el actual: no se puede pedir menos. */
-  minQuantity: number;
   unitPrice: number;
   formatMoney: (amount: number) => string;
-  /** Retratos apartados en pasos anteriores (sin el que está en pantalla). */
-  keptSlots: BundleSlot[];
-  /** El retrato que está en pantalla. */
+  /** El retrato que está en pantalla: es el rompecabezas 1. */
   currentImage: string | null;
-  onRemove: (generationId: string) => void;
 }
 
 /**
- * "¿Cuántos quieres?" de la vista previa: los tramos del bundle y, con más de
- * uno, un espacio por rompecabezas (los apartados, este y los que faltan).
+ * "¿Cuántos quieres?" de la vista previa de un solo retrato: los tramos del
+ * bundle y, con más de uno, un espacio por rompecabezas (este y los que
+ * faltan). Los siguientes se crean en el flujo por rompecabezas.
  */
 export function BundleOrderPanel({
   quantity,
   onQuantityChange,
-  minQuantity,
   unitPrice,
   formatMoney,
-  keptSlots,
   currentImage,
-  onRemove,
 }: BundleOrderPanelProps) {
   const next = BUNDLE_QUANTITIES.find((q) => q === quantity + 1);
-  // Lo que cuesta el siguiente rompecabezas, exacto: $119,98 − $69,99 = $49,99.
-  const nextCost = next
-    ? Math.round(
-        (bundlePrice(unitPrice, next).total -
-          bundlePrice(unitPrice, quantity).total) *
-          100,
-      ) / 100
-    : 0;
-  const emptyCount = Math.max(0, quantity - keptSlots.length - 1);
+  const nextCost = nextBundleCost(unitPrice, quantity);
 
   return (
     <section className="flex flex-col gap-3">
@@ -67,7 +52,6 @@ export function BundleOrderPanel({
         {BUNDLE_QUANTITIES.map((q) => {
           const price = bundlePrice(unitPrice, q);
           const selected = q === quantity;
-          const disabled = q < minQuantity;
           const badge = BADGES[q];
           return (
             <button
@@ -75,13 +59,12 @@ export function BundleOrderPanel({
               type="button"
               role="radio"
               aria-checked={selected}
-              aria-disabled={disabled}
-              onClick={() => !disabled && onQuantityChange(q)}
+              onClick={() => onQuantityChange(q)}
               className={`flex items-center gap-3 rounded-xl border-2 bg-white px-4 py-3 text-left transition-all ${
                 selected
                   ? "border-slate-dark"
                   : "border-[#E0DED9] hover:border-slate-dark/40"
-              } ${disabled ? "cursor-not-allowed opacity-50 hover:border-[#E0DED9]" : ""}`}
+              }`}
             >
               <span
                 aria-hidden="true"
@@ -114,12 +97,6 @@ export function BundleOrderPanel({
         })}
       </div>
 
-      {minQuantity > 1 && (
-        <p className="text-xs text-text-muted">
-          Para pedir menos, quita uno de tus retratos.
-        </p>
-      )}
-
       {next && (
         <button
           type="button"
@@ -135,37 +112,13 @@ export function BundleOrderPanel({
 
       {quantity > 1 && (
         <ul className="grid grid-cols-3 gap-2" aria-label="Tus retratos">
-          {keptSlots.map((slot, i) => (
-            <li key={slot.generationId} className="flex flex-col gap-1">
-              <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-[#EFEAE1]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={slot.imageUrl}
-                  alt={`Retrato ${i + 1}`}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemove(slot.generationId)}
-                  aria-label={`Quitar el retrato ${i + 1}`}
-                  className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-white/90 text-slate-dark shadow-sm transition-all hover:bg-white"
-                >
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
-              </div>
-              <span className="truncate text-xs text-text-muted">
-                {slot.styleName ?? `Retrato ${i + 1}`}
-              </span>
-            </li>
-          ))}
-
           <li className="flex flex-col gap-1">
             <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-[#EFEAE1] ring-2 ring-slate-dark">
               {currentImage && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={currentImage}
-                  alt={`Retrato ${keptSlots.length + 1}`}
+                  alt="Retrato 1"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               )}
@@ -175,17 +128,14 @@ export function BundleOrderPanel({
             </span>
           </li>
 
-          {Array.from({ length: emptyCount }, (_, i) => {
-            const n = keptSlots.length + 2 + i;
-            return (
-              <li key={`empty-${n}`} className="flex flex-col gap-1">
-                <div className="flex aspect-2/3 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E0DED9] text-text-muted">
-                  <span className="material-symbols-outlined text-[22px]">add</span>
-                </div>
-                <span className="truncate text-xs text-text-muted">Retrato {n}</span>
-              </li>
-            );
-          })}
+          {Array.from({ length: quantity - 1 }, (_, i) => (
+            <li key={`empty-${i + 2}`} className="flex flex-col gap-1">
+              <div className="flex aspect-2/3 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E0DED9] text-text-muted">
+                <span className="material-symbols-outlined text-[22px]">add</span>
+              </div>
+              <span className="truncate text-xs text-text-muted">Retrato {i + 2}</span>
+            </li>
+          ))}
         </ul>
       )}
     </section>

@@ -12,14 +12,13 @@ import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
 import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
 import type { CartItem } from "@/context/CartContext";
-import { formatPrice } from "@/entities/product/lib/variantPresentation";
-import { splitDeposit } from "@/entities/product/lib/deposit";
-import { bundlePrice, type BundleQuantity } from "@/entities/product/lib/bundle";
+import type { BundleQuantity } from "@/entities/product/lib/bundle";
 import { trackEvent } from "@/shared/lib/analytics/track";
 import { generateArtEvent } from "@/shared/lib/analytics/events";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
-import { useBundleOrder, type BundleSlot } from "../model/bundleOrder";
+import { orderPricing } from "../model/orderPricing";
 import { BundleOrderPanel } from "./BundleOrderPanel";
+import { OrderReassurance, OrderTotal } from "./OrderTotal";
 
 /** Fondo cálido de las superficies secundarias (fila del total, "¿Aún no…?"). */
 const SOFT_SURFACE = "bg-[#F5F3EE]";
@@ -57,8 +56,11 @@ interface IAGeneratingStepProps {
    * cuenta: el invitado pasa antes por Google.
    */
   onTryAnotherStyle?: () => void;
-  /** Cantidad preseleccionada en la landing (`qty`), si no hay pedido guardado. */
-  initialQuantity?: BundleQuantity;
+  /**
+   * El cliente subió a 2 o 3 rompecabezas: este retrato pasa a ser el 1 y
+   * sigue el flujo por rompecabezas. Se llama ya con sesión de cuenta.
+   */
+  onStartBundle?: (quantity: BundleQuantity, imageUrl: string) => void;
 }
 
 /**
@@ -147,7 +149,7 @@ export function IAGeneratingStep({
   retrying = false,
   retryError,
   onTryAnotherStyle,
-  initialQuantity = 1,
+  onStartBundle,
 }: IAGeneratingStepProps) {
   const { status, imageUrl } = useGenerationStatus(generationId);
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
@@ -189,41 +191,36 @@ export function IAGeneratingStep({
         ? `Creando el retrato de ${name}`
         : "Creando tu retrato";
 
-  // Pedido en armado del bundle: los retratos apartados antes (sin este) y la
-  // cantidad elegida, que nunca baja de apartados + este.
-  const bundle = useBundleOrder(initialQuantity);
-  const keptSlots = bundle.slots.filter((s) => s.generationId !== generationId);
-  const minQuantity = keptSlots.length + 1;
-  const quantity = Math.max(bundle.quantity, minQuantity) as BundleQuantity;
-  // Este retrato cuenta cuando ya se ve.
-  const filled = keptSlots.length + (imageUrl ? 1 : 0);
-  const needsMore = filled < quantity;
-
-  // Precio del bundle y su anticipo (70/30) sobre el total con descuento.
-  const priceValue = offer ? Number.parseFloat(offer.price) || 0 : 0;
-  const pricing = bundlePrice(priceValue, quantity);
-  const { deposit, balance: dueOnDelivery } = splitDeposit(pricing.total);
-  const compareAtTotal =
-    (offer?.compareAtPrice ? Number.parseFloat(offer.compareAtPrice) || 0 : 0) *
-    quantity;
-  // Como en la ficha: el ahorro se redondea hacia abajo a dólares enteros.
-  const savings =
-    compareAtTotal > pricing.total ? Math.floor(compareAtTotal - pricing.total) : 0;
-  const money = (n: number) =>
-    formatPrice(n, offer?.currencyCode ?? "USD", { trimZeroCents: true });
+  // Cantidad elegida en "¿Cuántos quieres?". Con más de uno, los siguientes
+  // se crean en el flujo por rompecabezas (`onStartBundle`).
+  const [quantity, setQuantity] = useState<BundleQuantity>(1);
+  const wantsMore = quantity > 1 && !!onStartBundle;
+  const pricing = orderPricing(offer, wantsMore ? quantity : 1);
+  const priceValue = pricing.listPrice;
+  const money = pricing.money;
 
   const savedArtHref = generationId
     ? `/user/generations/${generationId}`
     : "/user/generations";
 
-  // El invitado entra con Google y sigue al paso de estilo: su arte pasa a la
-  // cuenta (mismo id si es nueva; fusionado si ya existía) y la mascota
-  // conserva su id, así que el paso de foto la reutiliza. Sin handler, al
-  // arte guardado. `useGoogleLogin` siempre llama al `onDone` del último render.
+  // El invitado entra con Google y sigue a lo que pidió: otro estilo o los
+  // siguientes rompecabezas. Su arte pasa a la cuenta (mismo id si es nueva;
+  // fusionado si ya existía) y la mascota conserva su id, así que el paso de
+  // foto la reutiliza. Sin handler, al arte guardado. `useGoogleLogin` siempre
+  // llama al `onDone` del último render.
+  const afterSignIn = useRef<"style" | "bundle">("style");
   const { signIn, pending: signingIn } = useGoogleSignIn({
-    onDone: () =>
-      onTryAnotherStyle ? onTryAnotherStyle() : router.push(savedArtHref),
+    onDone: () => {
+      if (afterSignIn.current === "bundle" && imageUrl && onStartBundle) {
+        onStartBundle(quantity, imageUrl);
+      } else if (onTryAnotherStyle) onTryAnotherStyle();
+      else router.push(savedArtHref);
+    },
   });
+  const signInFor = (next: "style" | "bundle") => {
+    afterSignIn.current = next;
+    signIn();
+  };
 
   // Con cuenta y sin saldo, volver a elegir estilo acabaría en el 402: se lleva
   // a conseguir vistas previas. El admin no gasta créditos. Saldo aún sin
@@ -237,53 +234,33 @@ export function IAGeneratingStep({
         ? "Te queda 1 vista previa."
         : `Te quedan ${balance} vistas previas.`;
 
-  const currentSlot: BundleSlot | null =
-    offer && generationId && imageUrl
-      ? {
-          generationId,
-          imageUrl,
-          styleName,
-          variantId: offer.variantId,
-          petName: petName?.trim() || null,
-        }
-      : null;
-
-  // Aparta este retrato y va a crear el siguiente. El invitado entra antes con
-  // Google: el popup tiene que abrirse en el mismo click, y su `onDone` sigue
-  // al paso de estilo. Si cierra el popup, este retrato queda apartado y vuelve
-  // a aparecer aquí sin duplicarse.
-  const addAnother = () => {
-    if (!currentSlot) return;
-    bundle.keep(currentSlot, quantity);
-    if (isGuest) signIn();
-    else onTryAnotherStyle?.();
+  // Sigue con los demás rompecabezas. El invitado entra antes con Google: el
+  // popup tiene que abrirse en el mismo click.
+  const startBundle = () => {
+    if (!imageUrl || !onStartBundle) return;
+    if (isGuest) signInFor("bundle");
+    else onStartBundle(quantity, imageUrl);
   };
 
   const order = async () => {
-    if (!offer || !currentSlot) return;
+    if (!offer || !generationId || !imageUrl) return;
     setCheckoutError(null);
-    // Una línea de 1 por retrato: Shopify suma las unidades del producto y
-    // aplica el descuento por cantidad. `price` ya es el unitario con
-    // descuento, para que InitiateCheckout lleve el total real.
-    const items: CartItem[] = [...keptSlots, currentSlot].map((slot) => ({
-      id: slot.generationId,
-      variantId: slot.variantId,
+    const item: CartItem = {
+      id: generationId,
+      variantId: offer.variantId,
       name: offer.productTitle,
       size: offer.formatLabel,
-      style: slot.styleName ?? undefined,
+      style: styleName ?? undefined,
       price: pricing.unitPrice,
       quantity: 1,
       img: offer.productImage,
       // _generation_id + _image_url viajan como attributes de la línea: el
       // webhook de órdenes los usa para asociar el arte al pedido.
-      generationId: slot.generationId,
-      imageUrl: slot.imageUrl,
-    }));
-    const result = await startCheckout(items);
-    if (result.status === "redirect") {
-      bundle.clear();
-      return;
-    }
+      generationId,
+      imageUrl,
+    };
+    const result = await startCheckout([item]);
+    if (result.status === "redirect") return;
     setCheckoutError(
       result.message ??
         "No pudimos iniciar el pago. Inténtalo de nuevo en un momento.",
@@ -343,7 +320,7 @@ export function IAGeneratingStep({
                   <div className={`flex flex-col gap-3 rounded-2xl p-4 ${SOFT_SURFACE}`}>
                     <div className="flex flex-col gap-1">
                       <span className="font-display text-lg font-bold text-slate-dark">
-                        {quantity > 1
+                        {wantsMore
                           ? "¿Otro estilo para este retrato?"
                           : isGuest
                             ? "Prueba otros estilos gratis"
@@ -359,7 +336,7 @@ export function IAGeneratingStep({
                     {isGuest ? (
                       <button
                         type="button"
-                        onClick={signIn}
+                        onClick={() => signInFor("style")}
                         disabled={signingIn}
                         aria-busy={signingIn}
                         className={secondaryButton}
@@ -414,119 +391,50 @@ export function IAGeneratingStep({
 
                   {offer ? (
                     <>
-                      {priceValue > 0 && (
+                      {priceValue > 0 && onStartBundle && (
                         <BundleOrderPanel
                           quantity={quantity}
-                          onQuantityChange={bundle.setQuantity}
-                          minQuantity={minQuantity}
+                          onQuantityChange={setQuantity}
                           unitPrice={priceValue}
                           formatMoney={money}
-                          keptSlots={keptSlots}
                           currentImage={imageUrl}
-                          onRemove={bundle.remove}
                         />
                       )}
 
-                      {priceValue > 0 && (
-                        <div className="overflow-hidden rounded-2xl border border-slate-dark/10">
-                          <div
-                            className={`flex items-center justify-between gap-3 px-4 py-3 ${SOFT_SURFACE}`}
-                          >
-                            <span className="text-base font-bold text-slate-dark">
-                              Total
-                            </span>
-                            <span className="flex items-baseline gap-2">
-                              {savings > 0 && (
-                                <span className="text-base font-medium text-text-muted/70 line-through">
-                                  {money(compareAtTotal)}
-                                </span>
-                              )}
-                              <span className="font-display text-2xl font-black text-slate-dark">
-                                {money(pricing.total)}
-                              </span>
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 divide-x divide-slate-dark/10 border-t border-slate-dark/10">
-                            <div className="flex flex-col gap-0.5 px-4 py-3">
-                              <span className="text-sm text-text-muted">
-                                Hoy, para empezar
-                              </span>
-                              <span className="font-display text-xl font-black text-slate-dark">
-                                {money(deposit)}
-                              </span>
-                            </div>
-                            <div className="flex flex-col gap-0.5 px-4 py-3">
-                              <span className="text-sm text-text-muted">
-                                Al recibir, en efectivo
-                              </span>
-                              <span className="font-display text-xl font-black text-slate-dark">
-                                {money(dueOnDelivery)}
-                              </span>
-                            </div>
-                          </div>
-                          {savings > 0 && (
-                            <p className="flex items-center gap-2 border-t border-slate-dark/10 px-4 py-2.5 text-sm font-bold text-green-700">
-                              <span
-                                aria-hidden="true"
-                                className="material-symbols-outlined text-[18px]"
-                              >
-                                local_shipping
-                              </span>
-                              Envío gratis · ahorras {money(savings)}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      {priceValue > 0 && <OrderTotal pricing={pricing} />}
 
-                      {needsMore && !isGuest && outOfPreviews ? (
-                        // Sin vistas previas: se aparta este retrato y se van a
-                        // conseguir más. El pedido sigue guardado al volver.
-                        <Link
-                          href="/credits"
-                          onClick={() => currentSlot && bundle.keep(currentSlot, quantity)}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md"
+                      <button
+                        type="button"
+                        onClick={() => (wantsMore ? startBundle() : void order())}
+                        disabled={isCheckingOut || signingIn}
+                        aria-busy={isCheckingOut || signingIn}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isCheckingOut
+                          ? "Abriendo el pago…"
+                          : signingIn
+                            ? "Abriendo Google…"
+                            : wantsMore
+                              ? "Crear el retrato 2"
+                              : "Pedir mi rompecabezas"}
+                        <span
+                          className={`material-symbols-outlined text-[20px] ${
+                            isCheckingOut || signingIn ? "animate-spin" : ""
+                          }`}
                         >
-                          Consigue vistas previas para el retrato {filled + 1}
-                          <span className="material-symbols-outlined text-[20px]">
-                            arrow_forward
-                          </span>
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => (needsMore ? addAnother() : void order())}
-                          disabled={isCheckingOut || signingIn}
-                          aria-busy={isCheckingOut || signingIn}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {isCheckingOut
-                            ? "Abriendo el pago…"
-                            : signingIn
-                              ? "Abriendo Google…"
-                              : needsMore
-                                ? `Crear el retrato ${filled + 1}`
-                                : quantity === 1
-                                  ? "Pedir mi rompecabezas"
-                                  : `Pedir mis ${quantity} rompecabezas`}
-                          <span
-                            className={`material-symbols-outlined text-[20px] ${
-                              isCheckingOut || signingIn ? "animate-spin" : ""
-                            }`}
-                          >
-                            {isCheckingOut || signingIn
-                              ? "progress_activity"
-                              : needsMore
-                                ? "add"
-                                : "arrow_forward"}
-                          </span>
-                        </button>
-                      )}
+                          {isCheckingOut || signingIn
+                            ? "progress_activity"
+                            : wantsMore
+                              ? "add"
+                              : "arrow_forward"}
+                        </span>
+                      </button>
 
-                      {needsMore && (
+                      {wantsMore && (
                         <p className="-mt-2 text-center text-sm text-text-muted">
                           {isGuest
                             ? "Entra con Google: guardamos este retrato y te damos 4 vistas previas más."
-                            : "Apartamos este retrato. Elige el estilo del siguiente, para la misma mascota u otra."}
+                            : "Este es el retrato 1. Ahora eliges el estilo de los demás, para la misma mascota u otra."}
                         </p>
                       )}
 
@@ -534,29 +442,7 @@ export function IAGeneratingStep({
                         <p className="text-sm text-red-600">{checkoutError}</p>
                       )}
 
-                      <div className="flex flex-col gap-2">
-                        {priceValue > 0 && (
-                          <p className="flex items-start gap-2 text-sm font-bold text-green-700">
-                            <span
-                              aria-hidden="true"
-                              className="material-symbols-outlined text-[18px]"
-                            >
-                              verified_user
-                            </span>
-                            El resto lo pagas cuando lo tengas en tus manos.
-                          </p>
-                        )}
-                        <p className="flex items-start gap-2 text-sm text-text-muted">
-                          <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[18px]"
-                          >
-                            local_shipping
-                          </span>
-                          Lo fabricamos en 3 días y te llega en 3 a 7 días, a
-                          todo Ecuador.
-                        </p>
-                      </div>
+                      <OrderReassurance showBalanceNote={priceValue > 0} />
                     </>
                   ) : (
                     <p className="text-sm text-text-muted">

@@ -62,3 +62,15 @@ export function parseBundleQuantity(value: string | null | undefined): BundleQua
     ? (n as BundleQuantity)
     : 1;
 }
+
+/**
+ * Cuánto sube el total al pasar de `quantity` a `quantity + 1`, exacto:
+ * $119,98 − $69,99 = $49,99. 0 si ya está en el tope.
+ */
+export function nextBundleCost(unitPrice: number, quantity: number): number {
+  const next = BUNDLE_QUANTITIES.find((q) => q === quantity + 1);
+  if (!next) return 0;
+  return round2(
+    bundlePrice(unitPrice, next).total - bundlePrice(unitPrice, quantity).total,
+  );
+}

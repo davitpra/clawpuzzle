@@ -19,6 +19,7 @@ import {
   IAGeneratingStep,
   IAStartFromProduct,
   IAStyleStep,
+  BundleFlow,
   type SelectedProductInfo,
   type PuzzleOffer,
 } from "@/widgets/ia-generator";
@@ -44,8 +45,10 @@ import { TURNSTILE_SITE_KEY } from "@/shared/config/guest";
 import { getTurnstileToken } from "@/shared/lib/turnstile";
 import { trackEvent } from "@/shared/lib/analytics/track";
 import { uploadPhotoEvent } from "@/shared/lib/analytics/events";
-import { parseBundleQuantity } from "@/entities/product/lib/bundle";
-import ProductVariantSelector from "@/entities/product/ui/ProductVariantSelector";
+import {
+  parseBundleQuantity,
+  type BundleQuantity,
+} from "@/entities/product/lib/bundle";
 import { useBundleOrder } from "@/widgets/ia-generator/model/bundleOrder";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
@@ -170,11 +173,11 @@ function IAGeneratorContent() {
   // Cantidad del bundle elegida en la landing ("Más mascotas, mejor precio").
   const bundleQuantityParam = searchParams.get("qty");
   const initialBundleQuantity = parseBundleQuantity(bundleQuantityParam);
-  // Pedido en armado: con retratos apartados, el paso de estilo es el del
-  // siguiente rompecabezas.
-  const { slots: bundleSlots, quantity: bundleQuantity } = useBundleOrder(
-    initialBundleQuantity,
-  );
+  // Con 2 o 3, cada rompecabezas tiene su estilo, su foto y su generación:
+  // lo lleva `BundleFlow` (solo en lanzamiento, desde la ficha del producto).
+  const isBundle =
+    LAUNCH_MODE && initialBundleQuantity > 1 && !!productRefId && !!formatId;
+  const { startWith: startBundleWith } = useBundleOrder();
 
   // El generador es una ruta de continuación: sin el contexto completo del
   // producto no hay nada que generar y no se dispara ningún fetch.
@@ -570,15 +573,24 @@ function IAGeneratorContent() {
   if (bundleQuantityParam) productParams.set("qty", bundleQuantityParam);
   const styleStepHref = `/create?${productParams.toString()}`;
 
-  // Tema (Perro | Gato) del siguiente retrato del bundle: puede ser otra
-  // mascota. Solo cambia `variant_id`; la vista previa vende esa variante.
-  const handleThemeChange = (id: string) => {
+  // Desde la vista previa de uno se sube a 2 o 3: ese retrato es la pieza 1 y
+  // el resto sigue en `BundleFlow` (la URL lleva `qty`, sin `style_id`).
+  const handleStartBundle = (quantity: BundleQuantity, imageUrl: string) => {
+    if (!puzzleOffer || !generationId || !lastPayload) return;
+    startBundleWith(quantity, {
+      styleId,
+      styleName: style?.name ?? null,
+      styleImg,
+      variantId: puzzleOffer.variantId,
+      petName: petName.trim() || null,
+      generationId,
+      payload: lastPayload,
+      imageUrl,
+    });
     const params = new URLSearchParams(productParams);
-    params.set("variant_id", id);
+    params.set("qty", String(quantity));
     router.replace(`/create?${params.toString()}`);
   };
-  const nextBundleSlot = bundleSlots.length + 1;
-  const isNextBundleSlot = bundleSlots.length > 0;
 
   const handleStyleSelect = (id: string) => {
     const params = new URLSearchParams(productParams);
@@ -613,30 +625,31 @@ function IAGeneratorContent() {
 
   return (
     <div className="bg-white text-slate-dark font-body min-h-screen flex flex-col transition-all duration-500">
-      <IAHeader
-        step={hasProductContext || (needsStyle && LAUNCH_MODE) ? headerStep : 0}
-        totalSteps={headerTotal}
-      />
+      {/* `BundleFlow` lleva su propia cabecera: sus pasos son otros. */}
+      {!isBundle && (
+        <IAHeader
+          step={hasProductContext || (needsStyle && LAUNCH_MODE) ? headerStep : 0}
+          totalSteps={headerTotal}
+        />
+      )}
 
-      {needsStyle ? (
+      {isBundle && productRefId && formatId ? (
+        <BundleFlow
+          quantity={initialBundleQuantity}
+          defaultVariantId={variantId}
+          productRefId={productRefId}
+          formatId={formatId}
+          offer={puzzleOffer}
+          shopifyProduct={shopifyProduct}
+          isProductLoading={!shopifyProduct && !productLookupError && !formatsError}
+          formatWidth={productInfo?.formatWidth ?? null}
+          formatHeight={productInfo?.formatHeight ?? null}
+        />
+      ) : needsStyle ? (
         <IAStyleStep
           onSelect={handleStyleSelect}
           isDogTheme={isDogTheme}
           isThemeLoading={isThemeLoading}
-          eyebrow={
-            isNextBundleSlot
-              ? `Rompecabezas ${nextBundleSlot} de ${Math.max(bundleQuantity, nextBundleSlot)}`
-              : null
-          }
-          themeSwitch={
-            isNextBundleSlot && shopifyProduct && variantId ? (
-              <ProductVariantSelector
-                product={shopifyProduct}
-                selectedVariantId={variantId}
-                onVariantChange={handleThemeChange}
-              />
-            ) : null
-          }
         />
       ) : hasStyleOnly ? (
         <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
@@ -695,7 +708,7 @@ function IAGeneratorContent() {
               retrying={retrying}
               retryError={retryError}
               onTryAnotherStyle={() => void handleTryAnotherStyle()}
-              initialQuantity={initialBundleQuantity}
+              onStartBundle={puzzleOffer && lastPayload ? handleStartBundle : undefined}
             />
           )}
         </>

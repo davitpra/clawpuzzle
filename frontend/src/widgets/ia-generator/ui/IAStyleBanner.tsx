@@ -7,8 +7,12 @@ interface IAStyleBannerProps {
   styleImg: string | null;
   /** Se ejecuta antes de navegar a /#styles (limpia el borrador guardado). */
   onChangeStyle?: () => void;
-  /** Destino de "Change style"; por defecto las cards de la landing. */
-  changeStyleHref?: string;
+  /**
+   * Destino de "Cambiar estilo"; por defecto las cards de la landing. Con
+   * `null` es un botón que solo llama a `onChangeStyle` (el flujo por
+   * rompecabezas cambia de paso sin navegar).
+   */
+  changeStyleHref?: string | null;
 }
 
 /**
@@ -20,6 +24,9 @@ interface IAStyleBannerProps {
  * Usa `<img>` y no `next/image` porque la previsualización del estilo puede ser
  * el placeholder de `useStyle`, cuyo host no está en `next.config.ts`.
  */
+const CHANGE_STYLE_CLASS =
+  "shrink-0 rounded-lg border border-[#E5E0D8] bg-white px-3 py-2 text-sm font-bold text-slate-dark transition-colors hover:bg-gray-50";
+
 export function IAStyleBanner({
   styleName,
   styleImg,
@@ -50,13 +57,19 @@ export function IAStyleBanner({
         </p>
       </div>
 
-      <Link
-        href={changeStyleHref}
-        onClick={onChangeStyle}
-        className="shrink-0 rounded-lg border border-[#E5E0D8] bg-white px-3 py-2 text-sm font-bold text-slate-dark transition-colors hover:bg-gray-50"
-      >
-        Cambiar estilo
-      </Link>
+      {changeStyleHref === null ? (
+        <button
+          type="button"
+          onClick={onChangeStyle}
+          className={CHANGE_STYLE_CLASS}
+        >
+          Cambiar estilo
+        </button>
+      ) : (
+        <Link href={changeStyleHref} onClick={onChangeStyle} className={CHANGE_STYLE_CLASS}>
+          Cambiar estilo
+        </Link>
+      )}
     </div>
   );
 }
