@@ -11,27 +11,28 @@ describe("bundlePrice", () => {
     });
   });
 
-  it("2 rompecabezas cuestan $120 ($60 c/u)", () => {
+  // Totales verificados contra carritos reales de Shopify (2026-11-24).
+  it("2 rompecabezas cuestan $119,98 ($59,99 c/u)", () => {
     expect(bundlePrice(69.99, 2)).toEqual({
-      unitPrice: 60,
-      total: 120,
+      unitPrice: 59.99,
+      total: 119.98,
       regularTotal: 139.98,
-      savings: 19.98,
+      savings: 20,
     });
   });
 
-  it("3 rompecabezas cuestan $150 ($50 c/u)", () => {
+  it("3 rompecabezas cuestan $149,97 ($49,99 c/u)", () => {
     expect(bundlePrice(69.99, 3)).toEqual({
-      unitPrice: 50,
-      total: 150,
+      unitPrice: 49.99,
+      total: 149.97,
       regularTotal: 209.97,
-      savings: 59.97,
+      savings: 60,
     });
   });
 
   it("de 4 en adelante se queda el tramo de 3, como en Shopify", () => {
-    expect(bundleUnitDiscount(4)).toBe(19.99);
-    expect(bundlePrice(69.99, 4).total).toBe(200);
+    expect(bundleUnitDiscount(4)).toBe(20);
+    expect(bundlePrice(69.99, 4).total).toBe(199.96);
   });
 });
 

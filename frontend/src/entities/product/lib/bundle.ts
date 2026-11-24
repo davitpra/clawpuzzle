@@ -1,9 +1,10 @@
 /**
- * Bundle por cantidad del rompecabezas: 1 = $69,99, 2 = $120, 3 = $150.
+ * Bundle por cantidad del rompecabezas: 1 = $69,99, 2 = $119,98 ($59,99 c/u),
+ * 3 = $149,97 ($49,99 c/u).
  *
  * Quien cobra es Shopify, con dos descuentos automáticos solo sobre el producto
- * `claw-puzzle` (la tienda se comparte con Puzzle Salvaje): "Compra 2" (mínimo
- * 2 unidades, $9,99 menos en cada una) y "Compra 3" (mínimo 3, $19,99 menos en
+ * `claw-puzzle` (la tienda se comparte con Puzzle Salvaje): "2 Mascotas" (mínimo
+ * 2 unidades, $10 menos en cada una) y "3 Mascotas" (mínimo 3, $20 menos en
  * cada una). Esta tabla solo lo muestra y **tiene que coincidir con ellos**: si
  * cambia un descuento o el precio en Shopify, cambia aquí también.
  *
@@ -15,8 +16,8 @@ export type BundleQuantity = (typeof BUNDLE_QUANTITIES)[number];
 
 /** Descuento por unidad según la cantidad; gana el tramo más alto alcanzado. */
 const UNIT_DISCOUNTS: { minQuantity: number; amount: number }[] = [
-  { minQuantity: 3, amount: 19.99 },
-  { minQuantity: 2, amount: 9.99 },
+  { minQuantity: 3, amount: 20 },
+  { minQuantity: 2, amount: 10 },
 ];
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

@@ -44,6 +44,9 @@ import { TURNSTILE_SITE_KEY } from "@/shared/config/guest";
 import { getTurnstileToken } from "@/shared/lib/turnstile";
 import { trackEvent } from "@/shared/lib/analytics/track";
 import { uploadPhotoEvent } from "@/shared/lib/analytics/events";
+import { parseBundleQuantity } from "@/entities/product/lib/bundle";
+import ProductVariantSelector from "@/entities/product/ui/ProductVariantSelector";
+import { useBundleOrder } from "@/widgets/ia-generator/model/bundleOrder";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -166,6 +169,12 @@ function IAGeneratorContent() {
   const selectionsFromUrl = searchParams.get("selections");
   // Cantidad del bundle elegida en la landing ("Más mascotas, mejor precio").
   const bundleQuantityParam = searchParams.get("qty");
+  const initialBundleQuantity = parseBundleQuantity(bundleQuantityParam);
+  // Pedido en armado: con retratos apartados, el paso de estilo es el del
+  // siguiente rompecabezas.
+  const { slots: bundleSlots, quantity: bundleQuantity } = useBundleOrder(
+    initialBundleQuantity,
+  );
 
   // El generador es una ruta de continuación: sin el contexto completo del
   // producto no hay nada que generar y no se dispara ningún fetch.
@@ -318,15 +327,19 @@ function IAGeneratorContent() {
     if (!productInfo) return null;
     const chosen = pickOfferVariant(formats, formatId, variantId);
     if (!chosen) return null;
+    const shopifyVariant = shopifyProduct?.variants.edges.find(
+      (e) => e.node.id === chosen.shopifyVariantId,
+    )?.node;
     return {
       productTitle: productInfo.productTitle,
       productImage: productInfo.productImage,
       formatLabel: productInfo.formatLabel,
       variantId: chosen.shopifyVariantId,
       price: chosen.price,
+      compareAtPrice: shopifyVariant?.compareAtPrice?.amount ?? null,
       currencyCode: chosen.currencyCode,
     };
-  }, [productInfo, formats, formatId, variantId]);
+  }, [productInfo, formats, formatId, variantId, shopifyProduct]);
 
   // El paso de upload clásico solo se muestra con `productInfo` ya resuelto: si
   // se enviara antes, no habría variante y el producto físico nunca entraría al
@@ -557,6 +570,16 @@ function IAGeneratorContent() {
   if (bundleQuantityParam) productParams.set("qty", bundleQuantityParam);
   const styleStepHref = `/create?${productParams.toString()}`;
 
+  // Tema (Perro | Gato) del siguiente retrato del bundle: puede ser otra
+  // mascota. Solo cambia `variant_id`; la vista previa vende esa variante.
+  const handleThemeChange = (id: string) => {
+    const params = new URLSearchParams(productParams);
+    params.set("variant_id", id);
+    router.replace(`/create?${params.toString()}`);
+  };
+  const nextBundleSlot = bundleSlots.length + 1;
+  const isNextBundleSlot = bundleSlots.length > 0;
+
   const handleStyleSelect = (id: string) => {
     const params = new URLSearchParams(productParams);
     params.set("style_id", id);
@@ -600,6 +623,20 @@ function IAGeneratorContent() {
           onSelect={handleStyleSelect}
           isDogTheme={isDogTheme}
           isThemeLoading={isThemeLoading}
+          eyebrow={
+            isNextBundleSlot
+              ? `Rompecabezas ${nextBundleSlot} de ${Math.max(bundleQuantity, nextBundleSlot)}`
+              : null
+          }
+          themeSwitch={
+            isNextBundleSlot && shopifyProduct && variantId ? (
+              <ProductVariantSelector
+                product={shopifyProduct}
+                selectedVariantId={variantId}
+                onVariantChange={handleThemeChange}
+              />
+            ) : null
+          }
         />
       ) : hasStyleOnly ? (
         <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
@@ -658,6 +695,7 @@ function IAGeneratorContent() {
               retrying={retrying}
               retryError={retryError}
               onTryAnotherStyle={() => void handleTryAnotherStyle()}
+              initialQuantity={initialBundleQuantity}
             />
           )}
         </>
