@@ -118,7 +118,7 @@ export const BRAND = {
   name: "ClawPuzzle",
   email: "hello@clawpuzzle.com",
   /** Formato internacional sin "+" ni espacios, como lo pide wa.me. */
-  whatsappNumber: "593961427070",
+  whatsappNumber: "593995331800",
   facebookUrl: "#",
   instagramUrl: "#",
 } as const;
