@@ -22,8 +22,11 @@ interface IAPhotoStepProps {
   activePet: Pet | null;
   onSelectPet: (pet: Pet | null) => void;
   onContinue: () => void;
-  onChangeStyle: () => void;
-  /** Ver `IAStyleBanner`: con `null`, "Cambiar" no navega. */
+  onChangeStyle?: () => void;
+  /**
+   * Ver `IAStyleBanner`: con `null`, "Cambiar" no navega; con `null` y sin
+   * `onChangeStyle`, no aparece.
+   */
   changeStyleHref?: string | null;
   /** Fila sobre el estilo, en la misma tarjeta; p. ej. el progreso del pedido. */
   progress?: ReactNode;

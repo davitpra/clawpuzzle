@@ -112,8 +112,12 @@ export function BundleFlow({
     if (variantFallback) ensure(quantity, variantFallback);
   }, [ensure, quantity, variantFallback]);
 
-  // Pieza ya generada a la que se le está eligiendo otro estilo.
-  const [editing, setEditing] = useState<number | null>(null);
+  // Pieza ya generada a la que se le cambia el estilo (misma foto, se regenera)
+  // o la mascota (foto nueva, mismo estilo).
+  const [editing, setEditing] = useState<{
+    index: number;
+    what: "style" | "pet";
+  } | null>(null);
   const [busy, setBusy] = useState<Record<number, boolean>>({});
   const [errors, setErrors] = useState<Record<number, string>>({});
   // Generaciones del pedido que fallaron mientras se armaban las demás.
@@ -143,8 +147,8 @@ export function BundleFlow({
   }, [order]);
 
   const step: BundleStep | null = order
-    ? editing !== null && order.pieces[editing]
-      ? { kind: "style", index: editing }
+    ? editing !== null && order.pieces[editing.index]
+      ? { kind: editing.what === "style" ? "style" : "photo", index: editing.index }
       : nextBundleStep(order)
     : null;
   const piece = step && step.kind !== "review" ? order!.pieces[step.index] : null;
@@ -291,10 +295,20 @@ export function BundleFlow({
       setPhotos([]);
       setActivePet(null);
       setPetName("");
+      // Cambio de mascota: el retrato nuevo ya reemplazó al anterior.
+      setEditing(null);
       void refreshCredits();
     } catch {
       // El mensaje ya está en `submitError`; se muestra en el paso de foto.
     }
+  };
+
+  const cancelPetChange = () => {
+    setPhotos([]);
+    setActivePet(null);
+    setPetName("");
+    resetSubmitError();
+    setEditing(null);
   };
 
   // Sin cuenta (enlace compartido, sesión vencida) se pide Google aquí; al
@@ -472,13 +486,28 @@ export function BundleFlow({
         <IAPhotoStep
           key={`photo-${step.index}`}
           progress={progressFor("lg")}
-          notice={previewsNotice}
+          notice={
+            editing !== null || previewsNotice ? (
+              <>
+                {/* Cambio de mascota: se vuelve sin tocar el retrato actual. */}
+                {editing !== null && (
+                  <button type="button" onClick={cancelPetChange} className={`${backButton} mb-3`}>
+                    <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                    Volver a tus retratos
+                  </button>
+                )}
+                {previewsNotice}
+              </>
+            ) : null
+          }
           continueLabel={
-            step.index + 1 < count
-              ? `Continuar con el rompecabezas ${step.index + 2}`
-              : count > 1
-                ? `Ver mis ${count} retratos`
-                : "Ver mi retrato"
+            editing !== null
+              ? `Crear el rompecabezas ${step.index + 1}`
+              : step.index + 1 < count
+                ? `Continuar con el rompecabezas ${step.index + 2}`
+                : count > 1
+                  ? `Ver mis ${count} retratos`
+                  : "Ver mi retrato"
           }
           styleName={style?.name ?? null}
           styleImg={styleImgFor(style, isDog)}
@@ -489,7 +518,11 @@ export function BundleFlow({
           activePet={activePet}
           onSelectPet={setActivePet}
           onContinue={handlePhotoContinue}
-          onChangeStyle={() => update(step.index, { styleId: null })}
+          // Al cambiar de mascota el estilo es el del retrato actual; para otro
+          // estilo está "Cambiar estilo" en la galería.
+          onChangeStyle={
+            editing !== null ? undefined : () => update(step.index, { styleId: null })
+          }
           changeStyleHref={null}
           submitting={submitting || signingIn || isStyleLoading}
           error={submitError}
@@ -505,7 +538,8 @@ export function BundleFlow({
           errors={errors}
           onReady={handleReady}
           onRetry={(i) => void regenerate(i)}
-          onChangeStyle={setEditing}
+          onChangeStyle={(index) => setEditing({ index, what: "style" })}
+          onChangePet={(index) => setEditing({ index, what: "pet" })}
           onRemove={handleRemove}
           onAdd={add}
           onCheckout={clear}

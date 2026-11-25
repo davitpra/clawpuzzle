@@ -25,6 +25,8 @@ interface BundleReviewStepProps {
   onReady: (index: number, imageUrl: string) => void;
   onRetry: (index: number) => void;
   onChangeStyle: (index: number) => void;
+  /** Otra mascota (foto nueva) para la pieza, con el mismo estilo. */
+  onChangePet: (index: number) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
   /** El pago se abrió: el pedido en armado ya no hace falta. */
@@ -43,7 +45,52 @@ interface PieceCardProps {
   onFailedChange: (generationId: string, failed: boolean) => void;
   onRetry: (index: number) => void;
   onChangeStyle: (index: number) => void;
+  /** Otra mascota (foto nueva) para la pieza, con el mismo estilo. */
+  onChangePet: (index: number) => void;
   onRemove: (index: number) => void;
+}
+
+/** Una fila de la tarjeta (estilo o mascota) con su botón para cambiarla. */
+function PieceDetailRow({
+  icon,
+  label,
+  value,
+  changeLabel,
+  onChange,
+  disabled,
+}: {
+  icon: string;
+  label: string;
+  value: string | null;
+  changeLabel: string;
+  onChange: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 py-2.5">
+      <span
+        aria-hidden="true"
+        className="material-symbols-outlined shrink-0 text-[20px] text-slate-dark"
+      >
+        {icon}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+          {label}
+        </span>
+        <span className="text-sm font-bold text-slate-dark">{value ?? "—"}</span>
+      </div>
+      <button
+        type="button"
+        onClick={onChange}
+        disabled={disabled}
+        aria-label={changeLabel}
+        className="shrink-0 rounded-full border border-[#E0DED9] bg-white px-3.5 py-2 text-sm font-bold text-slate-dark transition-all hover:border-slate-dark hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Cambiar
+      </button>
+    </div>
+  );
 }
 
 /** Una pieza del pedido: sigue su propia generación. */
@@ -58,6 +105,7 @@ function PieceCard({
   onFailedChange,
   onRetry,
   onChangeStyle,
+  onChangePet,
   onRemove,
 }: PieceCardProps) {
   // Lo ya listo no se vuelve a consultar (recarga con todo listo).
@@ -135,20 +183,27 @@ function PieceCard({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col">
-        <span className="text-sm font-bold text-slate-dark">Rompecabezas {n}</span>
-        <span className="truncate text-xs text-text-muted">
-          {[piece.styleName, piece.petName].filter(Boolean).join(" · ") || " "}
-        </span>
+      <span className="mt-1.5 font-display text-base font-bold text-slate-dark">
+        Rompecabezas {n}
+      </span>
+      <div className="divide-y divide-slate-dark/10 border-y border-slate-dark/10">
+        <PieceDetailRow
+          icon="palette"
+          label="Estilo"
+          value={piece.styleName}
+          changeLabel={`Cambiar el estilo del rompecabezas ${n}`}
+          onChange={() => onChangeStyle(index)}
+          disabled={isGenerating || !piece.payload}
+        />
+        <PieceDetailRow
+          icon="pets"
+          label="Mascota"
+          value={piece.petName}
+          changeLabel={`Cambiar la mascota del rompecabezas ${n}`}
+          onChange={() => onChangePet(index)}
+          disabled={isGenerating}
+        />
       </div>
-      <button
-        type="button"
-        onClick={() => onChangeStyle(index)}
-        disabled={isGenerating || !piece.payload}
-        className="self-start text-xs font-bold text-slate-dark underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Cambiar estilo
-      </button>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </li>
   );
@@ -169,6 +224,7 @@ export function BundleReviewStep({
   onReady,
   onRetry,
   onChangeStyle,
+  onChangePet,
   onRemove,
   onAdd,
   onCheckout,
@@ -284,6 +340,7 @@ export function BundleReviewStep({
                 onFailedChange={handleFailedChange}
                 onRetry={onRetry}
                 onChangeStyle={onChangeStyle}
+                onChangePet={onChangePet}
                 onRemove={onRemove}
               />
             ))}

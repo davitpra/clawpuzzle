@@ -66,7 +66,8 @@ export function IAStyleBanner({
         </div>
 
         {changeStyleHref === null ? (
-          <button
+          // Sin destino ni acción, el estilo es fijo (cambio de mascota).
+          onChangeStyle && <button
             type="button"
             onClick={onChangeStyle}
             aria-label="Cambiar estilo"
