@@ -215,10 +215,13 @@ export function IAGeneratingStep({
   // foto la reutiliza. Sin handler, al arte guardado. `useGoogleLogin` siempre
   // llama al `onDone` del último render.
   const afterSignIn = useRef<"style" | "bundle">("style");
+  // Cantidad con la que sigue el pedido tras el login ("Agrega otra mascota"
+  // la fija sin esperar al render).
+  const bundleQuantity = useRef<BundleQuantity>(quantity);
   const { signIn, pending: signingIn } = useGoogleSignIn({
     onDone: () => {
       if (afterSignIn.current === "bundle" && imageUrl && onStartBundle) {
-        onStartBundle(quantity, imageUrl);
+        onStartBundle(bundleQuantity.current, imageUrl);
       } else if (onTryAnotherStyle) onTryAnotherStyle();
       else router.push(savedArtHref);
     },
@@ -242,10 +245,13 @@ export function IAGeneratingStep({
 
   // Sigue con los demás rompecabezas. El invitado entra antes con Google: el
   // popup tiene que abrirse en el mismo click.
-  const startBundle = () => {
+  const startBundle = (q: BundleQuantity = quantity) => {
     if (!imageUrl || !onStartBundle) return;
-    if (isGuest) signInFor("bundle");
-    else onStartBundle(quantity, imageUrl);
+    if (isGuest) {
+      bundleQuantity.current = q;
+      setQuantity(q);
+      signInFor("bundle");
+    } else onStartBundle(q, imageUrl);
   };
 
   const order = async () => {
@@ -406,6 +412,8 @@ export function IAGeneratingStep({
                           unitPrice={priceValue}
                           formatMoney={money}
                           currentImage={imageUrl}
+                          onAddPet={startBundle}
+                          addPetDisabled={isCheckingOut || signingIn}
                         />
                       )}
 
@@ -413,7 +421,7 @@ export function IAGeneratingStep({
 
                       <button
                         type="button"
-                        onClick={() => (wantsMore ? startBundle() : void order())}
+                        onClick={() => (wantsMore ? startBundle(quantity) : void order())}
                         disabled={isCheckingOut || signingIn}
                         aria-busy={isCheckingOut || signingIn}
                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"

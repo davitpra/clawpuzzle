@@ -4,6 +4,7 @@ interface AddPetButtonProps {
   /** Lo que cuesta agregar un rompecabezas más, ya formateado. */
   cost: string;
   onClick: () => void;
+  disabled?: boolean;
 }
 
 /**
@@ -11,12 +12,13 @@ interface AddPetButtonProps {
  * ("Envío gratis", "Más elegido") para leerse como oferta, sin competir con
  * el botón principal de pedir.
  */
-export function AddPetButton({ cost, onClick }: AddPetButtonProps) {
+export function AddPetButton({ cost, onClick, disabled = false }: AddPetButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-xl border-2 border-green-200 bg-green-50 px-4 py-3 text-left transition-all hover:border-green-400 hover:bg-green-100 hover:shadow-sm"
+      disabled={disabled}
+      className="group flex w-full items-center gap-3 rounded-xl border-2 border-green-200 bg-green-50 px-4 py-3 text-left transition-all hover:border-green-400 hover:bg-green-100 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span
         aria-hidden="true"

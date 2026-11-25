@@ -21,6 +21,13 @@ interface BundleOrderPanelProps {
   formatMoney: (amount: number) => string;
   /** El retrato que está en pantalla: es el rompecabezas 1. */
   currentImage: string | null;
+  /**
+   * "Agrega otra mascota": arranca ya el pedido con un rompecabezas más (como
+   * elegir esa cantidad y pulsar "Crear el retrato N").
+   */
+  onAddPet: (quantity: BundleQuantity) => void;
+  /** Mientras se abre Google o el siguiente paso. */
+  addPetDisabled?: boolean;
 }
 
 /**
@@ -34,13 +41,24 @@ export function BundleOrderPanel({
   unitPrice,
   formatMoney,
   currentImage,
+  onAddPet,
+  addPetDisabled = false,
 }: BundleOrderPanelProps) {
   const next = BUNDLE_QUANTITIES.find((q) => q === quantity + 1);
   const nextCost = nextBundleCost(unitPrice, quantity);
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
+      {/* Primero el atajo: la mayoría que quiere otro va directo al estilo. */}
+      {next && (
+        <AddPetButton
+          cost={formatMoney(nextCost)}
+          onClick={() => onAddPet(next)}
+          disabled={addPetDisabled}
+        />
+      )}
+
+      <div className="mt-2 flex flex-col gap-1">
         <h2 className="font-display text-xl font-black text-slate-dark">
           ¿Cuántos quieres?
         </h2>
@@ -97,13 +115,6 @@ export function BundleOrderPanel({
           );
         })}
       </div>
-
-      {next && (
-        <AddPetButton
-          cost={formatMoney(nextCost)}
-          onClick={() => onQuantityChange(next)}
-        />
-      )}
 
       {quantity > 1 && (
         <ul className="grid grid-cols-3 gap-2" aria-label="Tus retratos">
