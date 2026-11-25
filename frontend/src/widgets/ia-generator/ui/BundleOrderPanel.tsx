@@ -6,6 +6,7 @@ import {
   nextBundleCost,
   type BundleQuantity,
 } from "@/entities/product/lib/bundle";
+import { AddPetButton } from "./AddPetButton";
 
 /** Etiqueta de cada tramo, como en la sección de la landing. */
 const BADGES: Partial<Record<BundleQuantity, string>> = {
@@ -98,16 +99,10 @@ export function BundleOrderPanel({
       </div>
 
       {next && (
-        <button
-          type="button"
+        <AddPetButton
+          cost={formatMoney(nextCost)}
           onClick={() => onQuantityChange(next)}
-          className="flex items-center gap-2 rounded-xl bg-[#F5F3EE] px-4 py-3 text-left text-sm text-slate-dark transition-all hover:bg-[#EFEAE1]"
-        >
-          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-            pets
-          </span>
-          Agrega otra mascota por solo {formatMoney(nextCost)} más.
-        </button>
+        />
       )}
 
       {quantity > 1 && (

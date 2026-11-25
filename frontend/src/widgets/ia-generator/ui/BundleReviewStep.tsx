@@ -10,6 +10,7 @@ import { MAX_PIECES, type BundlePiece } from "../model/bundleOrder";
 import { orderPricing } from "../model/orderPricing";
 import type { PuzzleOffer } from "./IAGeneratingStep";
 import { OrderReassurance, OrderTotal } from "./OrderTotal";
+import { AddPetButton } from "./AddPetButton";
 
 interface BundleReviewStepProps {
   pieces: BundlePiece[];
@@ -292,17 +293,10 @@ export function BundleReviewStep({
               se bajan los retratos. */}
           <div className="flex flex-col gap-5 md:col-start-2 md:row-start-2 md:sticky md:top-[97px] md:self-start">
             {canAdd && (
-              <button
-                type="button"
+              <AddPetButton
+                cost={pricing.money(nextBundleCost(pricing.listPrice, count))}
                 onClick={onAdd}
-                className="flex items-center gap-2 rounded-xl bg-[#F5F3EE] px-4 py-3 text-left text-sm text-slate-dark transition-all hover:bg-[#EFEAE1]"
-              >
-                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-                  pets
-                </span>
-                Agrega otra mascota por solo{" "}
-                {pricing.money(nextBundleCost(pricing.listPrice, count))} más.
-              </button>
+              />
             )}
 
             {offer && pricing.listPrice > 0 ? (
