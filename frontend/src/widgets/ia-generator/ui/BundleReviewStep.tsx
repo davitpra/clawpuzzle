@@ -40,6 +40,8 @@ interface PieceCardProps {
   busy: boolean;
   error: string | null;
   canRemove: boolean;
+  /** Tarjetas de 2 en 2: filas compactas en móvil. */
+  compact: boolean;
   onReady: (index: number, imageUrl: string) => void;
   /** La generación de esta pieza falló (o dejó de fallar tras un reintento). */
   onFailedChange: (generationId: string, failed: boolean) => void;
@@ -50,7 +52,11 @@ interface PieceCardProps {
   onRemove: (index: number) => void;
 }
 
-/** Una fila de la tarjeta (estilo o mascota) con su botón para cambiarla. */
+/**
+ * Una fila de la tarjeta (estilo o mascota) con su botón para cambiarla.
+ * `compact`: tarjetas de 2 en 2; en móvil miden ~160 px, así que sin ícono y
+ * con el botón más chico para que el texto no quede en una columna angosta.
+ */
 function PieceDetailRow({
   icon,
   label,
@@ -58,6 +64,7 @@ function PieceDetailRow({
   changeLabel,
   onChange,
   disabled,
+  compact,
 }: {
   icon: string;
   label: string;
@@ -65,12 +72,15 @@ function PieceDetailRow({
   changeLabel: string;
   onChange: () => void;
   disabled: boolean;
+  compact: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2.5 py-2.5">
+    <div className={`flex items-center py-2.5 ${compact ? "gap-2 sm:gap-2.5" : "gap-2.5"}`}>
       <span
         aria-hidden="true"
-        className="material-symbols-outlined shrink-0 text-[20px] text-slate-dark"
+        className={`material-symbols-outlined shrink-0 text-[20px] text-slate-dark ${
+          compact ? "hidden sm:inline-block" : ""
+        }`}
       >
         {icon}
       </span>
@@ -85,7 +95,9 @@ function PieceDetailRow({
         onClick={onChange}
         disabled={disabled}
         aria-label={changeLabel}
-        className="shrink-0 rounded-full border border-[#E0DED9] bg-white px-3.5 py-2 text-sm font-bold text-slate-dark transition-all hover:border-slate-dark hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+        className={`shrink-0 rounded-full border border-[#E0DED9] bg-white font-bold text-slate-dark transition-all hover:border-slate-dark hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40 ${
+          compact ? "px-2.5 py-1.5 text-xs sm:px-3.5 sm:py-2 sm:text-sm" : "px-3.5 py-2 text-sm"
+        }`}
       >
         Cambiar
       </button>
@@ -101,6 +113,7 @@ function PieceCard({
   busy,
   error,
   canRemove,
+  compact,
   onReady,
   onFailedChange,
   onRetry,
@@ -194,6 +207,7 @@ function PieceCard({
           changeLabel={`Cambiar el estilo del rompecabezas ${n}`}
           onChange={() => onChangeStyle(index)}
           disabled={isGenerating || !piece.payload}
+          compact={compact}
         />
         <PieceDetailRow
           icon="pets"
@@ -202,6 +216,7 @@ function PieceCard({
           changeLabel={`Cambiar la mascota del rompecabezas ${n}`}
           onChange={() => onChangePet(index)}
           disabled={isGenerating}
+          compact={compact}
         />
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -336,6 +351,7 @@ export function BundleReviewStep({
                 error={errors[i] ?? null}
                 // Con una acción en curso los índices no se pueden correr.
                 canRemove={count > 1 && Object.keys(busy).length === 0}
+                compact={count > 1}
                 onReady={onReady}
                 onFailedChange={handleFailedChange}
                 onRetry={onRetry}
