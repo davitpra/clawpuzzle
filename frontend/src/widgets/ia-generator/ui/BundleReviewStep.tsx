@@ -80,7 +80,7 @@ function PieceCard({
   return (
     <li className="flex min-w-0 flex-col gap-1.5">
       <div
-        className="relative w-full overflow-hidden rounded-xl bg-[#EFEAE1] shadow-sm"
+        className="relative w-full overflow-hidden bg-[#EFEAE1] shadow-sm"
         style={{ aspectRatio } as CSSProperties}
       >
         {(imageUrl ?? piece.styleImg) && (

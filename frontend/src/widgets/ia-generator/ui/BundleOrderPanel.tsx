@@ -113,7 +113,7 @@ export function BundleOrderPanel({
       {quantity > 1 && (
         <ul className="grid grid-cols-3 gap-2" aria-label="Tus retratos">
           <li className="flex flex-col gap-1">
-            <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-[#EFEAE1] ring-2 ring-slate-dark">
+            <div className="relative aspect-2/3 overflow-hidden bg-[#EFEAE1] ring-2 ring-slate-dark">
               {currentImage && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -130,7 +130,7 @@ export function BundleOrderPanel({
 
           {Array.from({ length: quantity - 1 }, (_, i) => (
             <li key={`empty-${i + 2}`} className="flex flex-col gap-1">
-              <div className="flex aspect-2/3 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E0DED9] text-text-muted">
+              <div className="flex aspect-2/3 flex-col items-center justify-center gap-1 border-2 border-dashed border-[#E0DED9] text-text-muted">
                 <span className="material-symbols-outlined text-[22px]">add</span>
               </div>
               <span className="truncate text-xs text-text-muted">Retrato {i + 2}</span>
