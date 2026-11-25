@@ -97,7 +97,7 @@ function ResultArtwork({
     // el ancho (no el alto) y la proporción da el alto; si la columna es más
     // estrecha que eso (tablet vertical), manda la columna sin deformar.
     <div
-      className="relative w-full overflow-hidden rounded-2xl bg-[#EFEAE1] shadow-lg md:w-[min(100%,calc((100dvh-73px)*0.9*var(--art-ratio)))]"
+      className="relative w-full overflow-hidden bg-[#EFEAE1] shadow-lg md:w-[min(100%,calc((100dvh-73px)*0.9*var(--art-ratio)))]"
       style={{ aspectRatio, "--art-ratio": ratio } as CSSProperties}
     >
       {image && (
@@ -299,7 +299,9 @@ export function IAGeneratingStep({
               </h1>
             </header>
 
-            <div className="md:col-start-1 md:row-start-1 md:row-span-4 md:flex md:items-center md:justify-center">
+            {/* Escritorio: el arte queda fijo bajo la cabecera mientras la
+                columna derecha sube con el scroll. */}
+            <div className="md:col-start-1 md:row-start-1 md:row-span-4 md:flex md:justify-center md:sticky md:top-[calc(73px+(100dvh-73px)*0.05)] md:self-start">
               <ResultArtwork
                 image={displayImage}
                 formatWidth={formatWidth}
@@ -324,20 +326,13 @@ export function IAGeneratingStep({
               {isRevealing && (
                 <>
                   <div className={`flex flex-col gap-3 rounded-2xl p-4 ${SOFT_SURFACE}`}>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display text-lg font-bold text-slate-dark">
-                        {wantsMore
-                          ? "¿Otro estilo para este retrato?"
-                          : isGuest
-                            ? "Prueba otros estilos gratis"
-                            : "Prueba otros estilos"}
-                      </span>
-                      <span className="text-sm leading-snug text-text-muted">
-                        {isGuest
-                          ? "Guarda este retrato en tu cuenta y crea 4 vistas previas más, sin costo."
-                          : previewsText}
-                      </span>
-                    </div>
+                    <span className="font-display text-lg font-bold text-slate-dark">
+                      {wantsMore
+                        ? "¿Otro estilo para este retrato?"
+                        : isGuest
+                          ? "Prueba otros estilos gratis"
+                          : "Prueba otros estilos"}
+                    </span>
 
                     {isGuest ? (
                       <button
@@ -388,6 +383,13 @@ export function IAGeneratingStep({
                       </p>
                     )}
                   </div>
+
+                  {/* Fuera de la caja: sobre el fondo blanco se lee mejor. */}
+                  <p className="-mt-2 text-sm leading-snug text-text-muted">
+                    {isGuest
+                      ? "Guarda este retrato en tu cuenta y crea 4 vistas previas más, sin costo."
+                      : previewsText}
+                  </p>
 
                   <div aria-hidden="true" className="h-px bg-slate-dark/10" />
 
