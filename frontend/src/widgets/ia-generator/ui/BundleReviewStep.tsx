@@ -237,7 +237,9 @@ export function BundleReviewStep({
   return (
     <main className="grow bg-white py-6 md:py-10 animate-in fade-in duration-700">
       <Container>
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:gap-x-14">
+        {/* Escritorio: la fila del título mide lo que el título; la altura de la
+            lista va a la segunda fila, para que el total no se aleje. */}
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:grid-rows-[auto_1fr] md:gap-x-14">
           <header className="flex flex-col gap-1 md:col-start-2 md:row-start-1">
             <span
               className={`text-sm font-bold uppercase tracking-wider ${
@@ -264,7 +266,7 @@ export function BundleReviewStep({
           <ul
             aria-label="Tus retratos"
             className={`grid gap-3 md:col-start-1 md:row-span-2 md:row-start-1 md:self-start ${
-              count === 1 ? "mx-auto w-full max-w-xs grid-cols-1" : count === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"
+              count === 1 ? "mx-auto w-full max-w-xs grid-cols-1" : "grid-cols-2"
             }`}
           >
             {pieces.map((piece, i) => (
@@ -286,7 +288,9 @@ export function BundleReviewStep({
             ))}
           </ul>
 
-          <div className="flex flex-col gap-5 md:col-start-2 md:row-start-2">
+          {/* Escritorio: total y botón quedan fijos bajo la cabecera mientras
+              se bajan los retratos. */}
+          <div className="flex flex-col gap-5 md:col-start-2 md:row-start-2 md:sticky md:top-[97px] md:self-start">
             {canAdd && (
               <button
                 type="button"
