@@ -23,11 +23,11 @@ interface IAPhotoStepProps {
   onSelectPet: (pet: Pet | null) => void;
   onContinue: () => void;
   onChangeStyle: () => void;
-  /** Ver `IAStyleBanner`: con `null`, "Cambiar estilo" no navega. */
+  /** Ver `IAStyleBanner`: con `null`, "Cambiar" no navega. */
   changeStyleHref?: string | null;
-  /** Sobre el banner del estilo; p. ej. "Rompecabezas 1 de 3". */
-  title?: ReactNode;
-  /** Bajo el título; p. ej. el aviso de vistas previas del pedido. */
+  /** Fila sobre el estilo, en la misma tarjeta; p. ej. el progreso del pedido. */
+  progress?: ReactNode;
+  /** Sobre la tarjeta del estilo; p. ej. el aviso de vistas previas del pedido. */
   notice?: ReactNode;
   /** Texto del botón; por defecto "Continuar". */
   continueLabel?: string;
@@ -61,7 +61,7 @@ export function IAPhotoStep({
   onContinue,
   onChangeStyle,
   changeStyleHref,
-  title = null,
+  progress = null,
   notice = null,
   continueLabel = "Continuar",
   submitting,
@@ -130,17 +130,13 @@ export function IAPhotoStep({
   return (
     <main className="grow flex flex-col px-6 py-8 md:py-10 animate-in fade-in duration-500">
       <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
-        {title && (
-          <h1 className="mb-4 font-display text-2xl font-black text-slate-dark md:text-3xl">
-            {title}
-          </h1>
-        )}
         {notice}
         <IAStyleBanner
           styleName={styleName}
           styleImg={styleImg}
           onChangeStyle={onChangeStyle}
           changeStyleHref={changeStyleHref}
+          top={progress}
         />
 
         {isAuthenticated && !isAdmin && creditBalance !== null && (
