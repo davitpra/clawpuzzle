@@ -181,20 +181,21 @@ What the flag changes:
   (switched off, daily cap, captcha). A guest saves its art by signing in with
   Google from `IAGeneratingStep` (same art, +4 credits on a new account). Coming from the launch
   product page (`product_ref_id` + `format_id`, no `style_id`) a style step comes
-  first: `IAStyleStep` shows the landing's style cards (`LandingStylesView`) and
-  picking one adds `style_id` to the URL. The product page itself no longer
+  first: `IAStyleStep` shows the landing's style cards (`LandingStyleCard`) in
+  its own layout; clicking a card only marks it, and "Continuar" in the fixed
+  bottom bar adds `style_id` to the URL. The product page itself no longer
   chooses a style (`ProductDetails` `styleSelectable`). Flag off: the classic
   `STEP_LEAD → STEP_UPLOAD → STEP_THANKS` driven by a product page. Both share the
   hooks in `widgets/ia-generator/model/`.
   **Bundle (2 or 3 puzzles, `qty` in the URL)**: `/create` hands over to
   `BundleFlow` — style and photo of puzzle 1, then of puzzle 2… (each generation
   starts as soon as its photo is sent and runs behind while the next one is set
-  up; `BundleProgressStrip` shows it), then `BundleReviewStep` with one card
+  up; `BundleProgressIndicator` in the header shows it and `BundlePieceWatchers` polls it), then `BundleReviewStep` with one card
   per puzzle and a checkout of N lines of 1. The order lives in `localStorage`
   (`model/bundleOrder.ts`) and the step is derived from it, so a reload resumes.
   The landing asks for Google before entering with `qty` > 1; picking 2 or 3 on
   the single preview (`IAGeneratingStep`) turns that art into piece 1.
-  With an account, the style step (both flows) also shows "Tus retratos"
+  With an account, the style step (both flows) also shows "¿Ya creaste uno?"
   (`ReusePortraitsRow`, `model/useReusablePortraits.ts`): completed art of the
   same format can be ordered as is, without a photo or a preview credit.
   **Auth flags**: `isAuthenticated` is **false for a guest** (so navbar,

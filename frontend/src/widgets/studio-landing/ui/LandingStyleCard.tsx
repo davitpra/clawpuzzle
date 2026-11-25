@@ -24,6 +24,8 @@ interface LandingStyleCardProps {
    * imagen (paso de `/create`, para que asome el segundo carrusel).
    */
   nameOverlay?: boolean;
+  /** Elegida en el paso de estilo de `/create`: borde y check. */
+  selected?: boolean;
 }
 
 const overlayClasses =
@@ -41,6 +43,7 @@ export function LandingStyleCard({
   dogArtAlt,
   onSelect,
   nameOverlay = false,
+  selected = false,
 }: LandingStyleCardProps) {
   const { isDogTheme } = useLandingTheme();
   const useDogArt = isDogTheme && !!dogArtUrl;
@@ -53,7 +56,9 @@ export function LandingStyleCard({
   return (
     <article className="relative flex flex-col gap-4">
       <div
-        className={`${posterClasses} ${FRAME_SHADOWS.art} relative aspect-2/3 overflow-hidden bg-cream`}
+        className={`${posterClasses} ${FRAME_SHADOWS.art} relative aspect-2/3 overflow-hidden bg-cream ${
+          selected ? "ring-[3px] ring-slate-dark ring-offset-2" : ""
+        }`}
       >
         {imageFailed ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm font-bold text-slate-dark/55">
@@ -68,6 +73,11 @@ export function LandingStyleCard({
             className="h-full w-full object-cover"
             onError={() => setFailedSrc(src)}
           />
+        )}
+        {selected && (
+          <span className="absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full bg-slate-dark text-white shadow-md animate-in zoom-in duration-200">
+            <span className="material-symbols-outlined text-[20px]">check</span>
+          </span>
         )}
         {nameOverlay && (
           <p className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-dark/80 via-slate-dark/40 to-transparent px-3 pt-10 pb-3 text-center font-bold text-white">
@@ -85,6 +95,7 @@ export function LandingStyleCard({
           onClick={() => onSelect(id)}
           className={`${overlayClasses} cursor-pointer`}
           aria-label={`Elegir el estilo ${displayName}`}
+          aria-pressed={selected}
         />
       ) : (
         <Link

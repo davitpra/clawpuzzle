@@ -9,12 +9,15 @@ interface ProductVariantSelectorProps {
   product: ShopifyProduct;
   selectedVariantId: string;
   onVariantChange: (variantId: string) => void;
+  /** Oculta el título de cada opción ("Tema · Perro") en todos los tamaños. */
+  hideLabels?: boolean;
 }
 
 export default function ProductVariantSelector({
   product,
   selectedVariantId,
   onVariantChange,
+  hideLabels = false,
 }: ProductVariantSelectorProps) {
   const variants = product.variants.edges;
 
@@ -104,7 +107,7 @@ export default function ProductVariantSelector({
         };
         // Dos valores (el tema Perro | Gato) se leen mejor como switch.
         return optionValues[optionName].length === 2 ? (
-          <SegmentedSwitch key={optionName} {...props} />
+          <SegmentedSwitch key={optionName} {...props} hideHeader={hideLabels} />
         ) : (
           <OptionChips key={optionName} {...props} fill />
         );

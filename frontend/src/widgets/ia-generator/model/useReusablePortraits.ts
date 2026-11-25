@@ -31,8 +31,10 @@ type ListedGeneration = UserGenerationDetail & {
   styleId?: string | null;
 };
 
-/** Los más recientes bastan: la fila es un atajo, no la galería completa. */
-const LIMIT = 30;
+/** Tope del backend por página; se piden páginas hasta tenerlos todos. */
+const PAGE_SIZE = 100;
+/** Freno por si `totalPages` no llega a cuadrar: 2000 retratos sobran. */
+const MAX_PAGES = 20;
 
 export function toReusablePortrait(
   g: ListedGeneration,
@@ -77,12 +79,22 @@ export function useReusablePortraits(formatId: string | null) {
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
-    get<ApiEnvelope<PaginatedResult<ListedGeneration>>>(
-      `/generations?status=completed&limit=${LIMIT}`,
-    )
-      .then((res) => {
+    // El carrusel muestra todos los retratos de la cuenta, no solo los últimos.
+    const loadAll = async () => {
+      const all: ListedGeneration[] = [];
+      for (let page = 1; page <= MAX_PAGES; page++) {
+        const res = await get<ApiEnvelope<PaginatedResult<ListedGeneration>>>(
+          `/generations?status=completed&limit=${PAGE_SIZE}&page=${page}`,
+        );
+        all.push(...(res.data?.data ?? []));
+        if (page >= (res.data?.meta?.totalPages ?? 0)) break;
+      }
+      return all;
+    };
+    loadAll()
+      .then((generations) => {
         if (cancelled) return;
-        const portraits = (res.data?.data ?? [])
+        const portraits = generations
           .filter((g) => g.formatId === key)
           .map(toReusablePortrait)
           .filter((p): p is ReusablePortrait => p !== null);
