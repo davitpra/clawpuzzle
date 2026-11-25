@@ -19,6 +19,7 @@ import {
   IAGeneratingStep,
   IAStartFromProduct,
   IAStyleStep,
+  BundleFlow,
   type SelectedProductInfo,
   type PuzzleOffer,
 } from "@/widgets/ia-generator";
@@ -44,6 +45,16 @@ import { TURNSTILE_SITE_KEY } from "@/shared/config/guest";
 import { getTurnstileToken } from "@/shared/lib/turnstile";
 import { trackEvent } from "@/shared/lib/analytics/track";
 import { uploadPhotoEvent } from "@/shared/lib/analytics/events";
+import {
+  parseBundleQuantity,
+  type BundleQuantity,
+} from "@/entities/product/lib/bundle";
+import { useBundleOrder } from "@/widgets/ia-generator/model/bundleOrder";
+import {
+  useReusablePortraits,
+  type ReusablePortrait,
+} from "@/widgets/ia-generator/model/useReusablePortraits";
+import { ReusePortraitsRow } from "@/widgets/ia-generator/ui/ReusePortraitsRow";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -164,6 +175,14 @@ function IAGeneratorContent() {
   // Varias variantes comparten formato, así que `format_id` no basta.
   const variantId = searchParams.get("variant_id");
   const selectionsFromUrl = searchParams.get("selections");
+  // Cantidad del bundle elegida en la landing ("Más mascotas, mejor precio").
+  const bundleQuantityParam = searchParams.get("qty");
+  const initialBundleQuantity = parseBundleQuantity(bundleQuantityParam);
+  // Con 2 o 3, cada rompecabezas tiene su estilo, su foto y su generación:
+  // lo lleva `BundleFlow` (solo en lanzamiento, desde la ficha del producto).
+  const isBundle =
+    LAUNCH_MODE && initialBundleQuantity > 1 && !!productRefId && !!formatId;
+  const { startWith: startBundleWith } = useBundleOrder();
 
   // El generador es una ruta de continuación: sin el contexto completo del
   // producto no hay nada que generar y no se dispara ningún fetch.
@@ -187,6 +206,10 @@ function IAGeneratorContent() {
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
+  // Retrato de "Tus retratos" que se está mirando: no se generó ahora.
+  const [reusedGenerationId, setReusedGenerationId] = useState<string | null>(
+    null,
+  );
 
   // Estado propio del flujo de lanzamiento.
   const [petName, setPetName] = useState("");
@@ -316,15 +339,19 @@ function IAGeneratorContent() {
     if (!productInfo) return null;
     const chosen = pickOfferVariant(formats, formatId, variantId);
     if (!chosen) return null;
+    const shopifyVariant = shopifyProduct?.variants.edges.find(
+      (e) => e.node.id === chosen.shopifyVariantId,
+    )?.node;
     return {
       productTitle: productInfo.productTitle,
       productImage: productInfo.productImage,
       formatLabel: productInfo.formatLabel,
       variantId: chosen.shopifyVariantId,
       price: chosen.price,
+      compareAtPrice: shopifyVariant?.compareAtPrice?.amount ?? null,
       currencyCode: chosen.currencyCode,
     };
-  }, [productInfo, formats, formatId, variantId]);
+  }, [productInfo, formats, formatId, variantId, shopifyProduct]);
 
   // El paso de upload clásico solo se muestra con `productInfo` ya resuelto: si
   // se enviara antes, no habría variante y el producto físico nunca entraría al
@@ -551,7 +578,51 @@ function IAGeneratorContent() {
   if (productRefId) productParams.set("product_ref_id", productRefId);
   if (formatId) productParams.set("format_id", formatId);
   if (variantId) productParams.set("variant_id", variantId);
+  // Cantidad del bundle preseleccionada en la landing: la lee la vista previa.
+  if (bundleQuantityParam) productParams.set("qty", bundleQuantityParam);
   const styleStepHref = `/create?${productParams.toString()}`;
+
+  // Desde la vista previa de uno se sube a 2 o 3: ese retrato es la pieza 1 y
+  // el resto sigue en `BundleFlow` (la URL lleva `qty`, sin `style_id`).
+  const handleStartBundle = (quantity: BundleQuantity, imageUrl: string) => {
+    if (!puzzleOffer || !generationId) return;
+    startBundleWith(quantity, {
+      styleId,
+      styleName: style?.name ?? null,
+      styleImg,
+      variantId: puzzleOffer.variantId,
+      petName: petName.trim() || null,
+      generationId,
+      // Un retrato antiguo reutilizado puede no tener con qué regenerarse.
+      payload: lastPayload ?? null,
+      imageUrl,
+    });
+    const params = new URLSearchParams(productParams);
+    params.set("qty", String(quantity));
+    router.replace(`/create?${params.toString()}`);
+  };
+
+  // "Tus retratos" (solo lanzamiento, con cuenta): pedir uno ya creado. Va
+  // directo a la vista previa, sin foto ni vista previa gastada.
+  const reusablePortraits = useReusablePortraits(
+    LAUNCH_MODE && needsStyle ? formatId : null,
+  );
+  const handlePortraitPick = (portrait: ReusablePortrait) => {
+    if (!portrait.styleId) return;
+    void clearDraft();
+    setPhotos([]);
+    setActivePet(null);
+    setPetName(portrait.petName ?? "");
+    setGenerationId(portrait.generationId);
+    setLastPayload(portrait.payload);
+    setReusedGenerationId(portrait.generationId);
+    setRetryError(null);
+    resetSubmitError();
+    setStep(STEP_GENERATING);
+    const params = new URLSearchParams(productParams);
+    params.set("style_id", portrait.styleId);
+    router.push(`/create?${params.toString()}`);
+  };
 
   const handleStyleSelect = (id: string) => {
     const params = new URLSearchParams(productParams);
@@ -586,16 +657,39 @@ function IAGeneratorContent() {
 
   return (
     <div className="bg-white text-slate-dark font-body min-h-screen flex flex-col transition-all duration-500">
-      <IAHeader
-        step={hasProductContext || (needsStyle && LAUNCH_MODE) ? headerStep : 0}
-        totalSteps={headerTotal}
-      />
+      {/* `BundleFlow` lleva su propia cabecera: sus pasos son otros. */}
+      {!isBundle && (
+        <IAHeader
+          step={hasProductContext || (needsStyle && LAUNCH_MODE) ? headerStep : 0}
+          totalSteps={headerTotal}
+        />
+      )}
 
-      {needsStyle ? (
+      {isBundle && productRefId && formatId ? (
+        <BundleFlow
+          quantity={initialBundleQuantity}
+          defaultVariantId={variantId}
+          productRefId={productRefId}
+          formatId={formatId}
+          offer={puzzleOffer}
+          shopifyProduct={shopifyProduct}
+          isProductLoading={!shopifyProduct && !productLookupError && !formatsError}
+          formatWidth={productInfo?.formatWidth ?? null}
+          formatHeight={productInfo?.formatHeight ?? null}
+        />
+      ) : needsStyle ? (
         <IAStyleStep
           onSelect={handleStyleSelect}
           isDogTheme={isDogTheme}
           isThemeLoading={isThemeLoading}
+          reuse={
+            reusablePortraits.length > 0 ? (
+              <ReusePortraitsRow
+                portraits={reusablePortraits}
+                onPick={handlePortraitPick}
+              />
+            ) : null
+          }
         />
       ) : hasStyleOnly ? (
         <StyleFirstResolver styleId={styleId} selections={selectionsFromUrl} />
@@ -654,6 +748,8 @@ function IAGeneratorContent() {
               retrying={retrying}
               retryError={retryError}
               onTryAnotherStyle={() => void handleTryAnotherStyle()}
+              onStartBundle={puzzleOffer ? handleStartBundle : undefined}
+              isReused={!!generationId && generationId === reusedGenerationId}
             />
           )}
         </>

@@ -5,41 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
+import { GoogleLogo } from "@/shared/ui/GoogleLogo";
 import { useCredits } from "@/hooks/useCredits";
 import { Container } from "@/shared/ui/Container";
 import { useGenerationStatus } from "@/hooks/useGenerationStatus";
 import { useRotatingMessage } from "@/hooks/useRotatingMessage";
 import { useShopifyCheckout } from "@/hooks/useShopifyCheckout";
 import type { CartItem } from "@/context/CartContext";
-import { formatPrice } from "@/entities/product/lib/variantPresentation";
-import { splitDeposit } from "@/entities/product/lib/deposit";
+import type { BundleQuantity } from "@/entities/product/lib/bundle";
 import { trackEvent } from "@/shared/lib/analytics/track";
 import { generateArtEvent } from "@/shared/lib/analytics/events";
 import { CRAFTING_MESSAGES } from "../model/crafting-messages";
-
-/** "G" de Google en sus colores oficiales, para el botón de continuar. */
-function GoogleLogo() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
-      <path
-        fill="#FFC107"
-        d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.4-.4-3.5z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"
-      />
-    </svg>
-  );
-}
+import { orderPricing } from "../model/orderPricing";
+import { BundleOrderPanel } from "./BundleOrderPanel";
+import { OrderReassurance, OrderTotal } from "./OrderTotal";
 
 /** Fondo cálido de las superficies secundarias (fila del total, "¿Aún no…?"). */
 const SOFT_SURFACE = "bg-[#F5F3EE]";
@@ -51,6 +30,8 @@ export interface PuzzleOffer {
   formatLabel: string;
   variantId: string;
   price: string;
+  /** Precio de referencia tachado ($100); se multiplica por la cantidad. */
+  compareAtPrice?: string | null;
   currencyCode: string;
 }
 
@@ -75,6 +56,16 @@ interface IAGeneratingStepProps {
    * cuenta: el invitado pasa antes por Google.
    */
   onTryAnotherStyle?: () => void;
+  /**
+   * El cliente subió a 2 o 3 rompecabezas: este retrato pasa a ser el 1 y
+   * sigue el flujo por rompecabezas. Se llama ya con sesión de cuenta.
+   */
+  onStartBundle?: (quantity: BundleQuantity, imageUrl: string) => void;
+  /**
+   * Retrato ya creado que se eligió en "Tus retratos": no es arte nuevo, así
+   * que no cuenta como GenerateArt.
+   */
+  isReused?: boolean;
 }
 
 /**
@@ -163,6 +154,8 @@ export function IAGeneratingStep({
   retrying = false,
   retryError,
   onTryAnotherStyle,
+  onStartBundle,
+  isReused = false,
 }: IAGeneratingStepProps) {
   const { status, imageUrl } = useGenerationStatus(generationId);
   const { startCheckout, isCheckingOut } = useShopifyCheckout();
@@ -176,11 +169,11 @@ export function IAGeneratingStep({
   // generación (también tras un reintento, que trae otro `generationId`).
   const trackedGenerationId = useRef<string | null>(null);
   useEffect(() => {
-    if (!generationId || !imageUrl) return;
+    if (!generationId || !imageUrl || isReused) return;
     if (trackedGenerationId.current === generationId) return;
     trackedGenerationId.current = generationId;
     trackEvent(generateArtEvent(generationId, styleName, isGuest));
-  }, [generationId, imageUrl, styleName, isGuest]);
+  }, [generationId, imageUrl, styleName, isGuest, isReused]);
 
   const isFailed = status === "failed";
   const isGenerating = !!generationId && !imageUrl && !isFailed;
@@ -204,23 +197,36 @@ export function IAGeneratingStep({
         ? `Creando el retrato de ${name}`
         : "Creando tu retrato";
 
-  // Precio y anticipo (70/30) de la oferta.
-  const priceValue = offer ? Number.parseFloat(offer.price) || 0 : 0;
-  const { deposit, balance: dueOnDelivery } = splitDeposit(priceValue);
-  const money = (n: number) => formatPrice(n, offer?.currencyCode ?? "USD");
+  // Cantidad elegida en "¿Cuántos quieres?". Con más de uno, los siguientes
+  // se crean en el flujo por rompecabezas (`onStartBundle`).
+  const [quantity, setQuantity] = useState<BundleQuantity>(1);
+  const wantsMore = quantity > 1 && !!onStartBundle;
+  const pricing = orderPricing(offer, wantsMore ? quantity : 1);
+  const priceValue = pricing.listPrice;
+  const money = pricing.money;
 
   const savedArtHref = generationId
     ? `/user/generations/${generationId}`
     : "/user/generations";
 
-  // El invitado entra con Google y sigue al paso de estilo: su arte pasa a la
-  // cuenta (mismo id si es nueva; fusionado si ya existía) y la mascota
-  // conserva su id, así que el paso de foto la reutiliza. Sin handler, al
-  // arte guardado. `useGoogleLogin` siempre llama al `onDone` del último render.
+  // El invitado entra con Google y sigue a lo que pidió: otro estilo o los
+  // siguientes rompecabezas. Su arte pasa a la cuenta (mismo id si es nueva;
+  // fusionado si ya existía) y la mascota conserva su id, así que el paso de
+  // foto la reutiliza. Sin handler, al arte guardado. `useGoogleLogin` siempre
+  // llama al `onDone` del último render.
+  const afterSignIn = useRef<"style" | "bundle">("style");
   const { signIn, pending: signingIn } = useGoogleSignIn({
-    onDone: () =>
-      onTryAnotherStyle ? onTryAnotherStyle() : router.push(savedArtHref),
+    onDone: () => {
+      if (afterSignIn.current === "bundle" && imageUrl && onStartBundle) {
+        onStartBundle(quantity, imageUrl);
+      } else if (onTryAnotherStyle) onTryAnotherStyle();
+      else router.push(savedArtHref);
+    },
   });
+  const signInFor = (next: "style" | "bundle") => {
+    afterSignIn.current = next;
+    signIn();
+  };
 
   // Con cuenta y sin saldo, volver a elegir estilo acabaría en el 402: se lleva
   // a conseguir vistas previas. El admin no gasta créditos. Saldo aún sin
@@ -234,6 +240,14 @@ export function IAGeneratingStep({
         ? "Te queda 1 vista previa."
         : `Te quedan ${balance} vistas previas.`;
 
+  // Sigue con los demás rompecabezas. El invitado entra antes con Google: el
+  // popup tiene que abrirse en el mismo click.
+  const startBundle = () => {
+    if (!imageUrl || !onStartBundle) return;
+    if (isGuest) signInFor("bundle");
+    else onStartBundle(quantity, imageUrl);
+  };
+
   const order = async () => {
     if (!offer || !generationId || !imageUrl) return;
     setCheckoutError(null);
@@ -243,7 +257,7 @@ export function IAGeneratingStep({
       name: offer.productTitle,
       size: offer.formatLabel,
       style: styleName ?? undefined,
-      price: Number.parseFloat(offer.price) || 0,
+      price: pricing.unitPrice,
       quantity: 1,
       img: offer.productImage,
       // _generation_id + _image_url viajan como attributes de la línea: el
@@ -252,12 +266,11 @@ export function IAGeneratingStep({
       imageUrl,
     };
     const result = await startCheckout([item]);
-    if (result.status !== "redirect") {
-      setCheckoutError(
-        result.message ??
-          "No pudimos iniciar el pago. Inténtalo de nuevo en un momento.",
-      );
-    }
+    if (result.status === "redirect") return;
+    setCheckoutError(
+      result.message ??
+        "No pudimos iniciar el pago. Inténtalo de nuevo en un momento.",
+    );
   };
 
   const secondaryButton =
@@ -313,7 +326,11 @@ export function IAGeneratingStep({
                   <div className={`flex flex-col gap-3 rounded-2xl p-4 ${SOFT_SURFACE}`}>
                     <div className="flex flex-col gap-1">
                       <span className="font-display text-lg font-bold text-slate-dark">
-                        {isGuest ? "Prueba otros estilos gratis" : "Prueba otros estilos"}
+                        {wantsMore
+                          ? "¿Otro estilo para este retrato?"
+                          : isGuest
+                            ? "Prueba otros estilos gratis"
+                            : "Prueba otros estilos"}
                       </span>
                       <span className="text-sm leading-snug text-text-muted">
                         {isGuest
@@ -325,7 +342,7 @@ export function IAGeneratingStep({
                     {isGuest ? (
                       <button
                         type="button"
-                        onClick={signIn}
+                        onClick={() => signInFor("style")}
                         disabled={signingIn}
                         aria-busy={signingIn}
                         className={secondaryButton}
@@ -380,83 +397,58 @@ export function IAGeneratingStep({
 
                   {offer ? (
                     <>
-                      {priceValue > 0 && (
-                        <div className="overflow-hidden rounded-2xl border border-slate-dark/10">
-                          <div
-                            className={`flex items-center justify-between px-4 py-3 ${SOFT_SURFACE}`}
-                          >
-                            <span className="text-base font-bold text-slate-dark">
-                              Total
-                            </span>
-                            <span className="font-display text-2xl font-black text-slate-dark">
-                              {money(priceValue)}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 divide-x divide-slate-dark/10 border-t border-slate-dark/10">
-                            <div className="flex flex-col gap-0.5 px-4 py-3">
-                              <span className="text-sm text-text-muted">
-                                Pagas hoy
-                              </span>
-                              <span className="font-display text-xl font-black text-slate-dark">
-                                {money(deposit)}
-                              </span>
-                            </div>
-                            <div className="flex flex-col gap-0.5 px-4 py-3">
-                              <span className="text-sm text-text-muted">
-                                Al recibirlo
-                              </span>
-                              <span className="font-display text-xl font-black text-slate-dark">
-                                {money(dueOnDelivery)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                      {priceValue > 0 && onStartBundle && (
+                        <BundleOrderPanel
+                          quantity={quantity}
+                          onQuantityChange={setQuantity}
+                          unitPrice={priceValue}
+                          formatMoney={money}
+                          currentImage={imageUrl}
+                        />
                       )}
+
+                      {priceValue > 0 && <OrderTotal pricing={pricing} />}
 
                       <button
                         type="button"
-                        onClick={() => void order()}
-                        disabled={isCheckingOut}
-                        aria-busy={isCheckingOut}
+                        onClick={() => (wantsMore ? startBundle() : void order())}
+                        disabled={isCheckingOut || signingIn}
+                        aria-busy={isCheckingOut || signingIn}
                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isCheckingOut ? "Abriendo el pago…" : "Pedir mi rompecabezas"}
+                        {isCheckingOut
+                          ? "Abriendo el pago…"
+                          : signingIn
+                            ? "Abriendo Google…"
+                            : wantsMore
+                              ? "Crear el retrato 2"
+                              : "Pedir mi rompecabezas"}
                         <span
                           className={`material-symbols-outlined text-[20px] ${
-                            isCheckingOut ? "animate-spin" : ""
+                            isCheckingOut || signingIn ? "animate-spin" : ""
                           }`}
                         >
-                          {isCheckingOut ? "progress_activity" : "arrow_forward"}
+                          {isCheckingOut || signingIn
+                            ? "progress_activity"
+                            : wantsMore
+                              ? "add"
+                              : "arrow_forward"}
                         </span>
                       </button>
+
+                      {wantsMore && (
+                        <p className="-mt-2 text-center text-sm text-text-muted">
+                          {isGuest
+                            ? "Entra con Google: guardamos este retrato y te damos 4 vistas previas más."
+                            : "Este es el retrato 1. Ahora eliges el estilo de los demás, para la misma mascota u otra."}
+                        </p>
+                      )}
 
                       {checkoutError && (
                         <p className="text-sm text-red-600">{checkoutError}</p>
                       )}
 
-                      <div className="flex flex-col gap-2">
-                        {priceValue > 0 && (
-                          <p className="flex items-start gap-2 text-sm font-bold text-green-700">
-                            <span
-                              aria-hidden="true"
-                              className="material-symbols-outlined text-[18px]"
-                            >
-                              verified_user
-                            </span>
-                            El resto lo pagas cuando lo tengas en tus manos.
-                          </p>
-                        )}
-                        <p className="flex items-start gap-2 text-sm text-text-muted">
-                          <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[18px]"
-                          >
-                            local_shipping
-                          </span>
-                          Lo fabricamos en 3 días y te llega en 3 a 7 días, a
-                          todo Ecuador.
-                        </p>
-                      </div>
+                      <OrderReassurance showBalanceNote={priceValue > 0} />
                     </>
                   ) : (
                     <p className="text-sm text-text-muted">

@@ -14,10 +14,7 @@ const TURNSTILE_TEST_KEY = /^\dx0{10,}/;
 
 function turnstileSecretFromEnv(): string {
   const value = process.env.TURNSTILE_SECRET_KEY ?? '';
-  if (
-    process.env.NODE_ENV === 'production' &&
-    TURNSTILE_TEST_KEY.test(value)
-  ) {
+  if (process.env.NODE_ENV === 'production' && TURNSTILE_TEST_KEY.test(value)) {
     throw new Error(
       'TURNSTILE_SECRET_KEY is a Cloudflare test key; use the real secret in production',
     );

@@ -142,6 +142,16 @@
     }
   }
 
+  /* Barra fija del CTA (StickyPersonalizeBar): pulso corto del botón al
+     cambiar la cantidad del bundle. */
+  --animate-cta-nudge: cta-nudge 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  @keyframes cta-nudge {
+    50% {
+      transform: scale(1.08);
+    }
+  }
+
   /* Proceso "cómo funciona" (widgets/ai-process): secuencia paso → flecha →
      paso. Los keyframes solo definen `from`: el estado final es el propio del
      elemento (p. ej. la opacidad degradada de cada punto de la flecha). */
@@ -278,6 +288,7 @@
   .animate-marquee,
   .animate-coin-float,
   .animate-coin-shadow,
+  .animate-cta-nudge,
   .animate-step-pop,
   .animate-step-rise,
   .animate-step-dot,

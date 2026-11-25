@@ -31,13 +31,14 @@ export default function ShippingReturnsPage() {
       <section>
         <h2>Pagos</h2>
         <p>
-          Pagas tu rompecabezas en dos partes. Al recibir tu pedido pagas en
-          efectivo cerca del 30% del precio, redondeado a dólares enteros para
-          que no necesites centavos; el resto lo transfieres para empezar, y
-          con ese anticipo confirmado iniciamos la producción. Por ejemplo, en
-          un rompecabezas de $69,99 transfieres $49,99 y pagas $20 al
-          recibirlo. Al terminar tu compra verás las instrucciones para hacer
-          la transferencia.
+          Pagas tu pedido en dos partes. Al recibirlo pagas en efectivo cerca
+          del 30% del total, redondeado hacia abajo a un múltiplo de $10 para
+          que pagues solo con billetes; el resto lo transfieres para empezar,
+          y con ese anticipo confirmado iniciamos la producción. Por ejemplo,
+          en un rompecabezas de $69,99 transfieres $49,99 y pagas $20 al
+          recibirlo; en 2 rompecabezas ($119,98) transfieres $89,98 y pagas
+          $30. Al terminar tu compra verás las instrucciones para hacer la
+          transferencia.
         </p>
       </section>
 

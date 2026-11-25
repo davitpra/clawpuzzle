@@ -20,6 +20,15 @@ import { LandingThemeProvider } from "../model/LandingThemeContext";
 import { CustomerReviews } from "@/widgets/customer-reviews";
 import { fetchReviews } from "@/entities/review/api/fetchReviews";
 import type { Review } from "@/entities/review/model/types";
+import {
+  BUNDLE_QUANTITIES,
+  bundleUnitDiscount,
+} from "@/entities/product/lib/bundle";
+
+/** El mayor descuento por rompecabezas del bundle ($20 con 3). */
+const MAX_BUNDLE_UNIT_DISCOUNT = bundleUnitDiscount(
+  BUNDLE_QUANTITIES[BUNDLE_QUANTITIES.length - 1],
+);
 
 /**
  * SEO de la landing del studio. La sirve `/studio-landing` con el flag apagado
@@ -90,7 +99,7 @@ const LANDING_FAQS = [
   },
   {
     q: "¿Necesito una cuenta?",
-    a: "No para tu primera vista previa: la creas y puedes pedir tu rompecabezas sin registrarte. Si quieres guardarla y volver a ella más adelante, crea tu cuenta gratis con Google y tendrás 4 vistas previas más.",
+    a: "No para tu primera vista previa: la creas y puedes pedir tu rompecabezas sin registrarte. Si quieres guardarla y volver a ella más adelante, crea tu cuenta gratis con Google y tendrás 4 vistas previas más. Para pedir 2 o 3 rompecabezas sí te pedimos entrar con Google, porque cada uno lleva su propia vista previa.",
   },
   {
     q: "¿De qué material es el rompecabezas?",
@@ -110,7 +119,7 @@ const LANDING_FAQS = [
   },
   {
     q: "¿Puedo poner a varias mascotas en un mismo rompecabezas?",
-    a: "Por ahora cada retrato es de una sola mascota, así la IA puede lucirse con sus detalles. Si tienes varias, ¡crea uno para cada una! 🐾",
+    a: `Por ahora cada retrato es de una sola mascota, así la IA puede lucirse con sus detalles. Si tienes varias, ¡crea uno para cada una, cada uno con su propio estilo! Pidiendo 2 o 3 juntos te ahorras hasta $${MAX_BUNDLE_UNIT_DISCOUNT} en cada rompecabezas. 🐾`,
   },
   {
     q: "¿Qué pasa con la foto de mi mascota?",

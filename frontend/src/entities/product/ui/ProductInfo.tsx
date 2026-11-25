@@ -5,6 +5,8 @@ import { ShopifyProduct, ShopifyVariant } from "@/lib/shopify";
 import { templateLabel } from "@/entities/product/lib/template";
 import ProductSpecs from "@/entities/product/ui/ProductSpecs";
 import { DepositSplit } from "@/entities/product/ui/DepositSplit";
+import { BundlePricing } from "@/entities/product/ui/BundlePricing";
+import { bundlePrice, type BundleQuantity } from "@/entities/product/lib/bundle";
 import { formatPrice } from "@/entities/product/lib/variantPresentation";
 import { splitDeposit } from "@/entities/product/lib/deposit";
 
@@ -18,6 +20,12 @@ interface ProductInfoProps {
    * gratis, así que primero se invita a crear y el precio llega después.
    */
   actions?: ReactNode;
+  /**
+   * Cantidad del bundle preseleccionada ("Más mascotas, mejor precio"). Sin
+   * `onBundleQuantityChange` la sección no se muestra.
+   */
+  bundleQuantity?: BundleQuantity;
+  onBundleQuantityChange?: (quantity: BundleQuantity) => void;
 }
 
 export default function ProductInfo({
@@ -25,6 +33,8 @@ export default function ProductInfo({
   selectedVariant,
   template,
   actions,
+  bundleQuantity = 1,
+  onBundleQuantityChange,
 }: ProductInfoProps) {
   // Tipo de producto de cara al cliente según el formato. Cae a "Personalized"
   // si no hay nada.
@@ -121,7 +131,24 @@ export default function ProductInfo({
 
       <div className="h-px w-full bg-text-main/10"></div>
 
-      {hasDeposit && <DepositSplit price={priceValue} formatMoney={money} />}
+      {/* "Cómo pagas" sigue a la cantidad elegida abajo: con 2 muestra el
+          anticipo y el saldo de los $119,98. */}
+      {hasDeposit && (
+        <DepositSplit
+          price={bundlePrice(priceValue, bundleQuantity).total}
+          quantity={bundleQuantity}
+          formatMoney={money}
+        />
+      )}
+
+      {hasDeposit && onBundleQuantityChange && (
+        <BundlePricing
+          unitPrice={priceValue}
+          value={bundleQuantity}
+          onChange={onBundleQuantityChange}
+          formatMoney={money}
+        />
+      )}
 
       <ProductSpecs product={product} />
     </div>

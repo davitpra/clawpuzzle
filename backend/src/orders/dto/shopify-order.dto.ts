@@ -29,8 +29,16 @@ export interface ShopifyLineItem {
   sku?: string;
   quantity: number;
   price: string;
+  /** Poco fiable con descuentos automáticos: ver `discount_allocations`. */
   total_discount: string;
+  /** Descuentos asignados a la línea (incluye los automáticos del bundle). */
+  discount_allocations?: ShopifyDiscountAllocation[];
   properties: ShopifyLineItemProperty[];
+}
+
+export interface ShopifyDiscountAllocation {
+  amount: string;
+  discount_application_index?: number;
 }
 
 export interface ShopifyRefundLineItem {

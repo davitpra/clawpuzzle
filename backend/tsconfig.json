@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    // Sin moduleResolution ni baseUrl: TypeScript 6 marca "node" (node10) y
+    // baseUrl como obsoletos y da error en el propio tsconfig. Con
+    // module=commonjs, TS 5.9 ya resuelve como node10 por defecto, y ningún
+    // import depende de baseUrl (todos son relativos).
     "esModuleInterop": true,
     "declaration": true,
     "removeComments": true,
@@ -11,9 +14,13 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    // TypeScript 6 cambió dos valores por defecto: `types` pasó a [] (ya no
+    // carga todo @types/*) y `strict` pasó a true. Se fijan aquí para que el
+    // proyecto compile igual con 5.9 (CLI) y con 6.x (el que trae VS Code).
+    "types": ["node", "jest", "multer"],
+    "strict": false,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,

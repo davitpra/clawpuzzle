@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +23,14 @@ interface IAPhotoStepProps {
   onSelectPet: (pet: Pet | null) => void;
   onContinue: () => void;
   onChangeStyle: () => void;
-  changeStyleHref?: string;
+  /** Ver `IAStyleBanner`: con `null`, "Cambiar estilo" no navega. */
+  changeStyleHref?: string | null;
+  /** Sobre el banner del estilo; p. ej. "Rompecabezas 1 de 3". */
+  title?: ReactNode;
+  /** Bajo el título; p. ej. el aviso de vistas previas del pedido. */
+  notice?: ReactNode;
+  /** Texto del botón; por defecto "Continuar". */
+  continueLabel?: string;
   submitting: boolean;
   error: string | null;
   outOfCredits: boolean;
@@ -54,6 +61,9 @@ export function IAPhotoStep({
   onContinue,
   onChangeStyle,
   changeStyleHref,
+  title = null,
+  notice = null,
+  continueLabel = "Continuar",
   submitting,
   error,
   outOfCredits,
@@ -120,6 +130,12 @@ export function IAPhotoStep({
   return (
     <main className="grow flex flex-col px-6 py-8 md:py-10 animate-in fade-in duration-500">
       <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
+        {title && (
+          <h1 className="mb-4 font-display text-2xl font-black text-slate-dark md:text-3xl">
+            {title}
+          </h1>
+        )}
+        {notice}
         <IAStyleBanner
           styleName={styleName}
           styleImg={styleImg}
@@ -258,7 +274,7 @@ export function IAPhotoStep({
                   : "cursor-not-allowed bg-slate-200 text-slate-400"
               }`}
             >
-              {submitting ? "Creando tu arte…" : "Continuar"}
+              {submitting ? "Creando tu arte…" : continueLabel}
             </button>
             {hint && (
               <p className="mt-2 text-center text-xs text-slate-400">{hint}</p>

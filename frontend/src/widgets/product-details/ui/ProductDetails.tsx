@@ -25,6 +25,7 @@ import {
   getTypeOptionName,
 } from "@/entities/product/lib/typeOptions";
 import type { FrameStyle } from "@/entities/product/lib/frameStyle";
+import type { BundleQuantity } from "@/entities/product/lib/bundle";
 
 interface ProductDetailsProps {
   product: ShopifyProduct;
@@ -60,7 +61,7 @@ export default function ProductDetails({
 }: ProductDetailsProps) {
   // Nota bajo el CTA: sin sesión la primera vista previa es gratis (crédito
   // de invitado); con cuenta o con un invitado que ya la usó, cuesta 1 crédito.
-  const { hasSession, isLoading: isAuthLoading } = useAuth();
+  const { hasSession, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const selectedVariant = product.variants.edges.find(
     (v) => v.node.id === selectedVariantId,
@@ -158,6 +159,10 @@ export default function ProductDetails({
 
   const userSelections = selectionsState.values;
 
+  // Cantidad preseleccionada en "Más mascotas, mejor precio": el CTA la lleva a
+  // `/create` como `qty` y la vista previa la propone de nuevo.
+  const [bundleQuantity, setBundleQuantity] = useState<BundleQuantity>(1);
+
   const hasOptions =
     detailedStyle?.templateVarOptions &&
     Object.keys(detailedStyle.templateVarOptions).length > 0;
@@ -189,6 +194,8 @@ export default function ProductDetails({
             product={product}
             selectedVariant={selectedVariant}
             template={template}
+            bundleQuantity={bundleQuantity}
+            onBundleQuantityChange={setBundleQuantity}
             actions={
               <div className="flex flex-col gap-6">
                 {sizeOptionName && (
@@ -242,6 +249,7 @@ export default function ProductDetails({
                   hasBackendMapping={hasBackendMapping}
                   backendError={formatsError}
                   userSelections={hasOptions ? userSelections : undefined}
+                  bundleQuantity={bundleQuantity}
                   stickyBar={stickyCta}
                 />
 
@@ -254,7 +262,13 @@ export default function ProductDetails({
                       <span className="material-symbols-outlined text-[18px] text-primary">
                         auto_awesome
                       </span>
-                      {hasSession ? (
+                      {bundleQuantity > 1 && !isAuthenticated ? (
+                        // Mismo criterio que el CTA: el bundle pide cuenta.
+                        <span className="font-body">
+                          Regístrate gratis con Google ·{" "}
+                          <span className="font-bold text-primary">sin tarjeta</span>
+                        </span>
+                      ) : hasSession ? (
                         <span className="font-body">
                           Cada vista previa usa{" "}
                           <span className="font-bold text-primary">1 crédito</span>

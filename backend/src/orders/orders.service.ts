@@ -21,6 +21,7 @@ import {
 } from './production-status.util';
 import { orderItemKind } from './order-item-kind.util';
 import { GuestAccountService } from '../users/guest-account.service';
+import { lineItemAmounts } from './line-item-amounts.util';
 
 @Injectable()
 export class OrdersService {
@@ -632,6 +633,8 @@ export class OrdersService {
     }
 
     const effectiveImageUrl = imageUrl;
+    // Con los descuentos de la línea (bundle "2/3 Mascotas"): lo cobrado.
+    const amounts = lineItemAmounts(lineItem);
 
     // Estado inicial: auto-asignado desde pago + generación del arte (solo al crear).
     // Los credit packs son digitales: no entran a la cola de producción, así que
@@ -660,8 +663,7 @@ export class OrdersService {
         variantTitle: lineItem.variant_title ?? undefined,
         sku: lineItem.sku ?? undefined,
         quantity: lineItem.quantity,
-        unitPrice: new Prisma.Decimal(lineItem.price),
-        totalPrice: new Prisma.Decimal(lineItem.price).mul(lineItem.quantity),
+        ...amounts,
         imageUrl: effectiveImageUrl ?? undefined,
         style: style ?? undefined,
         size: size ?? undefined,
@@ -705,8 +707,7 @@ export class OrdersService {
           variantTitle: lineItem.variant_title ?? null,
           sku: lineItem.sku ?? null,
           quantity: lineItem.quantity,
-          unitPrice: new Prisma.Decimal(lineItem.price),
-          totalPrice: new Prisma.Decimal(lineItem.price).mul(lineItem.quantity),
+          ...amounts,
           imageUrl: effectiveImageUrl,
           style,
           size,
