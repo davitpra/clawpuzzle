@@ -29,7 +29,7 @@ import {
   type ReusablePortrait,
 } from "../model/useReusablePortraits";
 import type { Pet } from "./upload-step/types";
-import { BundleProgressStrip } from "./BundleProgressStrip";
+import { BundlePieceWatchers, BundleProgressIndicator } from "./BundleProgress";
 import { BundleReviewStep } from "./BundleReviewStep";
 import { IAHeader } from "./IAHeader";
 import type { PuzzleOffer } from "./IAGeneratingStep";
@@ -116,6 +116,19 @@ export function BundleFlow({
   const [editing, setEditing] = useState<number | null>(null);
   const [busy, setBusy] = useState<Record<number, boolean>>({});
   const [errors, setErrors] = useState<Record<number, string>>({});
+  // Generaciones del pedido que fallaron mientras se armaban las demás.
+  const [failedIds, setFailedIds] = useState<string[]>([]);
+  const handleFailedChange = useCallback((generationId: string, failed: boolean) => {
+    setFailedIds((ids) =>
+      failed
+        ? ids.includes(generationId)
+          ? ids
+          : [...ids, generationId]
+        : ids.includes(generationId)
+          ? ids.filter((id) => id !== generationId)
+          : ids,
+    );
+  }, []);
 
   // Foto en curso. Cada rompecabezas empieza sin mascota elegida: lo normal es
   // que sea otra; la del anterior sigue a un clic en "O elige una que ya subiste".
@@ -371,20 +384,35 @@ export function BundleFlow({
         ? headerTotal
         : step.index * 2 + (step.kind === "style" ? 1 : 2);
 
-  // Con más de uno, la tira de miniaturas (no al cambiar el estilo de uno ya
-  // creado: ahí se vuelve a la galería).
-  const progressStrip =
-    order && step && step.kind !== "review" && count > 1 && editing === null ? (
-      <BundleProgressStrip
-        pieces={order.pieces}
-        currentIndex={step.index}
-        onReady={handleReady}
-      />
-    ) : null;
+  // Con más de uno, el indicador del pedido en la cabecera (no al cambiar el
+  // estilo de uno ya creado: ahí se vuelve a la galería).
+  const progressIndex =
+    order && step && step.kind !== "review" && count > 1 && editing === null
+      ? step.index
+      : null;
 
   return (
     <>
-      <IAHeader step={headerStep} totalSteps={headerTotal} />
+      <IAHeader
+        step={headerStep}
+        totalSteps={headerTotal}
+        indicator={
+          order && progressIndex !== null ? (
+            <BundleProgressIndicator
+              pieces={order.pieces}
+              currentIndex={progressIndex}
+              failedIds={failedIds}
+            />
+          ) : null
+        }
+      />
+      {order && progressIndex !== null && (
+        <BundlePieceWatchers
+          pieces={order.pieces}
+          onReady={handleReady}
+          onFailedChange={handleFailedChange}
+        />
+      )}
 
       {!order || !step ? (
         <div className="flex flex-1 items-center justify-center">
@@ -401,7 +429,7 @@ export function BundleFlow({
           eyebrow={
             editing !== null
               ? `Nuevo estilo para el rompecabezas ${step.index + 1}`
-              : `Rompecabezas ${step.index + 1} de ${count}`
+              : null
           }
           themeSwitch={
             shopifyProduct ? (
@@ -409,6 +437,7 @@ export function BundleFlow({
                 product={shopifyProduct}
                 selectedVariantId={piece.variantId}
                 onVariantChange={(variantId) => update(step.index, { variantId })}
+                hideLabels
               />
             ) : null
           }
@@ -422,9 +451,8 @@ export function BundleFlow({
             ) : null
           }
           notice={
-            progressStrip || editing !== null || previewsNotice ? (
+            editing !== null || previewsNotice ? (
               <>
-                {progressStrip}
                 {/* Los anteriores ya se están creando: se cambian desde la
                     galería, no volviendo atrás. */}
                 {editing !== null && (
@@ -442,14 +470,7 @@ export function BundleFlow({
         <IAPhotoStep
           key={`photo-${step.index}`}
           title={`Foto para el rompecabezas ${step.index + 1} de ${count}`}
-          notice={
-            progressStrip || previewsNotice ? (
-              <>
-                {progressStrip}
-                {previewsNotice}
-              </>
-            ) : null
-          }
+          notice={previewsNotice}
           continueLabel={
             step.index + 1 < count
               ? `Continuar con el rompecabezas ${step.index + 2}`

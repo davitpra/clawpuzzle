@@ -11,6 +11,8 @@ interface SegmentedSwitchProps {
   onChange: (value: string) => void;
   /** Oculta la fila de título por debajo de `lg`, igual que `OptionChips`. */
   hideHeaderOnMobile?: boolean;
+  /** Sin fila de título en ningún tamaño (el contexto ya dice qué se elige). */
+  hideHeader?: boolean;
 }
 
 /**
@@ -26,6 +28,7 @@ export default function SegmentedSwitch({
   options,
   onChange,
   hideHeaderOnMobile = false,
+  hideHeader = false,
 }: SegmentedSwitchProps) {
   const selectedIndex = options.findIndex((o) => o.value === value);
   const selectedLabel = options[selectedIndex]?.label;
@@ -33,7 +36,7 @@ export default function SegmentedSwitch({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className={`${hideHeaderOnMobile ? "hidden lg:flex" : "flex"} items-baseline justify-between gap-4`}
+        className={`${hideHeader ? "hidden" : hideHeaderOnMobile ? "hidden lg:flex" : "flex"} items-baseline justify-between gap-4`}
       >
         <span className="text-sm font-black uppercase tracking-widest text-text-muted">
           {label}
