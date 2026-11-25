@@ -89,12 +89,18 @@ function PieceThumb({
   index,
   isCurrent,
   failed,
+  large,
 }: {
   piece: BundlePiece;
   index: number;
   isCurrent: boolean;
   failed: boolean;
+  large: boolean;
 }) {
+  const badge = `absolute -bottom-0.5 -right-0.5 flex items-center justify-center rounded-full text-white ring-2 ring-white ${
+    large ? "size-4" : "size-3.5"
+  }`;
+
   const isGenerating = !!piece.generationId && !piece.imageUrl && !failed;
   const thumb = isCurrent
     ? null
@@ -113,7 +119,7 @@ function PieceThumb({
                 ? "creándose"
                 : "después"
       }`}
-      className={`relative flex aspect-2/3 w-7 shrink-0 items-center justify-center rounded-md ${
+      className={`relative flex aspect-2/3 shrink-0 items-center justify-center rounded-md ${large ? "w-10" : "w-7"} ${
         thumb
           ? "overflow-hidden bg-[#EFEAE1]"
           : isCurrent
@@ -132,7 +138,7 @@ function PieceThumb({
       )}
       {!thumb && (
         <span
-          className={`font-display text-sm font-black ${isCurrent ? "text-slate-dark" : "text-text-muted"}`}
+          className={`font-display font-black ${large ? "text-base" : "text-sm"} ${isCurrent ? "text-slate-dark" : "text-text-muted"}`}
         >
           {index + 1}
         </span>
@@ -145,12 +151,12 @@ function PieceThumb({
         </span>
       )}
       {piece.imageUrl && !isCurrent && (
-        <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-green-600 text-white ring-2 ring-white">
+        <span className={`${badge} bg-green-600`}>
           <span className="material-symbols-outlined text-[10px] font-bold">check</span>
         </span>
       )}
       {failed && !isCurrent && (
-        <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-red-600 text-white ring-2 ring-white">
+        <span className={`${badge} bg-red-600`}>
           <span className="material-symbols-outlined text-[10px] font-bold">priority_high</span>
         </span>
       )}
@@ -160,17 +166,21 @@ function PieceThumb({
 
 /**
  * "Rompecabezas 2 de 2 · El primero ya está listo" con una miniatura por
- * pieza: va en la cabecera del pedido mientras se eligen estilo y foto.
+ * pieza: va en la cabecera del pedido mientras se elige el estilo y, en
+ * tamaño `lg`, sobre el estilo en el paso de la foto (`IAStyleBanner`).
  */
 export function BundleProgressIndicator({
   pieces,
   currentIndex,
   failedIds,
+  size = "sm",
 }: {
   pieces: BundlePiece[];
   currentIndex: number;
   failedIds: string[];
+  size?: "sm" | "lg";
 }) {
+  const large = size === "lg";
   return (
     <div className="flex min-w-0 items-center gap-3">
       <ol aria-label="Tus rompecabezas" className="flex items-center gap-1.5">
@@ -181,14 +191,17 @@ export function BundleProgressIndicator({
             index={i}
             isCurrent={i === currentIndex}
             failed={!!piece.generationId && failedIds.includes(piece.generationId)}
+            large={large}
           />
         ))}
       </ol>
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-bold text-slate-dark">
+        <span
+          className={`truncate font-bold text-slate-dark ${large ? "font-display text-lg" : "text-sm"}`}
+        >
           Rompecabezas {currentIndex + 1} de {pieces.length}
         </span>
-        <span className="truncate text-xs text-text-muted">
+        <span className={`truncate text-text-muted ${large ? "text-sm" : "text-xs"}`}>
           {summary(pieces, currentIndex, failedIds)}
         </span>
       </div>

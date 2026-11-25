@@ -384,27 +384,29 @@ export function BundleFlow({
         ? headerTotal
         : step.index * 2 + (step.kind === "style" ? 1 : 2);
 
-  // Con más de uno, el indicador del pedido en la cabecera (no al cambiar el
-  // estilo de uno ya creado: ahí se vuelve a la galería).
+  // Con más de uno, el indicador del pedido (no al cambiar el estilo de uno ya
+  // creado: ahí se vuelve a la galería). En el paso del estilo va en la
+  // cabecera; en el de la foto, dentro de la tarjeta del estilo.
   const progressIndex =
     order && step && step.kind !== "review" && count > 1 && editing === null
       ? step.index
       : null;
+  const progressFor = (size: "sm" | "lg") =>
+    order && progressIndex !== null ? (
+      <BundleProgressIndicator
+        pieces={order.pieces}
+        currentIndex={progressIndex}
+        failedIds={failedIds}
+        size={size}
+      />
+    ) : null;
 
   return (
     <>
       <IAHeader
         step={headerStep}
         totalSteps={headerTotal}
-        indicator={
-          order && progressIndex !== null ? (
-            <BundleProgressIndicator
-              pieces={order.pieces}
-              currentIndex={progressIndex}
-              failedIds={failedIds}
-            />
-          ) : null
-        }
+        indicator={step?.kind === "photo" ? null : progressFor("sm")}
       />
       {order && progressIndex !== null && (
         <BundlePieceWatchers
@@ -469,7 +471,7 @@ export function BundleFlow({
       ) : step.kind === "photo" && piece ? (
         <IAPhotoStep
           key={`photo-${step.index}`}
-          title={`Foto para el rompecabezas ${step.index + 1} de ${count}`}
+          progress={progressFor("lg")}
           notice={previewsNotice}
           continueLabel={
             step.index + 1 < count
